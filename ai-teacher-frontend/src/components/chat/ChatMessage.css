@@ -1,0 +1,249 @@
+.chat-message {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+}
+
+.ai-message {
+  flex-direction: row;
+}
+
+.student-message {
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  flex-shrink: 0;
+}
+
+.message-body {
+  max-width: 70%;
+  min-width: 120px;
+}
+
+.ai-message .message-body {
+  align-items: flex-start;
+}
+
+.student-message .message-body {
+  align-items: flex-end;
+}
+
+.message-sender {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.student-message .message-sender {
+  text-align: right;
+}
+
+.message-content {
+  padding: 12px 16px;
+  border-radius: 12px;
+  word-break: break-word;
+}
+
+.ai-message .message-content {
+  background: var(--ai-message-bg);
+  border-left: 4px solid var(--primary-color);
+  border-radius: 0 12px 12px 12px;
+}
+
+.student-message .message-content {
+  background: var(--student-message-bg);
+  border-right: 4px solid var(--success-color);
+  border-radius: 12px 0 12px 12px;
+}
+
+.message-text {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.message-time {
+  font-size: 11px;
+  color: var(--text-placeholder);
+  margin-top: 4px;
+}
+
+.student-message .message-time {
+  text-align: right;
+}
+
+/* 老师提问样式 - 带动效 */
+.message-teacher-question {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.question-icon-pulse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  color: white;
+  font-size: 18px;
+  animation: pulse 2s infinite;
+  margin-bottom: 4px;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(102, 126, 234, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+  }
+}
+
+.question-text {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.question-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--primary-color);
+  background: rgba(102, 126, 234, 0.1);
+  padding: 8px 12px;
+  border-radius: 8px;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.hint-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 选择题样式 */
+.message-question {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.question-content {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.question-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.question-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.question-option:hover {
+  border-color: var(--primary-color);
+  background: #f0f7ff;
+}
+
+.question-option.selected {
+  border-color: var(--primary-color);
+  background: #e6f4ff;
+}
+
+.option-check {
+  color: var(--primary-color);
+  font-size: 14px;
+}
+
+/* 反馈样式 */
+.message-feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.message-feedback.correct {
+  color: var(--success-color);
+}
+
+.message-feedback.incorrect {
+  color: var(--error-color);
+}
+
+.feedback-icon {
+  font-size: 18px;
+}
+
+/* 淡入动画 */
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .message-body {
+    max-width: 85%;
+  }
+  
+  .chat-message {
+    padding: 12px 16px;
+  }
+}

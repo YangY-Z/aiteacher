@@ -1,0 +1,41 @@
+{
+  "students": [
+    {
+      "id": 1,
+      "name": "赵阳阳01",
+      "grade": "初一",
+      "password_hash": "7183ebd3b5c43c8b73f91ff8a94060f8$84ae782b16167292c7c61ff38b68b0be20b7c3591c10713a1bb4122dbbb57119",
+      "phone": "17866812222",
+      "avatar_url": null,
+      "status": "active",
+      "last_login_at": "2026-03-16T21:47:09.870043",
+      "created_at": "2026-03-16T16:43:29.844085",
+      "updated_at": "2026-03-16T21:47:09.870202"
+    }
+  ],
+  "next_id": 1,
+  "profiles": [
+    {
+      "id": 1,
+      "student_id": 1,
+      "course_id": "MATH_JUNIOR_01",
+      "current_kp_id": "K4",
+      "completed_kp_ids": [
+        "K4"
+      ],
+      "mastered_kp_ids": [
+        "K1",
+        "K3"
+      ],
+      "skipped_kp_ids": [],
+      "mastery_rate": 0.0625,
+      "total_time": 0,
+      "session_count": 0,
+      "last_session_at": null,
+      "created_at": "2026-03-16T21:49:11.136918",
+      "updated_at": "2026-03-16T21:52:02.634265"
+    }
+  ],
+  "next_profile_id": 1,
+  "updated_at": "2026-03-16T21:52:02.636167"
+}

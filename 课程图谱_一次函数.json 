@@ -1,0 +1,653 @@
+{
+  "course": {
+    "id": "MATH_JUNIOR_01",
+    "name": "一次函数",
+    "grade": "初一",
+    "subject": "数学",
+    "description": "初一数学一次函数单元，包含函数基础概念、一次函数定义、图象与性质、综合应用等内容",
+    "total_knowledge_points": 32,
+    "estimated_hours": 12,
+    "knowledge_points": [
+      {
+        "id": "K1",
+        "name": "坐标系",
+        "type": "概念",
+        "description": "平面直角坐标系的建立，包括x轴、y轴、原点的概念",
+        "level": 0,
+        "dependencies": [],
+        "mastery_criteria": {
+          "type": "concept_check",
+          "method": "选择题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解结束"]
+        },
+        "key_points": ["x轴（横轴）", "y轴（纵轴）", "原点", "坐标平面"]
+      },
+      {
+        "id": "K2",
+        "name": "点的坐标",
+        "type": "技能",
+        "description": "用有序数对(x,y)表示平面上点的位置",
+        "level": 1,
+        "dependencies": ["K1"],
+        "mastery_criteria": {
+          "type": "skill_check",
+          "method": "填空题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["横坐标", "纵坐标", "有序数对", "点与坐标的对应"]
+      },
+      {
+        "id": "K3",
+        "name": "象限",
+        "type": "概念",
+        "description": "坐标平面被两轴分成四个象限及其特征",
+        "level": 0,
+        "dependencies": ["K1"],
+        "mastery_criteria": {
+          "type": "concept_check",
+          "method": "选择题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解结束"]
+        },
+        "key_points": ["第一象限", "第二象限", "第三象限", "第四象限", "各象限坐标符号特征"]
+      },
+      {
+        "id": "K4",
+        "name": "变量",
+        "type": "概念",
+        "description": "可以取不同数值的量",
+        "level": 0,
+        "dependencies": [],
+        "mastery_criteria": {
+          "type": "concept_check",
+          "method": "判断题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": false,
+          "question_positions": []
+        },
+        "key_points": ["变量的定义", "生活中的变量例子"]
+      },
+      {
+        "id": "K5",
+        "name": "常量",
+        "type": "概念",
+        "description": "数值固定不变的量",
+        "level": 0,
+        "dependencies": [],
+        "mastery_criteria": {
+          "type": "concept_check",
+          "method": "判断题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": false,
+          "question_positions": []
+        },
+        "key_points": ["常量的定义", "变量与常量的区别"]
+      },
+      {
+        "id": "K6",
+        "name": "函数定义",
+        "type": "概念",
+        "description": "设x和y是两个变量，若x每取一个值，y都有唯一确定的值与之对应，则y是x的函数",
+        "level": 1,
+        "dependencies": ["K4", "K5", "K1"],
+        "mastery_criteria": {
+          "type": "concept_check",
+          "method": "选择题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["函数的定义", "唯一确定性", "对应关系"]
+      },
+      {
+        "id": "K7",
+        "name": "自变量与因变量",
+        "type": "概念",
+        "description": "主动变化的量为自变量，随之变化的量为因变量",
+        "level": 2,
+        "dependencies": ["K6"],
+        "mastery_criteria": {
+          "type": "concept_check",
+          "method": "选择题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解结束"]
+        },
+        "key_points": ["自变量（输入）", "因变量（输出）", "因果关系"]
+      },
+      {
+        "id": "K8",
+        "name": "函数的定义域",
+        "type": "概念",
+        "description": "自变量x允许取值的范围",
+        "level": 2,
+        "dependencies": ["K6"],
+        "mastery_criteria": {
+          "type": "skill_check",
+          "method": "填空题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解结束"]
+        },
+        "key_points": ["定义域的概念", "常见函数的定义域", "实际问题中的定义域"]
+      },
+      {
+        "id": "K9",
+        "name": "函数值",
+        "type": "技能",
+        "description": "当x取某值时，y对应的值",
+        "level": 2,
+        "dependencies": ["K6"],
+        "mastery_criteria": {
+          "type": "skill_check",
+          "method": "计算题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["函数值的计算", "代入求值", "函数值表"]
+      },
+      {
+        "id": "K10",
+        "name": "函数解析式",
+        "type": "概念",
+        "description": "用数学式子表示函数关系",
+        "level": 2,
+        "dependencies": ["K6"],
+        "mastery_criteria": {
+          "type": "concept_check",
+          "method": "选择题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解结束"]
+        },
+        "key_points": ["解析式的定义", "y=f(x)的表示方法", "解析式与函数的关系"]
+      },
+      {
+        "id": "K11",
+        "name": "函数的三种表示法",
+        "type": "技能",
+        "description": "解析式法、列表法、图象法",
+        "level": 2,
+        "dependencies": ["K10", "K1"],
+        "mastery_criteria": {
+          "type": "skill_check",
+          "method": "选择题",
+          "question_count": 3,
+          "pass_threshold": 2
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["解析式法", "列表法", "图象法", "三种方法的优缺点", "三种方法的转化"]
+      },
+      {
+        "id": "K12",
+        "name": "正比例函数定义",
+        "type": "概念",
+        "description": "y=kx(k≠0)形式的函数",
+        "level": 3,
+        "dependencies": ["K6", "K10"],
+        "mastery_criteria": {
+          "type": "concept_check",
+          "method": "选择题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["正比例函数的定义", "y=kx的形式", "k≠0的条件", "比例系数k"]
+      },
+      {
+        "id": "K13",
+        "name": "正比例函数图象",
+        "type": "技能",
+        "description": "正比例函数图象是过原点的直线",
+        "level": 3,
+        "dependencies": ["K11", "K12"],
+        "mastery_criteria": {
+          "type": "skill_check",
+          "method": "作图题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["过原点的直线", "两点确定直线", "描点法画图"]
+      },
+      {
+        "id": "K14",
+        "name": "正比例函数性质",
+        "type": "公式",
+        "description": "k>0过一三象限且递增；k<0过二四象限且递减",
+        "level": 3,
+        "dependencies": ["K12", "K3"],
+        "mastery_criteria": {
+          "type": "formula_check",
+          "method": "选择题",
+          "question_count": 3,
+          "pass_threshold": 2
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["k>0时的性质", "k<0时的性质", "增减性", "图象位置"]
+      },
+      {
+        "id": "K15",
+        "name": "一次函数定义",
+        "type": "概念",
+        "description": "y=kx+b(k≠0)形式的函数",
+        "level": 3,
+        "dependencies": ["K10", "K12"],
+        "mastery_criteria": {
+          "type": "concept_check",
+          "method": "选择题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["一次函数的定义", "y=kx+b的形式", "k≠0的条件", "k和b的含义"]
+      },
+      {
+        "id": "K16",
+        "name": "一次函数与正比例函数关系",
+        "type": "概念",
+        "description": "当b=0时，一次函数退化为正比例函数",
+        "level": 3,
+        "dependencies": ["K15"],
+        "mastery_criteria": {
+          "type": "concept_check",
+          "method": "判断题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解结束"]
+        },
+        "key_points": ["b=0的特殊情况", "正比例函数是一次函数的特例", "从属关系"]
+      },
+      {
+        "id": "K17",
+        "name": "描点法画函数图象",
+        "type": "技能",
+        "description": "列表、描点、连线的作图方法",
+        "level": 4,
+        "dependencies": ["K11", "K2"],
+        "mastery_criteria": {
+          "type": "skill_check",
+          "method": "作图题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["列表", "描点", "连线", "选点的技巧"]
+      },
+      {
+        "id": "K18",
+        "name": "一次函数图象特征",
+        "type": "技能",
+        "description": "一次函数图象是一条直线",
+        "level": 4,
+        "dependencies": ["K15"],
+        "mastery_criteria": {
+          "type": "skill_check",
+          "method": "选择题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解结束"]
+        },
+        "key_points": ["图象是直线", "直线与x轴、y轴的位置关系"]
+      },
+      {
+        "id": "K19",
+        "name": "两点确定直线",
+        "type": "技能",
+        "description": "画一次函数图象只需描出两点连线",
+        "level": 4,
+        "dependencies": ["K17"],
+        "mastery_criteria": {
+          "type": "skill_check",
+          "method": "作图题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["两点法", "常用特殊点", "与坐标轴的交点"]
+      },
+      {
+        "id": "K20",
+        "name": "截距概念",
+        "type": "概念",
+        "description": "直线与y轴交点的纵坐标，即b的值",
+        "level": 4,
+        "dependencies": ["K15"],
+        "mastery_criteria": {
+          "type": "concept_check",
+          "method": "填空题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["截距的定义", "截距与b的关系", "截距的正负"]
+      },
+      {
+        "id": "K21",
+        "name": "斜率概念",
+        "type": "概念",
+        "description": "直线倾斜程度的度量，即k的值",
+        "level": 4,
+        "dependencies": ["K15"],
+        "mastery_criteria": {
+          "type": "concept_check",
+          "method": "填空题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["斜率的定义", "斜率与k的关系", "斜率的几何意义"]
+      },
+      {
+        "id": "K22",
+        "name": "k对图象方向的影响",
+        "type": "公式",
+        "description": "k>0从左向右上升；k<0从左向右下降",
+        "level": 4,
+        "dependencies": ["K18", "K21"],
+        "mastery_criteria": {
+          "type": "formula_check",
+          "method": "选择题",
+          "question_count": 3,
+          "pass_threshold": 2
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["k>0上升", "k<0下降", "k的绝对值与陡峭程度"]
+      },
+      {
+        "id": "K23",
+        "name": "b对图象位置的影响",
+        "type": "公式",
+        "description": "b>0与y轴交于正半轴；b<0交于负半轴",
+        "level": 4,
+        "dependencies": ["K20"],
+        "mastery_criteria": {
+          "type": "formula_check",
+          "method": "选择题",
+          "question_count": 3,
+          "pass_threshold": 2
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["b>0向上平移", "b<0向下平移", "b=0过原点"]
+      },
+      {
+        "id": "K24",
+        "name": "一次函数增减性",
+        "type": "公式",
+        "description": "k>0时y随x增大而增大；k<0时y随x增大而减小",
+        "level": 4,
+        "dependencies": ["K21", "K18"],
+        "mastery_criteria": {
+          "type": "formula_check",
+          "method": "选择题",
+          "question_count": 3,
+          "pass_threshold": 2
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["k>0递增", "k<0递减", "增减性与k的关系"]
+      },
+      {
+        "id": "K25",
+        "name": "平移变换",
+        "type": "技能",
+        "description": "上下平移改变b值，左右平移改变x",
+        "level": 5,
+        "dependencies": ["K18", "K20"],
+        "mastery_criteria": {
+          "type": "skill_check",
+          "method": "填空题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["上下平移规律", "左右平移规律", "平移口诀"]
+      },
+      {
+        "id": "K26",
+        "name": "k与b的综合判断",
+        "type": "技能",
+        "description": "根据k、b符号判断图象经过的象限",
+        "level": 4,
+        "dependencies": ["K22", "K23", "K3"],
+        "mastery_criteria": {
+          "type": "skill_check",
+          "method": "选择题",
+          "question_count": 3,
+          "pass_threshold": 2
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["k>0,b>0", "k>0,b<0", "k<0,b>0", "k<0,b<0", "各情况经过的象限"]
+      },
+      {
+        "id": "K27",
+        "name": "待定系数法",
+        "type": "技能",
+        "description": "设出函数解析式，代入条件求k、b",
+        "level": 6,
+        "dependencies": ["K15", "K9"],
+        "mastery_criteria": {
+          "type": "skill_check",
+          "method": "计算题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["设解析式", "代入条件", "解方程组", "求k和b"]
+      },
+      {
+        "id": "K28",
+        "name": "由图象求解析式",
+        "type": "技能",
+        "description": "从图象上读取点坐标，用待定系数法求解析式",
+        "level": 6,
+        "dependencies": ["K27", "K19"],
+        "mastery_criteria": {
+          "type": "skill_check",
+          "method": "计算题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["读取点坐标", "选择合适的点", "代入求解析式"]
+      },
+      {
+        "id": "K29",
+        "name": "求交点坐标",
+        "type": "技能",
+        "description": "联立两一次函数解析式求解方程组",
+        "level": 6,
+        "dependencies": ["K27"],
+        "mastery_criteria": {
+          "type": "skill_check",
+          "method": "计算题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["联立方程组", "解方程组", "交点的几何意义"]
+      },
+      {
+        "id": "K30",
+        "name": "实际问题建模",
+        "type": "技能",
+        "description": "将实际问题转化为一次函数求解",
+        "level": 6,
+        "dependencies": ["K15", "K28"],
+        "mastery_criteria": {
+          "type": "skill_check",
+          "method": "应用题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["审题", "设变量", "列解析式", "求解", "检验答案"]
+      },
+      {
+        "id": "K31",
+        "name": "一次函数与方程的关系",
+        "type": "概念",
+        "description": "求ax+b=0的解等价于求y=ax+b与x轴交点横坐标",
+        "level": 6,
+        "dependencies": ["K18"],
+        "mastery_criteria": {
+          "type": "concept_check",
+          "method": "选择题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["方程的解与图象交点", "数形结合思想"]
+      },
+      {
+        "id": "K32",
+        "name": "一次函数与不等式的关系",
+        "type": "概念",
+        "description": "图象在x轴上方/下方对应的x范围即为不等式解集",
+        "level": 6,
+        "dependencies": ["K18"],
+        "mastery_criteria": {
+          "type": "concept_check",
+          "method": "选择题",
+          "question_count": 2,
+          "pass_threshold": 1
+        },
+        "teaching_config": {
+          "use_examples": true,
+          "ask_questions": true,
+          "question_positions": ["讲解中段", "讲解结束"]
+        },
+        "key_points": ["不等式解集与图象位置", "数形结合思想", "ax+b>0和ax+b<0的解法"]
+      }
+    ]
+  }
+}

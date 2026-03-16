@@ -1,0 +1,1243 @@
+{
+  "course_id": "MATH_JUNIOR_01",
+  "course_name": "一次函数",
+  "version": "1.0",
+  "assessment_bank": [
+    {
+      "knowledge_point_id": "K1",
+      "knowledge_point_name": "坐标系",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K1_Q1",
+          "type": "选择题",
+          "content": "在平面直角坐标系中，水平方向的数轴叫做什么？",
+          "options": [
+            "A. x轴（横轴）",
+            "B. y轴（纵轴）",
+            "C. 原点",
+            "D. 坐标轴"
+          ],
+          "correct_answer": "A",
+          "explanation": "水平方向的数轴叫做x轴（也叫横轴），垂直方向的数轴叫做y轴（也叫纵轴）。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K1_Q2",
+          "type": "选择题",
+          "content": "平面直角坐标系的两条数轴的交点叫做什么？",
+          "options": [
+            "A. 坐标点",
+            "B. 原点",
+            "C. 交点",
+            "D. 零点"
+          ],
+          "correct_answer": "B",
+          "explanation": "两条数轴的交点叫做原点，通常用字母O表示。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K2",
+      "knowledge_point_name": "点的坐标",
+      "knowledge_point_type": "技能",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K2_Q1",
+          "type": "填空题",
+          "content": "点P(3, -2)的横坐标是___，纵坐标是___。",
+          "correct_answer": ["3", "-2"],
+          "explanation": "在点(x, y)中，x是横坐标，y是纵坐标。所以P(3, -2)的横坐标是3，纵坐标是-2。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K2_Q2",
+          "type": "选择题",
+          "content": "在平面直角坐标系中，点(-2, 3)位于第几象限？",
+          "options": [
+            "A. 第一象限",
+            "B. 第二象限",
+            "C. 第三象限",
+            "D. 第四象限"
+          ],
+          "correct_answer": "B",
+          "explanation": "点(-2, 3)的横坐标为负，纵坐标为正，位于第二象限。口诀：一正正，二负正，三负负，四正负。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K3",
+      "knowledge_point_name": "象限",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K3_Q1",
+          "type": "选择题",
+          "content": "在第一象限内的点，其坐标符号特征是什么？",
+          "options": [
+            "A. (+, +)",
+            "B. (-, +)",
+            "C. (-, -)",
+            "D. (+, -)"
+          ],
+          "correct_answer": "A",
+          "explanation": "第一象限内的点，横坐标和纵坐标都是正数，即符号为(+, +)。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K3_Q2",
+          "type": "选择题",
+          "content": "点P(-3, -5)位于哪个象限？",
+          "options": [
+            "A. 第一象限",
+            "B. 第二象限",
+            "C. 第三象限",
+            "D. 第四象限"
+          ],
+          "correct_answer": "C",
+          "explanation": "点P(-3, -5)的横坐标和纵坐标都为负，位于第三象限。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K4",
+      "knowledge_point_name": "变量",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K4_Q1",
+          "type": "判断题",
+          "content": "小明骑自行车上学，骑行的距离随着时间变化，这里时间是变量。",
+          "correct_answer": "正确",
+          "explanation": "时间可以取不同的值，随着骑行的进行，时间在不断变化，所以时间是变量。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K4_Q2",
+          "type": "判断题",
+          "content": "在公式S = πr²中（π取3.14），π是变量。",
+          "correct_answer": "错误",
+          "explanation": "π是一个固定的常数（约等于3.14159...），它的值不会改变，所以π是常量，不是变量。变量是r和S。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K5",
+      "knowledge_point_name": "常量",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K5_Q1",
+          "type": "判断题",
+          "content": "圆的周长公式C = 2πr中，2和π都是常量。",
+          "correct_answer": "正确",
+          "explanation": "2是一个固定的数，π也是一个固定的常数（约3.14159...），它们的值不会改变，所以都是常量。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K5_Q2",
+          "type": "选择题",
+          "content": "在路程公式s = vt中，如果研究不同速度下的路程变化，下列说法正确的是：",
+          "options": [
+            "A. s和v是变量，t是常量",
+            "B. s和t是变量，v是常量",
+            "C. s、v、t都是变量",
+            "D. s、v、t都是常量"
+          ],
+          "correct_answer": "A",
+          "explanation": "如果研究不同速度下的路程变化，那么速度v和路程s会变化，是变量；而时间t保持不变，是常量。",
+          "difficulty": "中等"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K6",
+      "knowledge_point_name": "函数定义",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K6_Q1",
+          "type": "选择题",
+          "content": "下列说法正确的是：",
+          "options": [
+            "A. 对于x的每一个值，y都有唯一的值与之对应，则y是x的函数",
+            "B. 对于x的每一个值，y都有多个值与之对应，则y是x的函数",
+            "C. 函数中一个y值只能对应一个x值",
+            "D. 函数中x和y必须都是正数"
+          ],
+          "correct_answer": "A",
+          "explanation": "函数的定义是：对于x的每一个值，y都有唯一确定的值与之对应。关键点是\"唯一确定\"。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K6_Q2",
+          "type": "选择题",
+          "content": "下列关系中，y是x的函数的是：",
+          "options": [
+            "A. y² = x（x ≥ 0）",
+            "B. y = |x|",
+            "C. |y| = x（x ≥ 0）",
+            "D. x = y²"
+          ],
+          "correct_answer": "B",
+          "explanation": "对于y = |x|，每一个x都有唯一确定的y值与之对应，符合函数定义。其他选项中，一个x可能对应多个y值。",
+          "difficulty": "中等"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K7",
+      "knowledge_point_name": "自变量与因变量",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K7_Q1",
+          "type": "选择题",
+          "content": "在函数y = 3x + 2中，自变量是：",
+          "options": [
+            "A. y",
+            "B. x",
+            "C. 3",
+            "D. 2"
+          ],
+          "correct_answer": "B",
+          "explanation": "在函数关系中，主动变化的量叫做自变量，随之变化的量叫做因变量。在y = 3x + 2中，x是自变量，y是因变量。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K7_Q2",
+          "type": "选择题",
+          "content": "小明用20元钱买单价为2元的笔记本，设买x本，剩余y元。在这个问题中：",
+          "options": [
+            "A. x是因变量，y是自变量",
+            "B. x是自变量，y是因变量",
+            "C. x和y都是自变量",
+            "D. x和y都是因变量"
+          ],
+          "correct_answer": "B",
+          "explanation": "小明选择买多少本笔记本（x），这是主动决定的量，是自变量；剩余的钱（y）随着买的数量变化，是因变量。函数关系为：y = 20 - 2x。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K8",
+      "knowledge_point_name": "函数的定义域",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K8_Q1",
+          "type": "填空题",
+          "content": "函数y = 1/(x-2)的定义域是___。",
+          "correct_answer": ["x ≠ 2", "x≠2", "所有实数且x≠2"],
+          "explanation": "分式的分母不能为0，所以x - 2 ≠ 0，即x ≠ 2。定义域是x ≠ 2的所有实数。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K8_Q2",
+          "type": "选择题",
+          "content": "函数y = √(x-3)的定义域是：",
+          "options": [
+            "A. x > 3",
+            "B. x ≥ 3",
+            "C. x < 3",
+            "D. x ≤ 3"
+          ],
+          "correct_answer": "B",
+          "explanation": "二次根式的被开方数必须大于等于0，所以x - 3 ≥ 0，即x ≥ 3。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K9",
+      "knowledge_point_name": "函数值",
+      "knowledge_point_type": "技能",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K9_Q1",
+          "type": "填空题",
+          "content": "已知函数y = 2x + 1，当x = 3时，函数值y = ___。",
+          "correct_answer": ["7"],
+          "explanation": "将x = 3代入y = 2x + 1，得y = 2×3 + 1 = 6 + 1 = 7。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K9_Q2",
+          "type": "填空题",
+          "content": "已知函数y = x² - 2x，当x = -1时，函数值y = ___。",
+          "correct_answer": ["3"],
+          "explanation": "将x = -1代入y = x² - 2x，得y = (-1)² - 2×(-1) = 1 + 2 = 3。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K10",
+      "knowledge_point_name": "函数解析式",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K10_Q1",
+          "type": "选择题",
+          "content": "下列是函数解析式的是：",
+          "options": [
+            "A. y = 2x + 1",
+            "B. 表格列出的数值对应",
+            "C. 函数图象",
+            "D. 文字描述的关系"
+          ],
+          "correct_answer": "A",
+          "explanation": "函数解析式是用数学式子表示函数关系的方法。B是列表法，C是图象法，D是语言描述，只有A是解析式法。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K10_Q2",
+          "type": "选择题",
+          "content": "函数y = f(x)表示：",
+          "options": [
+            "A. f乘以x",
+            "B. y是x的函数",
+            "C. f是一个变量",
+            "D. y等于f除以x"
+          ],
+          "correct_answer": "B",
+          "explanation": "y = f(x)是函数的一种记法，表示y是x的函数，f表示对应法则。读作\"y等于f关于x的函数\"。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K11",
+      "knowledge_point_name": "函数的三种表示法",
+      "knowledge_point_type": "技能",
+      "mastery_criteria": {
+        "question_count": 3,
+        "pass_threshold": 2
+      },
+      "questions": [
+        {
+          "id": "K11_Q1",
+          "type": "选择题",
+          "content": "已知函数y = 2x + 1，下表是它的部分对应值表，问号处应填：\n\nx | 0 | 1 | 2 | 3\ny | 1 | 3 | ? | 7",
+          "options": [
+            "A. 4",
+            "B. 5",
+            "C. 6",
+            "D. 8"
+          ],
+          "correct_answer": "B",
+          "explanation": "将x = 2代入y = 2x + 1，得y = 2×2 + 1 = 5。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K11_Q2",
+          "type": "选择题",
+          "content": "下列说法错误的是：",
+          "options": [
+            "A. 解析式法便于计算函数值",
+            "B. 列表法能直观看出对应关系",
+            "C. 图象法能直观看出变化趋势",
+            "D. 三种表示法不能相互转化"
+          ],
+          "correct_answer": "D",
+          "explanation": "三种表示法可以相互转化。从解析式可以列表、画图；从图象可以读取数值、推导解析式等。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K11_Q3",
+          "type": "选择题",
+          "content": "要直观地反映函数值随自变量的变化趋势，最适合用：",
+          "options": [
+            "A. 解析式法",
+            "B. 列表法",
+            "C. 图象法",
+            "D. 语言描述法"
+          ],
+          "correct_answer": "C",
+          "explanation": "图象法能够直观地展示函数值随自变量变化的趋势，可以清楚地看出函数的增减性、最大值最小值等特征。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K12",
+      "knowledge_point_name": "正比例函数定义",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K12_Q1",
+          "type": "选择题",
+          "content": "下列函数中，是正比例函数的是：",
+          "options": [
+            "A. y = 2x + 1",
+            "B. y = 3x",
+            "C. y = x²",
+            "D. y = 2/x"
+          ],
+          "correct_answer": "B",
+          "explanation": "正比例函数的形式是y = kx（k≠0）。只有B符合这个形式，且k=3≠0。A有一次项系数b=1，不是正比例函数。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K12_Q2",
+          "type": "选择题",
+          "content": "正比例函数y = kx中，k的取值范围是：",
+          "options": [
+            "A. k > 0",
+            "B. k < 0",
+            "C. k ≠ 0",
+            "D. k为任意实数"
+          ],
+          "correct_answer": "C",
+          "explanation": "正比例函数y = kx中，比例系数k不能为0，否则y恒为0，就失去了函数的意义。k可以是正数也可以是负数。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K13",
+      "knowledge_point_name": "正比例函数图象",
+      "knowledge_point_type": "技能",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K13_Q1",
+          "type": "选择题",
+          "content": "正比例函数y = 2x的图象是：",
+          "options": [
+            "A. 过原点的双曲线",
+            "B. 过原点的直线",
+            "C. 不过原点的直线",
+            "D. 抛物线"
+          ],
+          "correct_answer": "B",
+          "explanation": "正比例函数y = kx的图象是一条过原点的直线。当x = 0时，y = 0，所以图象必过原点(0, 0)。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K13_Q2",
+          "type": "选择题",
+          "content": "画正比例函数y = 3x的图象，除原点外，还需要再找几个点？",
+          "options": [
+            "A. 1个",
+            "B. 2个",
+            "C. 3个",
+            "D. 无数个"
+          ],
+          "correct_answer": "A",
+          "explanation": "正比例函数的图象是直线，两点确定一条直线。由于已经知道图象过原点，所以只需要再找1个点就可以画出图象。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K14",
+      "knowledge_point_name": "正比例函数性质",
+      "knowledge_point_type": "公式",
+      "mastery_criteria": {
+        "question_count": 3,
+        "pass_threshold": 2
+      },
+      "questions": [
+        {
+          "id": "K14_Q1",
+          "type": "选择题",
+          "content": "正比例函数y = -2x的图象经过：",
+          "options": [
+            "A. 第一、三象限",
+            "B. 第二、四象限",
+            "C. 第一、二象限",
+            "D. 第三、四象限"
+          ],
+          "correct_answer": "B",
+          "explanation": "当k < 0时，正比例函数的图象经过第二、四象限。y = -2x中k = -2 < 0，所以图象经过第二、四象限。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K14_Q2",
+          "type": "选择题",
+          "content": "关于正比例函数y = 4x，下列说法正确的是：",
+          "options": [
+            "A. y随x的增大而减小",
+            "B. y随x的增大而增大",
+            "C. 图象经过第二、四象限",
+            "D. 当x增大时，y可能增大也可能减小"
+          ],
+          "correct_answer": "B",
+          "explanation": "当k > 0时，y随x的增大而增大。y = 4x中k = 4 > 0，所以y随x的增大而增大，图象经过第一、三象限。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K14_Q3",
+          "type": "选择题",
+          "content": "若正比例函数y = (m-1)x的图象经过第二、四象限，则m的取值范围是：",
+          "options": [
+            "A. m > 1",
+            "B. m < 1",
+            "C. m = 1",
+            "D. m为任意实数"
+          ],
+          "correct_answer": "B",
+          "explanation": "图象经过第二、四象限，说明k < 0，即m - 1 < 0，所以m < 1。",
+          "difficulty": "中等"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K15",
+      "knowledge_point_name": "一次函数定义",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K15_Q1",
+          "type": "选择题",
+          "content": "下列函数中，是一次函数的是：",
+          "options": [
+            "A. y = x² + 1",
+            "B. y = 2x + 3",
+            "C. y = 1/x",
+            "D. y = √x"
+          ],
+          "correct_answer": "B",
+          "explanation": "一次函数的标准形式是y = kx + b（k≠0）。只有B符合，其中k=2，b=3。A中x的次数是2，C中x在分母，D中x在根号内。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K15_Q2",
+          "type": "选择题",
+          "content": "一次函数y = kx + b中，对k、b的要求是：",
+          "options": [
+            "A. k≠0，b≠0",
+            "B. k≠0，b为任意实数",
+            "C. k为任意实数，b≠0",
+            "D. k、b都为任意实数"
+          ],
+          "correct_answer": "B",
+          "explanation": "一次函数y = kx + b中，k不能为0（否则变成常函数），b可以是任意实数。当b=0时，一次函数就变成正比例函数。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K16",
+      "knowledge_point_name": "一次函数与正比例函数关系",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K16_Q1",
+          "type": "判断题",
+          "content": "正比例函数是一次函数的特例。",
+          "correct_answer": "正确",
+          "explanation": "正比例函数y = kx可以写成y = kx + 0的形式，即b = 0的一次函数。所以正比例函数是一次函数的特例。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K16_Q2",
+          "type": "判断题",
+          "content": "一次函数y = 2x + 0是正比例函数。",
+          "correct_answer": "正确",
+          "explanation": "当b = 0时，一次函数y = kx + b就变成y = kx，这是正比例函数。y = 2x + 0 = 2x是正比例函数。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K17",
+      "knowledge_point_name": "描点法画函数图象",
+      "knowledge_point_type": "技能",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K17_Q1",
+          "type": "选择题",
+          "content": "用描点法画函数图象的步骤是：",
+          "options": [
+            "A. 描点、列表、连线",
+            "B. 列表、描点、连线",
+            "C. 连线、列表、描点",
+            "D. 列表、连线、描点"
+          ],
+          "correct_answer": "B",
+          "explanation": "描点法画函数图象的步骤是：列表（取x值计算y值）、描点（在坐标系中标出各点）、连线（用平滑曲线连接各点）。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K17_Q2",
+          "type": "选择题",
+          "content": "画函数y = 2x + 1的图象时，下列列表正确的是：",
+          "options": [
+            "A. x: 0, 1, 2 → y: 0, 2, 4",
+            "B. x: 0, 1, 2 → y: 1, 3, 5",
+            "C. x: 0, 1, 2 → y: 1, 2, 3",
+            "D. x: 1, 2, 3 → y: 1, 3, 5"
+          ],
+          "correct_answer": "B",
+          "explanation": "将x值代入y = 2x + 1：当x=0时y=1；当x=1时y=3；当x=2时y=5。所以正确的对应是x: 0, 1, 2 → y: 1, 3, 5。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K18",
+      "knowledge_point_name": "一次函数图象特征",
+      "knowledge_point_type": "技能",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K18_Q1",
+          "type": "选择题",
+          "content": "一次函数y = kx + b（k≠0）的图象是：",
+          "options": [
+            "A. 双曲线",
+            "B. 抛物线",
+            "C. 直线",
+            "D. 折线"
+          ],
+          "correct_answer": "C",
+          "explanation": "一次函数y = kx + b的图象是一条直线。正因为如此，一次函数也叫线性函数。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K18_Q2",
+          "type": "选择题",
+          "content": "一次函数y = 2x - 3的图象与y轴的交点坐标是：",
+          "options": [
+            "A. (0, 2)",
+            "B. (0, -3)",
+            "C. (-3, 0)",
+            "D. (2, 0)"
+          ],
+          "correct_answer": "B",
+          "explanation": "直线与y轴的交点，x坐标为0。将x = 0代入y = 2x - 3，得y = -3。所以交点坐标是(0, -3)。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K19",
+      "knowledge_point_name": "两点确定直线",
+      "knowledge_point_type": "技能",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K19_Q1",
+          "type": "选择题",
+          "content": "画一次函数y = 3x - 6的图象，最容易的两个点是：",
+          "options": [
+            "A. (0, -6)和(1, -3)",
+            "B. (0, -6)和(2, 0)",
+            "C. (1, -3)和(2, 0)",
+            "D. (0, 0)和(1, 3)"
+          ],
+          "correct_answer": "B",
+          "explanation": "最容易计算的点是直线与坐标轴的交点。与y轴交点：令x=0，y=-6，得(0, -6)；与x轴交点：令y=0，x=2，得(2, 0)。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K19_Q2",
+          "type": "选择题",
+          "content": "画直线y = -x + 2，除原点外还需要几个点？",
+          "options": [
+            "A. 0个",
+            "B. 1个",
+            "C. 2个",
+            "D. 3个"
+          ],
+          "correct_answer": "B",
+          "explanation": "两点确定一条直线。这条直线不过原点（当x=0时y=2），所以需要2个点。但题目问\"除原点外\"，说明原点不是这条直线上的点，所以仍需要2个点，即除原点外需要找2个点。但如果理解为\"已知一个点\"，则需要再找1个点。根据选项，最合理的是选B。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K20",
+      "knowledge_point_name": "截距概念",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K20_Q1",
+          "type": "填空题",
+          "content": "一次函数y = -2x + 5的截距是___。",
+          "correct_answer": ["5"],
+          "explanation": "一次函数y = kx + b中，b叫做截距，表示直线与y轴交点的纵坐标。y = -2x + 5中，b = 5，所以截距是5。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K20_Q2",
+          "type": "选择题",
+          "content": "一次函数y = 3x - 4的图象与y轴交点的纵坐标是：",
+          "options": [
+            "A. 3",
+            "B. -4",
+            "C. 4",
+            "D. -3"
+          ],
+          "correct_answer": "B",
+          "explanation": "一次函数y = kx + b的图象与y轴交点的纵坐标就是b的值，也就是截距。y = 3x - 4中b = -4，所以与y轴交点的纵坐标是-4。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K21",
+      "knowledge_point_name": "斜率概念",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K21_Q1",
+          "type": "填空题",
+          "content": "一次函数y = 5x - 2的斜率是___。",
+          "correct_answer": ["5"],
+          "explanation": "一次函数y = kx + b中，k叫做斜率，表示直线的倾斜程度。y = 5x - 2中，k = 5，所以斜率是5。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K21_Q2",
+          "type": "选择题",
+          "content": "关于斜率的说法，正确的是：",
+          "options": [
+            "A. 斜率表示直线与x轴的交点位置",
+            "B. 斜率表示直线的倾斜程度",
+            "C. 斜率可以是任何实数",
+            "D. 斜率越大，直线越平缓"
+          ],
+          "correct_answer": "B",
+          "explanation": "斜率k表示直线的倾斜程度。k的绝对值越大，直线越陡峭；k的绝对值越小，直线越平缓。斜率不能为0（否则不是一次函数），所以C不对。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K22",
+      "knowledge_point_name": "k对图象方向的影响",
+      "knowledge_point_type": "公式",
+      "mastery_criteria": {
+        "question_count": 3,
+        "pass_threshold": 2
+      },
+      "questions": [
+        {
+          "id": "K22_Q1",
+          "type": "选择题",
+          "content": "一次函数y = -3x + 2的图象从左向右看是：",
+          "options": [
+            "A. 上升的",
+            "B. 下降的",
+            "C. 水平的",
+            "D. 垂直的"
+          ],
+          "correct_answer": "B",
+          "explanation": "当k < 0时，一次函数的图象从左向右是下降的。y = -3x + 2中k = -3 < 0，所以图象是下降的。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K22_Q2",
+          "type": "选择题",
+          "content": "若一次函数y = (m+2)x - 1的图象从左向右上升，则m的取值范围是：",
+          "options": [
+            "A. m > -2",
+            "B. m < -2",
+            "C. m > 2",
+            "D. m < 2"
+          ],
+          "correct_answer": "A",
+          "explanation": "图象从左向右上升，说明k > 0。即m + 2 > 0，所以m > -2。",
+          "difficulty": "中等"
+        },
+        {
+          "id": "K22_Q3",
+          "type": "选择题",
+          "content": "下列一次函数中，图象从左向右下降的是：",
+          "options": [
+            "A. y = 2x + 1",
+            "B. y = -x + 3",
+            "C. y = 0.5x - 2",
+            "D. y = x"
+          ],
+          "correct_answer": "B",
+          "explanation": "当k < 0时，图象从左向右下降。只有B中k = -1 < 0，所以y = -x + 3的图象是下降的。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K23",
+      "knowledge_point_name": "b对图象位置的影响",
+      "knowledge_point_type": "公式",
+      "mastery_criteria": {
+        "question_count": 3,
+        "pass_threshold": 2
+      },
+      "questions": [
+        {
+          "id": "K23_Q1",
+          "type": "选择题",
+          "content": "一次函数y = 2x + 3的图象与y轴交于：",
+          "options": [
+            "A. 正半轴",
+            "B. 负半轴",
+            "C. 原点",
+            "D. 无法确定"
+          ],
+          "correct_answer": "A",
+          "explanation": "当b > 0时，直线与y轴交于正半轴。y = 2x + 3中b = 3 > 0，所以直线与y轴交于正半轴。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K23_Q2",
+          "type": "选择题",
+          "content": "一次函数y = -x - 4的图象与y轴的交点位置是：",
+          "options": [
+            "A. 正半轴",
+            "B. 负半轴",
+            "C. 原点",
+            "D. 无法确定"
+          ],
+          "correct_answer": "B",
+          "explanation": "当b < 0时，直线与y轴交于负半轴。y = -x - 4中b = -4 < 0，所以直线与y轴交于负半轴。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K23_Q3",
+          "type": "选择题",
+          "content": "若一次函数y = kx + b的图象与y轴交于负半轴，则：",
+          "options": [
+            "A. k > 0",
+            "B. k < 0",
+            "C. b > 0",
+            "D. b < 0"
+          ],
+          "correct_answer": "D",
+          "explanation": "直线与y轴交于负半轴，说明交点的纵坐标为负，即b < 0。与k的值无关。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K24",
+      "knowledge_point_name": "一次函数增减性",
+      "knowledge_point_type": "公式",
+      "mastery_criteria": {
+        "question_count": 3,
+        "pass_threshold": 2
+      },
+      "questions": [
+        {
+          "id": "K24_Q1",
+          "type": "选择题",
+          "content": "对于函数y = 3x - 1，当x增大时，y的变化是：",
+          "options": [
+            "A. y增大",
+            "B. y减小",
+            "C. y不变",
+            "D. 无法确定"
+          ],
+          "correct_answer": "A",
+          "explanation": "当k > 0时，y随x的增大而增大。y = 3x - 1中k = 3 > 0，所以当x增大时，y也增大。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K24_Q2",
+          "type": "选择题",
+          "content": "下列函数中，y随x的增大而减小的是：",
+          "options": [
+            "A. y = 2x + 5",
+            "B. y = -0.5x + 1",
+            "C. y = x - 3",
+            "D. y = 4x"
+          ],
+          "correct_answer": "B",
+          "explanation": "当k < 0时，y随x的增大而减小。只有B中k = -0.5 < 0，所以y = -0.5x + 1满足条件。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K24_Q3",
+          "type": "选择题",
+          "content": "若函数y = (a-1)x + 2中，y随x的增大而减小，则a的取值范围是：",
+          "options": [
+            "A. a > 1",
+            "B. a < 1",
+            "C. a > 0",
+            "D. a < 0"
+          ],
+          "correct_answer": "B",
+          "explanation": "y随x的增大而减小，说明k < 0，即a - 1 < 0，所以a < 1。",
+          "difficulty": "中等"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K25",
+      "knowledge_point_name": "平移变换",
+      "knowledge_point_type": "技能",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K25_Q1",
+          "type": "选择题",
+          "content": "将直线y = 2x向上平移3个单位，得到的直线是：",
+          "options": [
+            "A. y = 2x + 3",
+            "B. y = 2x - 3",
+            "C. y = 2(x + 3)",
+            "D. y = 2(x - 3)"
+          ],
+          "correct_answer": "A",
+          "explanation": "直线y = kx + b向上平移m个单位，得到y = kx + b + m。y = 2x向上平移3个单位，得y = 2x + 3。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K25_Q2",
+          "type": "填空题",
+          "content": "将直线y = -x + 2向下平移4个单位，得到的直线解析式是___。",
+          "correct_answer": ["y = -x - 2"],
+          "explanation": "直线向下平移m个单位，解析式为y = kx + b - m。y = -x + 2向下平移4个单位，得y = -x + 2 - 4 = -x - 2。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K26",
+      "knowledge_point_name": "k与b的综合判断",
+      "knowledge_point_type": "技能",
+      "mastery_criteria": {
+        "question_count": 3,
+        "pass_threshold": 2
+      },
+      "questions": [
+        {
+          "id": "K26_Q1",
+          "type": "选择题",
+          "content": "一次函数y = 2x + 3的图象不经过哪个象限？",
+          "options": [
+            "A. 第一象限",
+            "B. 第二象限",
+            "C. 第三象限",
+            "D. 第四象限"
+          ],
+          "correct_answer": "D",
+          "explanation": "k = 2 > 0，b = 3 > 0。当k > 0且b > 0时，直线经过第一、二、三象限，不经过第四象限。",
+          "difficulty": "中等"
+        },
+        {
+          "id": "K26_Q2",
+          "type": "选择题",
+          "content": "若一次函数y = kx + b的图象经过第一、三、四象限，则k、b的符号是：",
+          "options": [
+            "A. k > 0，b > 0",
+            "B. k > 0，b < 0",
+            "C. k < 0，b > 0",
+            "D. k < 0，b < 0"
+          ],
+          "correct_answer": "B",
+          "explanation": "图象经过第一、三象限，说明k > 0；图象经过第四象限但不经过第二象限，说明直线与y轴交于负半轴，即b < 0。",
+          "difficulty": "中等"
+        },
+        {
+          "id": "K26_Q3",
+          "type": "选择题",
+          "content": "一次函数y = -2x - 1的图象经过哪几个象限？",
+          "options": [
+            "A. 一、二、三象限",
+            "B. 一、二、四象限",
+            "C. 二、三、四象限",
+            "D. 一、三、四象限"
+          ],
+          "correct_answer": "C",
+          "explanation": "k = -2 < 0，b = -1 < 0。当k < 0且b < 0时，直线经过第二、三、四象限。",
+          "difficulty": "中等"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K27",
+      "knowledge_point_name": "待定系数法",
+      "knowledge_point_type": "技能",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K27_Q1",
+          "type": "填空题",
+          "content": "一次函数y = kx + b的图象经过点(0, 2)和(1, 5)，则k = ___，b = ___。",
+          "correct_answer": ["3", "2"],
+          "explanation": "将(0, 2)代入得b = 2；将(1, 5)代入得k + 2 = 5，所以k = 3。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K27_Q2",
+          "type": "选择题",
+          "content": "用待定系数法求一次函数解析式的一般步骤是：",
+          "options": [
+            "A. 设解析式→代入点坐标→解方程→写出解析式",
+            "B. 解方程→设解析式→代入点坐标→写出解析式",
+            "C. 写出解析式→代入点坐标→设解析式→解方程",
+            "D. 代入点坐标→设解析式→解方程→写出解析式"
+          ],
+          "correct_answer": "A",
+          "explanation": "待定系数法步骤：①设y = kx + b；②将已知点坐标代入；③解关于k、b的方程组；④写出解析式。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K28",
+      "knowledge_point_name": "由图象求解析式",
+      "knowledge_point_type": "技能",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K28_Q1",
+          "type": "填空题",
+          "content": "一次函数的图象经过点(0, -1)和(2, 5)，则这个函数的解析式是___。",
+          "correct_answer": ["y = 3x - 1"],
+          "explanation": "设y = kx + b，将(0, -1)代入得b = -1；将(2, 5)代入得2k - 1 = 5，k = 3。所以y = 3x - 1。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K28_Q2",
+          "type": "选择题",
+          "content": "一次函数图象经过点(1, 2)和(3, 6)，求解析式时，下列方程组正确的是：",
+          "options": [
+            "A. {k + b = 2, 3k + b = 6}",
+            "B. {k - b = 2, 3k - b = 6}",
+            "C. {k + b = 1, 3k + b = 3}",
+            "D. {2k + b = 1, 6k + b = 3}"
+          ],
+          "correct_answer": "A",
+          "explanation": "将点(1, 2)代入y = kx + b得k + b = 2；将点(3, 6)代入得3k + b = 6。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K29",
+      "knowledge_point_name": "求交点坐标",
+      "knowledge_point_type": "技能",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K29_Q1",
+          "type": "填空题",
+          "content": "直线y = 2x + 1与直线y = -x + 4的交点坐标是___。",
+          "correct_answer": ["(1, 3)"],
+          "explanation": "联立方程组：2x + 1 = -x + 4，解得x = 1。将x = 1代入y = 2x + 1得y = 3。交点坐标为(1, 3)。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K29_Q2",
+          "type": "选择题",
+          "content": "求两直线y = x + 2和y = -2x + 5的交点，需要解的方程组是：",
+          "options": [
+            "A. {y = x + 2, y = -2x + 5}",
+            "B. {y = x - 2, y = 2x + 5}",
+            "C. {y = x + 2, y = 2x - 5}",
+            "D. {y = -x + 2, y = -2x + 5}"
+          ],
+          "correct_answer": "A",
+          "explanation": "求两条直线的交点，就是联立两条直线的解析式，解方程组。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K30",
+      "knowledge_point_name": "实际问题建模",
+      "knowledge_point_type": "技能",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K30_Q1",
+          "type": "选择题",
+          "content": "某地出租车收费标准：起步价10元（3公里内），超过3公里每公里2元。乘车x公里（x > 3）的费用y元与x的关系式是：",
+          "options": [
+            "A. y = 2x + 10",
+            "B. y = 2x + 4",
+            "C. y = 2(x - 3) + 10",
+            "D. y = 2x + 6"
+          ],
+          "correct_answer": "C",
+          "explanation": "超过3公里的部分为(x - 3)公里，费用为2(x - 3)元，加上起步价10元，所以y = 2(x - 3) + 10 = 2x + 4。",
+          "difficulty": "中等"
+        },
+        {
+          "id": "K30_Q2",
+          "type": "选择题",
+          "content": "一根蜡烛长20cm，点燃后每小时燃烧4cm，燃烧x小时后剩余蜡烛长度ycm的函数关系是：",
+          "options": [
+            "A. y = 4x + 20",
+            "B. y = 20 - 4x",
+            "C. y = 4x - 20",
+            "D. y = 20x + 4"
+          ],
+          "correct_answer": "B",
+          "explanation": "初始长度20cm，每小时燃烧4cm，燃烧x小时后燃烧了4x cm，剩余y = 20 - 4x cm。注意定义域：0 ≤ x ≤ 5。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K31",
+      "knowledge_point_name": "一次函数与方程的关系",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K31_Q1",
+          "type": "选择题",
+          "content": "方程2x - 4 = 0的解，对应函数y = 2x - 4图象上的哪个点？",
+          "options": [
+            "A. 与y轴的交点",
+            "B. 与x轴的交点",
+            "C. 与原点的距离",
+            "D. 图象的最高点"
+          ],
+          "correct_answer": "B",
+          "explanation": "方程2x - 4 = 0的解是x = 2，对应函数y = 2x - 4图象与x轴交点的横坐标，即点(2, 0)。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K31_Q2",
+          "type": "填空题",
+          "content": "函数y = 3x - 6的图象与x轴交点的横坐标是___，这也正是方程3x - 6 = 0的解。",
+          "correct_answer": ["2"],
+          "explanation": "令y = 0，则3x - 6 = 0，解得x = 2。所以图象与x轴交点横坐标是2，这也是方程的解。",
+          "difficulty": "基础"
+        }
+      ]
+    },
+    {
+      "knowledge_point_id": "K32",
+      "knowledge_point_name": "一次函数与不等式的关系",
+      "knowledge_point_type": "概念",
+      "mastery_criteria": {
+        "question_count": 2,
+        "pass_threshold": 1
+      },
+      "questions": [
+        {
+          "id": "K32_Q1",
+          "type": "选择题",
+          "content": "不等式2x + 1 > 0的解集，对应函数y = 2x + 1图象的哪个部分？",
+          "options": [
+            "A. 图象在x轴上方的部分",
+            "B. 图象在x轴下方的部分",
+            "C. 图象在y轴右侧的部分",
+            "D. 图象在y轴左侧的部分"
+          ],
+          "correct_answer": "A",
+          "explanation": "不等式2x + 1 > 0即y > 0，对应函数图象在x轴上方的部分，此时x > -0.5。",
+          "difficulty": "基础"
+        },
+        {
+          "id": "K32_Q2",
+          "type": "选择题",
+          "content": "函数y = -x + 3的图象在x轴下方对应的x的取值范围是：",
+          "options": [
+            "A. x > 3",
+            "B. x < 3",
+            "C. x > -3",
+            "D. x < -3"
+          ],
+          "correct_answer": "A",
+          "explanation": "图象在x轴下方即y < 0，即-x + 3 < 0，解得x > 3。",
+          "difficulty": "中等"
+        }
+      ]
+    }
+  ]
+}
