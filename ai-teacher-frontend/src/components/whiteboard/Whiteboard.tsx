@@ -1,8 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-import { Spin } from 'antd';
+import { Spin, Button, Tooltip } from 'antd';
+import { DownloadOutlined, ClearOutlined, ExpandOutlined } from '@ant-design/icons';
+import html2canvas from 'html2canvas';
 import { useLearningStore } from '../../store';
+import type { WhiteboardContent } from '../../types';
 import './Whiteboard.css';
 
 interface WhiteboardProps {
@@ -10,183 +13,215 @@ interface WhiteboardProps {
 }
 
 const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const formulaRef = useRef<HTMLDivElement>(null);
-  const { whiteboardContent } = useLearningStore();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const { whiteboardBlocks, clearWhiteboard } = useLearningStore();
 
-  // 渲染公式
+  // 自动滚动到底部
   useEffect(() => {
-    if (formulaRef.current && whiteboardContent.formulas.length > 0) {
-      const formula = whiteboardContent.formulas[0];
-      try {
-        katex.render(formula, formulaRef.current, {
-          throwOnError: false,
-          displayMode: true,
-        });
-      } catch (e) {
-        formulaRef.current.textContent = formula;
-      }
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [whiteboardContent.formulas]);
+  }, [whiteboardBlocks]);
 
-  // 绘制坐标系和直线
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // 设置画布尺寸
-    const rect = canvas.parentElement?.getBoundingClientRect();
-    if (rect) {
-      canvas.width = rect.width;
-      canvas.height = rect.height;
-    }
-
-    // 清空画布
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // 绘制坐标系
-    drawCoordinateSystem(ctx, canvas.width, canvas.height);
-
-    // 如果有图形需要绘制
-    if (whiteboardContent.diagrams.length > 0) {
-      // 解析并绘制直线
-      whiteboardContent.diagrams.forEach((diagram) => {
-        drawLine(ctx, canvas.width, canvas.height, diagram);
+  // 下载白板
+  const handleDownload = async () => {
+    if (!contentRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(contentRef.current, {
+        backgroundColor: '#1a1a2e',
+        scale: 2,
       });
+      
+      const link = document.createElement('a');
+      link.download = `黑板笔记_${new Date().toLocaleDateString()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Download failed:', error);
     }
-  }, [whiteboardContent.diagrams]);
-
-  const drawCoordinateSystem = (
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number
-  ) => {
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const arrowSize = 10;
-    const gridSize = 40;
-
-    ctx.strokeStyle = '#ddd';
-    ctx.lineWidth = 1;
-
-    // 绘制网格
-    for (let x = centerX % gridSize; x < width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
-    for (let y = centerY % gridSize; y < height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-    }
-
-    // 绘制坐标轴
-    ctx.strokeStyle = '#666';
-    ctx.lineWidth = 2;
-
-    // X轴
-    ctx.beginPath();
-    ctx.moveTo(0, centerY);
-    ctx.lineTo(width, centerY);
-    ctx.stroke();
-
-    // X轴箭头
-    ctx.beginPath();
-    ctx.moveTo(width - arrowSize, centerY - arrowSize / 2);
-    ctx.lineTo(width, centerY);
-    ctx.lineTo(width - arrowSize, centerY + arrowSize / 2);
-    ctx.stroke();
-
-    // Y轴
-    ctx.beginPath();
-    ctx.moveTo(centerX, height);
-    ctx.lineTo(centerX, 0);
-    ctx.stroke();
-
-    // Y轴箭头
-    ctx.beginPath();
-    ctx.moveTo(centerX - arrowSize / 2, arrowSize);
-    ctx.lineTo(centerX, 0);
-    ctx.lineTo(centerX + arrowSize / 2, arrowSize);
-    ctx.stroke();
-
-    // 标注原点
-    ctx.fillStyle = '#666';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('O', centerX + 8, centerY + 18);
-    ctx.fillText('x', width - 15, centerY - 10);
-    ctx.fillText('y', centerX + 10, 15);
   };
 
-  const drawLine = (
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number,
-    diagram: string
-  ) => {
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const scale = 40;
+  // 渲染混合内容（文字中可能包含 $...$ 公式）
+  const renderMixedContent = (text: string, keyPrefix: string) => {
+    // 匹配 $...$ 格式的公式
+    const parts = text.split(/(\$[^$]+\$)/g);
+    
+    return parts.map((part, index) => {
+      if (part.startsWith('$') && part.endsWith('$')) {
+        // 是公式，去掉 $ 符号后渲染
+        const formula = part.slice(1, -1);
+        return (
+          <span 
+            key={`${keyPrefix}-formula-${index}`}
+            ref={(el) => {
+              if (el) {
+                try {
+                  katex.render(formula, el, {
+                    throwOnError: false,
+                    displayMode: false,
+                  });
+                } catch (e) {
+                  el.textContent = formula;
+                }
+              }
+            }}
+            className="inline-formula"
+          />
+        );
+      }
+      // 普通文字
+      return <span key={`${keyPrefix}-text-${index}`}>{part}</span>;
+    });
+  };
 
-    // 解析直线方程 y = kx + b
-    const match = diagram.match(/y\s*=\s*(-?\d*\.?\d*)x\s*([+-]\s*\d*\.?\d*)?/);
-    if (!match) return;
-
-    const k = parseFloat(match[1] || '1');
-    const b = parseFloat((match[2] || '0').replace(/\s/g, ''));
-
-    ctx.strokeStyle = '#4A90D9';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-
-    // 绘制直线
-    for (let px = 0; px < width; px++) {
-      const x = (px - centerX) / scale;
-      const y = k * x + b;
-      const py = centerY - y * scale;
-
-      if (px === 0) {
-        ctx.moveTo(px, py);
-      } else {
-        ctx.lineTo(px, py);
+  // 渲染公式
+  const renderFormula = (formula: string, index: number) => {
+    const containerId = `formula-${index}-${Date.now()}`;
+    // 去掉 $ 符号，KaTeX 不需要它们
+    const cleanFormula = formula.replace(/^\$+|\$+$/g, '').trim();
+    
+    // 检查是否包含混合内容（公式中夹杂文字说明）
+    if (cleanFormula.includes('$') || /[\u4e00-\u9fa5]/.test(cleanFormula)) {
+      // 有中文或嵌套$，可能是混合内容
+      if (cleanFormula.includes('$')) {
+        return (
+          <div key={index} className="whiteboard-formula-mixed">
+            {renderMixedContent(cleanFormula, `formula-${index}`)}
+          </div>
+        );
       }
     }
+    
+    return (
+      <div 
+        key={index} 
+        className="whiteboard-formula"
+        id={containerId}
+        ref={(el) => {
+          if (el) {
+            try {
+              katex.render(cleanFormula, el, {
+                throwOnError: false,
+                displayMode: true,
+              });
+            } catch (e) {
+              el.textContent = cleanFormula;
+            }
+          }
+        }}
+      />
+    );
+  };
 
-    ctx.stroke();
-
-    // 标注k和b
-    ctx.fillStyle = '#4A90D9';
-    ctx.font = '14px sans-serif';
-    ctx.fillText(`k = ${k}`, 20, 30);
-    ctx.fillText(`b = ${b}`, 20, 50);
+  // 渲染单个内容块
+  const renderBlock = (block: WhiteboardContent, index: number) => {
+    return (
+      <div key={index} className="whiteboard-block">
+        {block.title && (
+          <div className="block-title">
+            <span className="title-decoration">◆</span>
+            {block.title}
+          </div>
+        )}
+        
+        {block.key_points && block.key_points.length > 0 && (
+          <div className="block-section">
+            <div className="section-label">要点</div>
+            <ul className="key-points-list">
+              {block.key_points.map((point, i) => (
+                <li key={i}>{point}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        {block.formulas && block.formulas.length > 0 && (
+          <div className="block-section">
+            <div className="section-label">公式</div>
+            <div className="formulas-container">
+              {block.formulas.map((formula, i) => renderFormula(formula, i))}
+            </div>
+          </div>
+        )}
+        
+        {block.examples && block.examples.length > 0 && (
+          <div className="block-section">
+            <div className="section-label">示例</div>
+            <div className="examples-container">
+              {block.examples.map((example, i) => (
+                <div key={i} className="example-item">
+                  <span className="example-icon">📌</span>
+                  {example}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {block.notes && block.notes.length > 0 && (
+          <div className="block-section">
+            <div className="section-label">注意</div>
+            <div className="notes-container">
+              {block.notes.map((note, i) => (
+                <div key={i} className="note-item">
+                  <span className="note-icon">⚠️</span>
+                  {note}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
     <div className="whiteboard">
+      {/* 工具栏 */}
+      <div className="whiteboard-toolbar">
+        <Tooltip title="下载笔记">
+          <Button 
+            type="text" 
+            icon={<DownloadOutlined />} 
+            onClick={handleDownload}
+            className="toolbar-btn"
+          />
+        </Tooltip>
+        <Tooltip title="清空白板">
+          <Button 
+            type="text" 
+            icon={<ClearOutlined />} 
+            onClick={clearWhiteboard}
+            className="toolbar-btn"
+          />
+        </Tooltip>
+      </div>
+
+      {/* 画布容器 */}
+      <div className="whiteboard-canvas-container" ref={containerRef}>
+        <div className="whiteboard-canvas" ref={contentRef}>
+          {/* 装饰性网格 */}
+          <div className="canvas-grid" />
+          
+          {whiteboardBlocks.length === 0 && !loading && (
+            <div className="whiteboard-empty">
+              <div className="empty-icon">📝</div>
+              <div className="empty-text">等待讲解开始</div>
+              <div className="empty-hint">知识点要点将在这里展示</div>
+            </div>
+          )}
+
+          {whiteboardBlocks.map((block, index) => renderBlock(block, index))}
+        </div>
+      </div>
+
+      {/* 加载遮罩 */}
       {loading && (
         <div className="whiteboard-loading">
           <Spin size="large" tip="正在生成教学内容..." />
         </div>
-      )}
-      
-      {!loading && whiteboardContent.formulas.length === 0 && 
-       whiteboardContent.diagrams.length === 0 && (
-        <div className="whiteboard-empty">
-          <span className="empty-icon">📝</span>
-          <span className="empty-text">等待讲解开始</span>
-        </div>
-      )}
-
-      <canvas ref={canvasRef} className="whiteboard-canvas" />
-      
-      {whiteboardContent.formulas.length > 0 && (
-        <div ref={formulaRef} className="whiteboard-formula" />
       )}
     </div>
   );

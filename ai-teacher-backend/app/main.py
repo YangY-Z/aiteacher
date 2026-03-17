@@ -11,14 +11,14 @@ from fastapi.responses import JSONResponse
 from app.api import api_router
 from app.core.config import settings
 from app.core.exceptions import AppException
-from app.utils.data_loader import load_course_data, load_assessment_data
+from app.utils.data_loader import load_assessment_data
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown events."""
-    # Startup: Load initial data
-    load_course_data()
+    # Note: Course data is already initialized in memory_db.__post_init__
+    # Only load assessment questions here
 
     # Load assessment questions
     assessment_path = Path(settings.data_dir) / "评估题库_一次函数.json"
@@ -74,37 +74,6 @@ def create_app() -> FastAPI:
                 "message": exc.message,
                 "error_code": exc.error_code,
                 "details": exc.details,
-            },
-        )
-
-    # Catch all other exceptions
-    @app.exception_handler(Exception)
-    async def general_exception_handler(request: Request, exc: Exception):
-        """Handle all other exceptions."""
-        import traceback
-        traceback.print_exc()
-        return JSONResponse(
-            status_code=500,
-            content={
-                "success": False,
-                "message": str(exc),
-                "error_code": "INTERNAL_ERROR",
-                "details": {"type": type(exc).__name__},
-            },
-        )
-
-    # General exception handler for debugging
-    @app.exception_handler(Exception)
-    async def general_exception_handler(request: Request, exc: Exception):
-        """Handle all other exceptions."""
-        import traceback
-        return JSONResponse(
-            status_code=500,
-            content={
-                "success": False,
-                "message": str(exc),
-                "error_type": type(exc).__name__,
-                "traceback": traceback.format_exc(),
             },
         )
 

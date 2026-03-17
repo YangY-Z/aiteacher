@@ -49,8 +49,8 @@ class Settings(BaseSettings):
     # GLM-5 specific: enable thinking mode
     zhipu_enable_thinking: bool = False
 
-    # CORS
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    # CORS - allow all origins in development
+    cors_origins: list[str] = ["*"]
 
     @property
     def is_production(self) -> bool:

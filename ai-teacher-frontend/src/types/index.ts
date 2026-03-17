@@ -105,8 +105,13 @@ export interface ChatResponse {
 }
 
 export interface WhiteboardContent {
-  formulas: string[];
-  diagrams: string[];
+  title?: string;
+  key_points?: string[];
+  formulas?: string[];
+  examples?: string[];
+  notes?: string[];
+  // 兼容旧格式
+  diagrams?: string[];
 }
 
 // 评估

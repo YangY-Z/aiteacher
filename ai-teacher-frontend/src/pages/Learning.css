@@ -9,14 +9,14 @@
 
 .main-content {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   padding: 16px;
   gap: 16px;
 }
 
 .whiteboard-section {
-  height: 35%;
-  min-height: 250px;
+  width: 55%;
+  min-width: 400px;
 }
 
 .chat-section {
@@ -27,7 +27,7 @@
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  min-height: 300px;
+  min-width: 350px;
 }
 
 .progress-sider {
@@ -81,18 +81,38 @@
   border-radius: 25px;
 }
 
+@media (max-width: 1200px) {
+  .whiteboard-section {
+    width: 50%;
+    min-width: 350px;
+  }
+  
+  .chat-section {
+    min-width: 300px;
+  }
+}
+
 @media (max-width: 992px) {
   .progress-sider {
     display: none;
   }
   
   .main-content {
+    flex-direction: column;
     padding: 12px;
   }
   
   .whiteboard-section {
-    height: 30%;
-    min-height: 200px;
+    width: 100%;
+    min-width: auto;
+    height: 40%;
+    min-height: 280px;
+  }
+  
+  .chat-section {
+    flex: 1;
+    min-width: auto;
+    min-height: 300px;
   }
 }
 
@@ -103,7 +123,7 @@
   }
   
   .whiteboard-section {
-    height: 25%;
-    min-height: 180px;
+    height: 35%;
+    min-height: 220px;
   }
 }

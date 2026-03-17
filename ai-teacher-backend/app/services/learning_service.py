@@ -379,6 +379,9 @@ class LearningService:
         profile = student_profile_repository.get_by_student_and_course(
             session.student_id, session.course_id
         )
+        next_kp_id = None
+        next_kp_name = None
+        
         if profile:
             total_kps = len(course_service.get_course_knowledge_points(session.course_id))
             if passed:
@@ -392,10 +395,17 @@ class LearningService:
             )
             if next_kp:
                 profile.set_current_kp(next_kp.id)
+                next_kp_id = next_kp.id
+                next_kp_name = next_kp.name
             else:
                 profile.current_kp_id = None
 
             student_profile_repository.update(profile)
+
+        # Update session's kp_id to the next knowledge point (only if passed)
+        if passed and next_kp_id:
+            session.kp_id = next_kp_id
+            learning_session_repository.update(session)
 
         # Determine if backtrack is required
         backtrack_required = False
@@ -408,8 +418,8 @@ class LearningService:
             "correct_count": correct_count,
             "total_questions": len(answers),
             "passed": passed,
-            "next_kp_id": profile.current_kp_id if profile else None,
-            "next_kp_name": knowledge_point_repository.get_by_id(profile.current_kp_id).name if profile and profile.current_kp_id else None,
+            "next_kp_id": next_kp_id,
+            "next_kp_name": next_kp_name,
             "backtrack_required": backtrack_required,
         }
 
@@ -454,6 +464,9 @@ class LearningService:
         profile = student_profile_repository.get_by_student_and_course(
             session.student_id, session.course_id
         )
+        next_kp_id = None
+        next_kp_name = None
+        
         if profile:
             if session.kp_id not in profile.skipped_kp_ids:
                 profile.skipped_kp_ids.append(session.kp_id)
@@ -466,15 +479,22 @@ class LearningService:
             )
             if next_kp:
                 profile.set_current_kp(next_kp.id)
+                next_kp_id = next_kp.id
+                next_kp_name = next_kp.name
             else:
                 profile.current_kp_id = None
 
             student_profile_repository.update(profile)
 
+        # Update session's kp_id to the next knowledge point
+        if next_kp_id:
+            session.kp_id = next_kp_id
+            learning_session_repository.update(session)
+
         return {
-            "skipped_kp_id": session.kp_id,
-            "next_kp_id": profile.current_kp_id if profile else None,
-            "next_kp_name": knowledge_point_repository.get_by_id(profile.current_kp_id).name if profile and profile.current_kp_id else None,
+            "skipped_kp_id": profile.skipped_kp_ids[-1] if profile and profile.skipped_kp_ids else None,
+            "next_kp_id": next_kp_id,
+            "next_kp_name": next_kp_name,
         }
 
     def complete_knowledge_point(
@@ -504,6 +524,9 @@ class LearningService:
         profile = student_profile_repository.get_by_student_and_course(
             session.student_id, session.course_id
         )
+        next_kp_id = None
+        next_kp_name = None
+        
         if profile:
             total_kps = len(course_service.get_course_knowledge_points(session.course_id))
             profile.add_mastered_kp(session.kp_id, total_kps)
@@ -516,15 +539,22 @@ class LearningService:
             )
             if next_kp:
                 profile.set_current_kp(next_kp.id)
+                next_kp_id = next_kp.id
+                next_kp_name = next_kp.name
             else:
                 profile.current_kp_id = None
 
             student_profile_repository.update(profile)
 
+        # Update session's kp_id to the next knowledge point
+        if next_kp_id:
+            session.kp_id = next_kp_id
+            learning_session_repository.update(session)
+
         return {
-            "completed_kp_id": session.kp_id,
-            "next_kp_id": profile.current_kp_id if profile else None,
-            "next_kp_name": knowledge_point_repository.get_by_id(profile.current_kp_id).name if profile and profile.current_kp_id else None,
+            "completed_kp_id": session.kp_id if not next_kp_id else profile.mastered_kp_ids[-1] if profile else None,
+            "next_kp_id": next_kp_id,
+            "next_kp_name": next_kp_name,
         }
 
     def get_progress(self, student_id: int, course_id: str) -> dict[str, Any]:

@@ -29,11 +29,25 @@ TEACHING_PROMPT = """【教学任务】
         "summary": "总结（20-30字）：归纳要点"
     }},
     "whiteboard": {{
-        "formulas": ["本知识点的核心公式"],
-        "diagrams": ["需要绘制的图形类型"]
+        "title": "{knowledge_point_name}",
+        "key_points": ["要点1", "要点2", "要点3"],
+        "formulas": ["公式1（LaTeX格式）", "公式2（LaTeX格式）"],
+        "examples": ["示例说明"],
+        "notes": ["注意事项或易错点"]
     }},
     "next_action": "wait_for_student"
 }}
+
+【白板内容说明】
+whiteboard字段是展示在黑板上的内容，会累积展示，请认真填写：
+- title: 知识点标题
+- key_points: 核心要点列表（2-4条，每条10-20字）
+- formulas: 公式列表，每条公式使用纯LaTeX格式（不要加$符号），例如：
+  - "y = kx + b" （一次函数）
+  - "C = 2\\pi r" （圆周长）
+  - "x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}" （求根公式）
+- examples: 典型示例（1-2个），如需包含公式，用 $公式$ 格式
+- notes: 注意事项或易错点（1-2条）
 
 【重要说明】
 1. question 字段必须填写，用于引导学生互动

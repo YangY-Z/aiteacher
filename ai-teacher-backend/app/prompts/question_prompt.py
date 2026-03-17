@@ -74,11 +74,20 @@ CHAT_RESPONSE_PROMPT = """【任务】
         "supplement": "补充说明（如果学生回答不完整或有误解时填写）"
     }},
     "whiteboard": {{
-        "formulas": ["需要强调的公式"],
-        "diagrams": ["需要画的图"]
+        "title": "{knowledge_point_name} - 补充",
+        "key_points": ["需要强调的要点"],
+        "formulas": ["需要强调的公式（LaTeX格式）"],
+        "examples": ["补充示例"],
+        "notes": ["纠正的误解或注意事项"]
     }},
     "next_action": "wait_for_student 或 start_assessment 或 next_knowledge_point"
 }}
+
+【白板内容说明】
+whiteboard字段用于补充展示在黑板上的内容：
+- 如果学生回答正确，可以留空或放总结性内容
+- 如果学生有误解，重点展示纠正内容
+- formulas 使用 LaTeX 格式，如 $y = kx + b$
 
 【next_action 决策规则】
 

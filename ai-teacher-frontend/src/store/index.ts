@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Student, Course, KnowledgePoint, Message, SessionResponse, ProgressResponse } from '../types';
+import type { Student, Course, KnowledgePoint, Message, SessionResponse, ProgressResponse, WhiteboardContent } from '../types';
 
 interface AuthState {
   token: string | null;
@@ -50,7 +50,7 @@ interface LearningState {
   isLoading: boolean;
   isAssessmentMode: boolean;
   assessmentQuestions: { id: string; content: string; options: string[] }[];
-  whiteboardContent: { formulas: string[]; diagrams: string[] };
+  whiteboardBlocks: WhiteboardContent[];
   
   setSession: (session: SessionResponse | null) => void;
   setCurrentKp: (kp: KnowledgePoint | null) => void;
@@ -60,7 +60,8 @@ interface LearningState {
   setLoading: (loading: boolean) => void;
   setAssessmentMode: (mode: boolean) => void;
   setAssessmentQuestions: (questions: { id: string; content: string; options: string[] }[]) => void;
-  setWhiteboardContent: (content: { formulas: string[]; diagrams: string[] }) => void;
+  addWhiteboardBlock: (block: WhiteboardContent) => void;
+  clearWhiteboard: () => void;
   reset: () => void;
 }
 
@@ -72,7 +73,7 @@ const initialLearningState = {
   isLoading: false,
   isAssessmentMode: false,
   assessmentQuestions: [],
-  whiteboardContent: { formulas: [], diagrams: [] },
+  whiteboardBlocks: [],
 };
 
 export const useLearningStore = create<LearningState>()((set) => ({
@@ -91,6 +92,18 @@ export const useLearningStore = create<LearningState>()((set) => ({
   setLoading: (loading) => set({ isLoading: loading }),
   setAssessmentMode: (mode) => set({ isAssessmentMode: mode }),
   setAssessmentQuestions: (questions) => set({ assessmentQuestions: questions }),
-  setWhiteboardContent: (content) => set({ whiteboardContent: content }),
+  addWhiteboardBlock: (block) => set((state) => {
+    // 检查是否有实际内容需要添加
+    const hasContent = block.title || 
+      (block.key_points && block.key_points.length > 0) ||
+      (block.formulas && block.formulas.length > 0) ||
+      (block.examples && block.examples.length > 0) ||
+      (block.notes && block.notes.length > 0);
+    if (!hasContent) {
+      return state;
+    }
+    return { whiteboardBlocks: [...state.whiteboardBlocks, block] };
+  }),
+  clearWhiteboard: () => set({ whiteboardBlocks: [] }),
   reset: () => set(initialLearningState),
 }));

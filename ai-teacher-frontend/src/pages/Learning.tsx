@@ -31,7 +31,8 @@ const LearningPage: React.FC = () => {
     setAssessmentMode,
     assessmentQuestions,
     setAssessmentQuestions,
-    setWhiteboardContent,
+    addWhiteboardBlock,
+    clearWhiteboard,
     reset,
   } = useLearningStore();
 
@@ -217,8 +218,9 @@ const LearningPage: React.FC = () => {
           setProgress(progressRes.data.data);
         }
 
-        // 清空消息
+        // 清空消息和白板
         setMessages([]);
+        clearWhiteboard();
         
         // 获取教学内容
         try {
@@ -230,7 +232,7 @@ const LearningPage: React.FC = () => {
             console.log('Teach API response:', content);
             
             // 更新白板
-            setWhiteboardContent(content.whiteboard);
+            addWhiteboardBlock(content.whiteboard);
             
             // 添加AI消息
             const textContent = content.content as Record<string, any>;
@@ -326,7 +328,7 @@ const LearningPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentCourse, setSession, setCurrentKp, setProgress, setLoading, setMessages, addMessage, setWhiteboardContent]);
+  }, [currentCourse, setSession, setCurrentKp, setProgress, setLoading, setMessages, addMessage, addWhiteboardBlock]);
 
   // 自动开始学习（移除 startLearning 依赖，避免重复调用）
   useEffect(() => {
@@ -350,7 +352,7 @@ const LearningPage: React.FC = () => {
         console.log('Question field:', content.content?.question);
         
         // 更新白板
-        setWhiteboardContent(content.whiteboard);
+        addWhiteboardBlock(content.whiteboard);
         
         // 添加AI消息
         const textContent = content.content as Record<string, any>;
@@ -442,13 +444,18 @@ const LearningPage: React.FC = () => {
 
   // 进入下一个知识点（概念类知识点完成后调用）
   const moveToNextKnowledgePoint = async () => {
-    if (!session || !currentCourse) return;
+    const currentSession = useLearningStore.getState().session;
+    const currentCourse = useCourseStore.getState().currentCourse;
+    if (!currentSession || !currentCourse) return;
     
     try {
       setLoading(true);
       
+      // 清空白板，开始新的知识点
+      clearWhiteboard();
+      
       // 标记当前知识点为已完成（计入进度）
-      const completeRes = await learningApi.completeKnowledgePoint(session.session_id);
+      const completeRes = await learningApi.completeKnowledgePoint(currentSession.session_id);
       
       if (completeRes.data.success && completeRes.data.data.next_kp_id) {
         // 更新进度
@@ -470,11 +477,9 @@ const LearningPage: React.FC = () => {
             timestamp: new Date(),
           });
           
-          // 更新 session 并获取新知识点的教学内容
-          setSession({ ...session, kp_id: completeRes.data.data.next_kp_id });
-          
+          // 后端已更新session的kp_id，直接获取教学内容
           setTimeout(async () => {
-            await fetchTeachingContent(session.session_id);
+            await fetchTeachingContent(currentSession.session_id);
           }, 1000);
         }
       } else if (completeRes.data.success && !completeRes.data.data.next_kp_id) {
@@ -524,7 +529,7 @@ const LearningPage: React.FC = () => {
       
       if (res.data.success) {
         const data = res.data.data;
-        setWhiteboardContent(data.whiteboard);
+        addWhiteboardBlock(data.whiteboard);
         
         const textContent = data.content as Record<string, any>;
         
