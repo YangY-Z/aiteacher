@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, Generator
 
 from app.core.config import settings
 from app.core.exceptions import LLMServiceError
@@ -199,6 +199,54 @@ class LLMService:
             True if provider is properly configured.
         """
         return self.provider.is_available()
+
+    def stream_chat(
+        self,
+        system_prompt: str,
+        user_message: str,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        **kwargs: Any,
+    ) -> Generator[str, None, None]:
+        """Stream a chat message from the LLM.
+
+        Args:
+            system_prompt: System prompt for the conversation.
+            user_message: User message to send.
+            temperature: Sampling temperature.
+            max_tokens: Maximum tokens to generate.
+            **kwargs: Additional provider-specific parameters.
+
+        Yields:
+            Chunks of content as they arrive.
+
+        Raises:
+            LLMServiceError: If the API call fails.
+        """
+        messages = [
+            ChatMessage(role="system", content=system_prompt),
+            ChatMessage(role="user", content=user_message),
+        ]
+
+        # Add Zhipu-specific thinking mode if enabled
+        if settings.zhipu_enable_thinking and "thinking" not in kwargs:
+            kwargs["thinking"] = {"type": "enabled"}
+
+        try:
+            yield from self.provider.stream_chat_completion(
+                messages=messages,
+                temperature=temperature or settings.llm_temperature,
+                max_tokens=max_tokens or settings.llm_max_tokens,
+                **kwargs,
+            )
+        except Exception as e:
+            logger.exception(f"LLM stream chat failed: {e}")
+            if isinstance(e, LLMServiceError):
+                raise
+            raise LLMServiceError(
+                f"LLM API call failed: {e}",
+                {"error": str(e)},
+            )
 
 
 # Global LLM service instance

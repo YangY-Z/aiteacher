@@ -51,26 +51,37 @@
       "id": 2,
       "student_id": 2,
       "course_id": "MATH_JUNIOR_01",
-      "current_kp_id": "K6",
+      "current_kp_id": "K17",
       "completed_kp_ids": [
-        "K6"
+        "K17"
       ],
       "mastered_kp_ids": [
         "K1",
         "K3",
         "K4",
         "K5",
-        "K2"
+        "K2",
+        "K6",
+        "K7",
+        "K8",
+        "K9",
+        "K10",
+        "K11",
+        "K12",
+        "K13",
+        "K14",
+        "K15",
+        "K16"
       ],
       "skipped_kp_ids": [],
-      "mastery_rate": 0.15625,
+      "mastery_rate": 0.5,
       "total_time": 0,
       "session_count": 0,
       "last_session_at": null,
       "created_at": "2026-03-17T15:29:07.456618",
-      "updated_at": "2026-03-17T16:27:22.467660"
+      "updated_at": "2026-03-17T20:11:20.937297"
     }
   ],
   "next_profile_id": 2,
-  "updated_at": "2026-03-17T16:27:22.469987"
+  "updated_at": "2026-03-17T20:11:20.937485"
 }

@@ -65,29 +65,19 @@ CHAT_RESPONSE_PROMPT = """【任务】
 2. 回答是否完整？是否遗漏关键点？
 3. 是否存在误解需要纠正？
 
-【返回格式】（请严格按照此JSON格式返回，不要添加任何其他文字）
-{{
-    "response_type": "反馈",
-    "content": {{
-        "feedback": "对学生的回答进行评价和反馈（指出正确/错误，解释原因）",
-        "encouragement": "鼓励语（可选）",
-        "supplement": "补充说明（如果学生回答不完整或有误解时填写）"
-    }},
-    "whiteboard": {{
-        "title": "{knowledge_point_name} - 补充",
-        "key_points": ["需要强调的要点"],
-        "formulas": ["需要强调的公式（LaTeX格式）"],
-        "examples": ["补充示例"],
-        "notes": ["纠正的误解或注意事项"]
-    }},
-    "next_action": "wait_for_student 或 start_assessment 或 next_knowledge_point"
-}}
+【返回格式】请严格按照以下JSONL格式输出，每行一个独立的JSON对象：
 
-【白板内容说明】
-whiteboard字段用于补充展示在黑板上的内容：
-- 如果学生回答正确，可以留空或放总结性内容
-- 如果学生有误解，重点展示纠正内容
-- formulas 使用 LaTeX 格式，如 $y = kx + b$
+{{"type":"msg_feedback","content":"对学生的回答进行评价和反馈（指出正确/错误，解释原因）"}}
+{{"type":"msg_encourage","content":"鼓励语（可选，学生表现好时输出）"}}
+{{"type":"msg_supplement","content":"补充说明（如果学生回答不完整或有误解时输出）"}}
+{{"type":"wb_formulas","content":"需要强调的公式（LaTeX格式）"}}
+{{"type":"complete","next_action":"wait_for_student 或 start_assessment 或 next_knowledge_point"}}
+
+【输出规则】
+1. 必须包含 msg_feedback
+2. 学生表现好时输出 msg_encourage
+3. 学生有误解时输出 msg_supplement 和 wb_formulas
+4. 最后必须输出 complete
 
 【next_action 决策规则】
 
@@ -95,7 +85,6 @@ whiteboard字段用于补充展示在黑板上的内容：
    - 当前知识点是概念类（概念理解为主，不需要计算练习）
    - 学生回答正确理解了核心概念
    - 学生回答基本正确，只是表述不够完整
-   - 知识点相对简单，学生已经表现出理解
 
 2. 返回 "start_assessment" 当：
    - 当前知识点是公式类或技能类（需要通过练习验证掌握程度）
@@ -104,16 +93,10 @@ whiteboard字段用于补充展示在黑板上的内容：
 3. 返回 "wait_for_student" 当：
    - 学生回答有明显错误，需要纠正
    - 学生提出问题需要回答
-   - 学生对核心概念有误解，需要重新解释
 
 【知识点类型判断】
-- 概念类：定义、性质、定理等，以理解为主 → 倾向于 next_knowledge_point
-- 公式类：公式推导、公式应用 → 倾向于 start_assessment
-- 技能类：计算方法、解题技巧 → 倾向于 start_assessment
+- 概念类：定义、性质、定理等 → next_knowledge_point
+- 公式类：公式推导、公式应用 → start_assessment
+- 技能类：计算方法、解题技巧 → start_assessment
 
-【重要提示】
-- 概念类知识点学生理解了就可以进入下一个，不需要测试
-- 保持教学节奏，避免在一个简单知识点上停留太久
-- 如果学生多次互动后理解了概念，应该推进
-
-请直接返回JSON，不要包含```json```标记"""
+请开始输出："""

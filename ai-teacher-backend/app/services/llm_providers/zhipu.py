@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, Generator
 
 import httpx
 
@@ -253,6 +253,101 @@ class ZhipuProvider(BaseLLMProvider):
         except httpx.RequestError as e:
             raise LLMServiceError(
                 f"Zhipu API request failed: {e}",
+                {"error": str(e), "provider": "zhipu"},
+            )
+
+    def stream_chat_completion(
+        self,
+        messages: list[ChatMessage],
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        **kwargs: Any,
+    ) -> Generator[str, None, None]:
+        """Stream chat completion request to Zhipu AI.
+
+        Args:
+            messages: List of chat messages.
+            model: Model to use, defaults to provider's default model.
+            temperature: Sampling temperature (0.0-2.0).
+            max_tokens: Maximum tokens to generate.
+            **kwargs: Additional parameters.
+
+        Yields:
+            Chunks of content as they arrive.
+
+        Raises:
+            LLMServiceError: If the API call fails.
+        """
+        if not self.is_available():
+            raise LLMServiceError(
+                "Zhipu AI provider not configured: missing API key",
+                {"provider": "zhipu"},
+            )
+
+        model = model or self._default_model
+        temperature = temperature if temperature is not None else 0.7
+        max_tokens = max_tokens if max_tokens is not None else 2048
+
+        request_body = self._build_request_body(
+            messages=messages,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs,
+        )
+        request_body["stream"] = True
+
+        url = f"{self.API_BASE_URL}{self.CHAT_COMPLETIONS_ENDPOINT}"
+
+        logger.debug(
+            f"Sending streaming request to Zhipu API: model={model}"
+        )
+
+        try:
+            with httpx.stream(
+                "POST",
+                url,
+                json=request_body,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {self._api_key}",
+                },
+                timeout=self._timeout,
+            ) as response:
+                if not response.is_success:
+                    error_text = response.read().decode()
+                    raise LLMServiceError(
+                        f"Zhipu API error: {error_text}",
+                        {"status_code": response.status_code, "provider": "zhipu"},
+                    )
+
+                for line in response.iter_lines():
+                    if not line:
+                        continue
+                    if line.startswith("data: "):
+                        data_str = line[6:]  # Remove "data: " prefix
+                        if data_str == "[DONE]":
+                            break
+                        try:
+                            data = json.loads(data_str)
+                            choices = data.get("choices", [])
+                            if choices:
+                                delta = choices[0].get("delta", {})
+                                content = delta.get("content", "")
+                                if content:
+                                    yield content
+                        except json.JSONDecodeError:
+                            continue
+
+        except httpx.TimeoutException:
+            raise LLMServiceError(
+                "Zhipu API streaming request timed out",
+                {"timeout": self._timeout, "provider": "zhipu", "model": model},
+            )
+        except httpx.RequestError as e:
+            raise LLMServiceError(
+                f"Zhipu API streaming request failed: {e}",
                 {"error": str(e), "provider": "zhipu"},
             )
 

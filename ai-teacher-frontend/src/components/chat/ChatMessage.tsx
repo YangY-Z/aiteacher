@@ -10,6 +10,21 @@ interface ChatMessageProps {
   selectedAnswer?: string;
 }
 
+// 简单的 Markdown 渲染器
+const renderMarkdown = (text: string) => {
+  // 处理 **粗体**
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      // 粗体文本
+      const boldText = part.slice(2, -2);
+      return <strong key={index}>{boldText}</strong>;
+    }
+    return part;
+  });
+};
+
 const ChatMessage: React.FC<ChatMessageProps> = ({ 
   message, 
   onSelectAnswer,
@@ -25,7 +40,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           <div className="question-icon-pulse">
             <QuestionCircleOutlined />
           </div>
-          <div className="question-text">{message.content}</div>
+          <div className="question-text">{renderMarkdown(message.content)}</div>
           <div className="question-hint">
             <span className="hint-dot"></span>
             请在下方输入框回答问题
@@ -38,7 +53,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
     if (message.type === 'question' && message.question) {
       return (
         <div className="message-question">
-          <div className="question-content">{message.question.content}</div>
+          <div className="question-content">{renderMarkdown(message.question.content)}</div>
           <div className="question-options">
             {message.question.options.map((option, index) => {
               const optionKey = option.charAt(0);
@@ -67,12 +82,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           <span className="feedback-icon">
             {isCorrect ? '✅' : '❌'}
           </span>
-          <span>{message.content}</span>
+          <span>{renderMarkdown(message.content)}</span>
         </div>
       );
     }
 
-    return <div className="message-text">{message.content}</div>;
+    return <div className="message-text">{renderMarkdown(message.content)}</div>;
   };
 
   return (

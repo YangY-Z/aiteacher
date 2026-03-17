@@ -16,7 +16,53 @@ import type {
   AssessmentResponse,
   ProgressResponse,
   BacktrackDecision,
+  WhiteboardContent,
 } from '../types';
+
+// SSE事件类型（增量事件）
+export type StreamEventType = 
+  // 白板增量事件
+  | 'wb_title'
+  | 'wb_points'
+  | 'wb_formulas'
+  | 'wb_examples'
+  | 'wb_notes'
+  // 消息事件
+  | 'msg_intro'
+  | 'msg_def'
+  | 'msg_example'
+  | 'msg_summary'
+  | 'msg_question'
+  | 'msg_feedback'
+  | 'msg_encourage'
+  | 'msg_supplement'
+  // 控制事件
+  | 'whiteboard'
+  | 'complete'
+  | 'error';
+
+// SSE增量事件回调类型
+export interface StreamCallbacks {
+  // 白板增量事件
+  onWbTitle?: (content: string) => void;
+  onWbPoints?: (content: string) => void;
+  onWbFormulas?: (content: string) => void;
+  onWbExamples?: (content: string) => void;
+  onWbNotes?: (content: string) => void;
+  // 消息事件
+  onMsgIntro?: (content: string) => void;
+  onMsgDef?: (content: string) => void;
+  onMsgExample?: (content: string) => void;
+  onMsgSummary?: (content: string) => void;
+  onMsgQuestion?: (content: string) => void;
+  onMsgFeedback?: (content: string) => void;
+  onMsgEncourage?: (content: string) => void;
+  onMsgSupplement?: (content: string) => void;
+  // 控制事件
+  onWhiteboard?: (whiteboard: WhiteboardContent) => void;
+  onComplete?: (nextAction: string) => void;
+  onError?: (error: string) => void;
+}
 
 // 认证API
 export const authApi = {
@@ -56,8 +102,177 @@ export const learningApi = {
   getTeachingContent: (sessionId: string) =>
     api.post<ApiResponse<ChatResponse>>(`/learning/session/${sessionId}/teach`),
 
+  // 流式获取教学内容（增量事件）
+  streamTeachingContent: async (sessionId: string, callbacks: StreamCallbacks) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/api/v1/learning/session/${sessionId}/teach/stream`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+
+    if (!reader) {
+      callbacks.onError?.('无法读取响应流');
+      return;
+    }
+
+    let currentEvent: string = '';
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value);
+        const lines = text.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            currentEvent = line.slice(6).trim();
+          } else if (line.startsWith('data:')) {
+            const dataStr = line.slice(5).trim();
+            try {
+              const data = JSON.parse(dataStr);
+              
+              // 处理增量事件
+              switch (currentEvent) {
+                case 'wb_title':
+                  callbacks.onWbTitle?.(data.content);
+                  break;
+                case 'wb_points':
+                  callbacks.onWbPoints?.(data.content);
+                  break;
+                case 'wb_formulas':
+                  callbacks.onWbFormulas?.(data.content);
+                  break;
+                case 'wb_examples':
+                  callbacks.onWbExamples?.(data.content);
+                  break;
+                case 'wb_notes':
+                  callbacks.onWbNotes?.(data.content);
+                  break;
+                case 'msg_intro':
+                  callbacks.onMsgIntro?.(data.content);
+                  break;
+                case 'msg_def':
+                  callbacks.onMsgDef?.(data.content);
+                  break;
+                case 'msg_example':
+                  callbacks.onMsgExample?.(data.content);
+                  break;
+                case 'msg_summary':
+                  callbacks.onMsgSummary?.(data.content);
+                  break;
+                case 'msg_question':
+                  callbacks.onMsgQuestion?.(data.content);
+                  break;
+                case 'msg_feedback':
+                  callbacks.onMsgFeedback?.(data.content);
+                  break;
+                case 'msg_encourage':
+                  callbacks.onMsgEncourage?.(data.content);
+                  break;
+                case 'msg_supplement':
+                  callbacks.onMsgSupplement?.(data.content);
+                  break;
+                case 'whiteboard':
+                  callbacks.onWhiteboard?.(data);
+                  break;
+                case 'complete':
+                  callbacks.onComplete?.(data.next_action || 'wait_for_student');
+                  break;
+                case 'error':
+                  callbacks.onError?.(data.error || '未知错误');
+                  break;
+              }
+            } catch (e) {
+              // 解析失败，忽略
+            }
+          }
+        }
+      }
+    } catch (error) {
+      callbacks.onError?.(error instanceof Error ? error.message : '流式读取错误');
+    }
+  },
+
   sendMessage: (sessionId: string, data: ChatRequest) =>
     api.post<ApiResponse<ChatResponse>>(`/learning/session/${sessionId}/chat`, data),
+
+  // 流式发送消息（增量事件）
+  streamSendMessage: async (sessionId: string, message: string, callbacks: StreamCallbacks) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/api/v1/learning/session/${sessionId}/chat/stream`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message }),
+    });
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+
+    if (!reader) {
+      callbacks.onError?.('无法读取响应流');
+      return;
+    }
+
+    let currentEvent: string = '';
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value);
+        const lines = text.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            currentEvent = line.slice(6).trim();
+          } else if (line.startsWith('data:')) {
+            const dataStr = line.slice(5).trim();
+            try {
+              const data = JSON.parse(dataStr);
+              
+              // 处理增量事件
+              switch (currentEvent) {
+                case 'wb_formulas':
+                  callbacks.onWbFormulas?.(data.content);
+                  break;
+                case 'msg_feedback':
+                  callbacks.onMsgFeedback?.(data.content);
+                  break;
+                case 'msg_encourage':
+                  callbacks.onMsgEncourage?.(data.content);
+                  break;
+                case 'msg_supplement':
+                  callbacks.onMsgSupplement?.(data.content);
+                  break;
+                case 'complete':
+                  callbacks.onComplete?.(data.next_action || 'wait_for_student');
+                  break;
+                case 'error':
+                  callbacks.onError?.(data.error || '未知错误');
+                  break;
+              }
+            } catch (e) {
+              // 解析失败，忽略
+            }
+          }
+        }
+      }
+    } catch (error) {
+      callbacks.onError?.(error instanceof Error ? error.message : '流式读取错误');
+    }
+  },
 
   getAssessment: (sessionId: string) =>
     api.get<ApiResponse<{ kp_id: string; questions: AssessmentQuestion[] }>>(`/learning/session/${sessionId}/assessment`),

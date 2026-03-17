@@ -1,8 +1,8 @@
 .chat-message {
   display: flex;
-  gap: 12px;
-  padding: 16px 20px;
-  margin-bottom: 12px;
+  gap: 10px;
+  padding: 10px 16px;
+  margin-bottom: 6px;
 }
 
 .ai-message {
@@ -10,7 +10,8 @@
 }
 
 .student-message {
-  flex-direction: row-reverse;
+  flex-direction: row;
+  justify-content: flex-end;
 }
 
 .message-avatar {

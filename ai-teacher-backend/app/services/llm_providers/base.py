@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Generator
 
 
 class MessageRole(str, Enum):
@@ -128,6 +128,33 @@ class BaseLLMProvider(ABC):
             LLMServiceError: If the API call fails.
         """
         pass
+
+    def stream_chat_completion(
+        self,
+        messages: list[ChatMessage],
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        **kwargs: Any,
+    ) -> Generator[str, None, None]:
+        """Stream chat completion request.
+
+        Args:
+            messages: List of chat messages.
+            model: Model to use, defaults to provider's default model.
+            temperature: Sampling temperature.
+            max_tokens: Maximum tokens to generate.
+            **kwargs: Additional provider-specific parameters.
+
+        Yields:
+            Chunks of content as they arrive.
+
+        Raises:
+            LLMServiceError: If the API call fails.
+        """
+        # Default implementation: fall back to non-streaming
+        response = self.chat_completion(messages, model, temperature, max_tokens, **kwargs)
+        yield response.content
 
     @abstractmethod
     def is_available(self) -> bool:

@@ -18,43 +18,33 @@ TEACHING_PROMPT = """【教学任务】
 【教学要求】
 {teaching_requirements}
 
-【返回格式】（请严格按照此JSON格式返回，不要添加任何其他文字）
-{{
-    "response_type": "讲解",
-    "content": {{
-        "introduction": "引入（20-30字）：联系已学知识或生活实例",
-        "definition": "定义/公式（40-60字）：清晰给出核心内容",
-        "example": "示例（30-50字）：举例说明",
-        "question": "提问（15-25字）：检查学生理解的问题",
-        "summary": "总结（20-30字）：归纳要点"
-    }},
-    "whiteboard": {{
-        "title": "{knowledge_point_name}",
-        "key_points": ["要点1", "要点2", "要点3"],
-        "formulas": ["公式1（LaTeX格式）", "公式2（LaTeX格式）"],
-        "examples": ["示例说明"],
-        "notes": ["注意事项或易错点"]
-    }},
-    "next_action": "wait_for_student"
-}}
+【返回格式】请严格按照以下JSONL格式输出，每行一个独立的JSON对象（不要添加```标记）：
 
-【白板内容说明】
-whiteboard字段是展示在黑板上的内容，会累积展示，请认真填写：
-- title: 知识点标题
-- key_points: 核心要点列表（2-4条，每条10-20字）
-- formulas: 公式列表，每条公式使用纯LaTeX格式（不要加$符号），例如：
-  - "y = kx + b" （一次函数）
-  - "C = 2\\pi r" （圆周长）
-  - "x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}" （求根公式）
-- examples: 典型示例（1-2个），如需包含公式，用 $公式$ 格式
-- notes: 注意事项或易错点（1-2条）
+{{"type":"wb_title","content":"知识点标题"}}
+{{"type":"wb_points","content":"核心要点1"}}
+{{"type":"wb_points","content":"核心要点2"}}
+{{"type":"wb_formulas","content":"公式（LaTeX格式，如 y = kx + b）"}}
+{{"type":"wb_examples","content":"示例说明"}}
+{{"type":"wb_notes","content":"注意事项"}}
+{{"type":"msg_intro","content":"引入内容（20-30字，联系已学知识或生活实例）"}}
+{{"type":"msg_def","content":"定义/公式解释（40-60字）"}}
+{{"type":"msg_example","content":"示例说明（30-50字）"}}
+{{"type":"msg_summary","content":"总结归纳（20-30字）"}}
+{{"type":"msg_question","content":"提问（15-25字，检查学生理解）"}}
+{{"type":"complete","next_action":"wait_for_student"}}
 
-【重要说明】
-1. question 字段必须填写，用于引导学生互动
-2. next_action 固定返回 "wait_for_student"，等待学生回复后再决定下一步
-3. 学生回复后，系统会智能判断是否可以开始测试
+【输出规则】
+1. 先输出白板内容（wb_开头），再输出消息内容（msg_开头），最后输出complete
+2. wb_points 可以输出多行，每行一个要点
+3. wb_formulas 可以输出多行，每行一个公式
+4. wb_examples 可以输出多行，每行一个示例
+5. wb_notes 可以输出多行，每行一条注意事项
+6. 公式使用纯LaTeX格式，不要加$符号，例如：y = kx + b, C = 2\\pi r
+7. 必须包含 msg_question 用于引导学生互动
+8. next_action 固定为 "wait_for_student"
+9. 每行必须是合法的JSON，不要有多余逗号或换行
 
-请直接返回JSON，不要包含```json```标记"""
+请开始输出："""
 
 CONCEPT_TEACHING_PROMPT = """【概念讲解专项要求】
 

@@ -1,7 +1,8 @@
 """Learning service for learning session management."""
 
 import json
-from typing import Any, Optional
+import re
+from typing import Any, Optional, AsyncGenerator
 import uuid
 
 from app.core.exceptions import EntityNotFoundError, LearningSessionError
@@ -32,6 +33,7 @@ from app.prompts.teaching_prompt import (
     TEACHING_PROMPT,
     get_teaching_requirements,
 )
+from app.prompts.question_prompt import CHAT_RESPONSE_PROMPT
 
 
 class LearningService:
@@ -591,6 +593,229 @@ class LearningService:
             "session_count": profile.session_count if profile else 0,
             "last_session_at": profile.last_session_at if profile else None,
         }
+
+    async def stream_teaching_content(
+        self,
+        session: LearningSession,
+        student_name: str,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Stream teaching content for the current knowledge point using JSONL format.
+
+        Args:
+            session: Learning session.
+            student_name: Student name for personalization.
+
+        Yields:
+            SSE events with incremental content.
+        """
+        if not session.kp_id:
+            yield {"event": "error", "data": json.dumps({"error": "会话没有当前知识点"}, ensure_ascii=False)}
+            return
+
+        # Get knowledge point info
+        kp_info = course_service.get_knowledge_point_info(session.kp_id)
+        record = self.get_or_create_record(session.student_id, session.kp_id)
+
+        # Build attempt info
+        attempt_info = ""
+        if record.attempt_count > 0:
+            last_error = record.get_last_error_type()
+            attempt_info = f"- 上次学习时间：{record.updated_at}\n- 上次评估结果：{'通过' if record.attempts[-1].result == 'passed' else '未通过'}\n- 主要错误类型：{last_error or '无'}"
+
+        # Get teaching requirements
+        teaching_requirements = get_teaching_requirements(
+            kp_info["type"],
+            record.attempt_count + 1,
+            record.get_last_error_type() or "",
+        )
+
+        # Build prompt
+        prompt = TEACHING_PROMPT.format(
+            knowledge_point_name=kp_info["name"],
+            knowledge_point_id=kp_info["id"],
+            knowledge_point_type=kp_info["type"],
+            description=kp_info["description"] or "",
+            key_points=", ".join(knowledge_point_repository.get_by_id(kp_info["id"]).key_points) if knowledge_point_repository.get_by_id(kp_info["id"]) else "",
+            dependencies=", ".join(kp_info["dependency_names"]) if kp_info["dependency_names"] else "无",
+            student_name=student_name,
+            attempt_count=record.attempt_count + 1,
+            attempt_info=attempt_info,
+            teaching_requirements=teaching_requirements,
+        )
+
+        # Stream LLM response and parse JSONL
+        buffer = ""
+        
+        for chunk in llm_service.stream_chat(SYSTEM_PROMPT, prompt):
+            buffer += chunk
+            
+            # Try to parse complete JSON lines
+            while "\n" in buffer:
+                line, buffer = buffer.split("\n", 1)
+                line = line.strip()
+                
+                if not line:
+                    continue
+                
+                # Try to parse as JSON
+                try:
+                    # Skip markdown code blocks
+                    if line.startswith("```"):
+                        continue
+                    
+                    # 修复反斜杠转义问题：将单反斜杠转为双反斜杠（但不是已经双转义的）
+                    # 例如：\frac -> \\frac, \pi -> \\pi
+                    line_fixed = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', line)
+                    
+                    data = json.loads(line_fixed)
+                    event_type = data.get("type", "")
+                    
+                    if event_type == "wb_title":
+                        # 白板标题
+                        yield {"event": "wb_title", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
+                    
+                    elif event_type == "wb_points":
+                        # 白板要点（增量）
+                        yield {"event": "wb_points", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
+                    
+                    elif event_type == "wb_formulas":
+                        # 白板公式（增量）
+                        yield {"event": "wb_formulas", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
+                    
+                    elif event_type == "wb_examples":
+                        # 白板示例（增量）
+                        yield {"event": "wb_examples", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
+                    
+                    elif event_type == "wb_notes":
+                        # 白板注意事项（增量）
+                        yield {"event": "wb_notes", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
+                    
+                    elif event_type == "msg_intro":
+                        # 引入消息
+                        yield {"event": "msg_intro", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
+                    
+                    elif event_type == "msg_def":
+                        # 定义消息
+                        yield {"event": "msg_def", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
+                    
+                    elif event_type == "msg_example":
+                        # 示例消息
+                        yield {"event": "msg_example", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
+                    
+                    elif event_type == "msg_summary":
+                        # 总结消息
+                        yield {"event": "msg_summary", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
+                    
+                    elif event_type == "msg_question":
+                        # 提问消息
+                        yield {"event": "msg_question", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
+                    
+                    elif event_type == "complete":
+                        # 完成事件
+                        yield {"event": "complete", "data": json.dumps({"next_action": data.get("next_action", "wait_for_student")}, ensure_ascii=False)}
+                
+                except json.JSONDecodeError:
+                    # Skip invalid JSON lines
+                    continue
+        
+        # Process any remaining content in buffer
+        if buffer.strip():
+            try:
+                # Skip markdown code blocks
+                clean_buffer = buffer.strip()
+                if not clean_buffer.startswith("```"):
+                    data = json.loads(clean_buffer)
+                    event_type = data.get("type", "")
+                    
+                    if event_type == "complete":
+                        yield {"event": "complete", "data": json.dumps({"next_action": data.get("next_action", "wait_for_student")}, ensure_ascii=False)}
+            except json.JSONDecodeError:
+                pass
+
+    async def stream_chat_response(
+        self,
+        session: LearningSession,
+        message: str,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Stream chat response for student message using JSONL format.
+
+        Args:
+            session: Learning session.
+            message: Student message.
+
+        Yields:
+            SSE events with incremental response.
+        """
+        # 快捷意图检测
+        if "跳过" in message or "已经会了" in message or "开始测试" in message:
+            yield {"event": "complete", "data": json.dumps({"next_action": "start_assessment"}, ensure_ascii=False)}
+            return
+
+        # Get knowledge point info
+        if not session.kp_id:
+            yield {"event": "error", "data": json.dumps({"error": "会话没有当前知识点"}, ensure_ascii=False)}
+            return
+
+        kp_info = course_service.get_knowledge_point_info(session.kp_id)
+
+        # Build prompt
+        prompt = CHAT_RESPONSE_PROMPT.format(
+            knowledge_point_name=kp_info["name"],
+            knowledge_point_type=kp_info["type"],
+            key_points=", ".join(knowledge_point_repository.get_by_id(kp_info["id"]).key_points) if knowledge_point_repository.get_by_id(kp_info["id"]) else "",
+            dependencies=", ".join(kp_info["dependency_names"]) if kp_info["dependency_names"] else "无",
+            student_message=message,
+        )
+
+        # Stream LLM response and parse JSONL
+        buffer = ""
+        
+        for chunk in llm_service.stream_chat(SYSTEM_PROMPT, prompt):
+            buffer += chunk
+            
+            # Try to parse complete JSON lines
+            while "\n" in buffer:
+                line, buffer = buffer.split("\n", 1)
+                line = line.strip()
+                
+                if not line:
+                    continue
+                
+                try:
+                    # Skip markdown code blocks
+                    if line.startswith("```"):
+                        continue
+                    
+                    # 修复反斜杠转义问题
+                    line_fixed = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', line)
+                    
+                    data = json.loads(line_fixed)
+                    event_type = data.get("type", "")
+                    
+                    if event_type == "msg_feedback":
+                        yield {"event": "msg_feedback", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
+                    elif event_type == "msg_encourage":
+                        yield {"event": "msg_encourage", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
+                    elif event_type == "msg_supplement":
+                        yield {"event": "msg_supplement", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
+                    elif event_type == "wb_formulas":
+                        yield {"event": "wb_formulas", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
+                    elif event_type == "complete":
+                        yield {"event": "complete", "data": json.dumps({"next_action": data.get("next_action", "wait_for_student")}, ensure_ascii=False)}
+                
+                except json.JSONDecodeError:
+                    continue
+        
+        # Process any remaining content
+        if buffer.strip():
+            try:
+                clean_buffer = buffer.strip()
+                if not clean_buffer.startswith("```"):
+                    data = json.loads(clean_buffer)
+                    if data.get("type") == "complete":
+                        yield {"event": "complete", "data": json.dumps({"next_action": data.get("next_action", "wait_for_student")}, ensure_ascii=False)}
+            except json.JSONDecodeError:
+                pass
 
 
 # Global service instance

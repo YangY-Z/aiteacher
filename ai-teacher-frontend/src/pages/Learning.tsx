@@ -8,6 +8,7 @@ import ChatInput from '../components/chat/ChatInput';
 import ProgressPanel from '../components/progress/ProgressPanel';
 import { useAuthStore, useCourseStore, useLearningStore } from '../store';
 import { courseApi, learningApi } from '../api';
+import type { WhiteboardContent } from '../types';
 import './Learning.css';
 
 const { Content, Sider } = Layout;
@@ -24,15 +25,27 @@ const LearningPage: React.FC = () => {
     progress,
     setProgress,
     addMessage,
+    updateStreamingMessage,
+    finishStreamingMessage,
     setMessages,
     isLoading,
     setLoading,
+    isStreaming,
+    setStreaming,
     isAssessmentMode,
     setAssessmentMode,
     assessmentQuestions,
     setAssessmentQuestions,
     addWhiteboardBlock,
+    updateLastWhiteboardBlock,
     clearWhiteboard,
+    // 新增：增量更新方法
+    setWhiteboardTitle,
+    addWhiteboardPoint,
+    addWhiteboardFormula,
+    addWhiteboardExample,
+    addWhiteboardNote,
+    commitWhiteboard,
     reset,
   } = useLearningStore();
 
@@ -40,6 +53,9 @@ const LearningPage: React.FC = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [skipModalVisible, setSkipModalVisible] = useState(false);
+  
+  // 流式消息ID
+  const streamingMsgIdRef = useRef<string | null>(null);
   
   // 防止 StrictMode 重复调用
   const isStartingRef = useRef(false);
@@ -222,105 +238,8 @@ const LearningPage: React.FC = () => {
         setMessages([]);
         clearWhiteboard();
         
-        // 获取教学内容
-        try {
-          const teachRes = await learningApi.getTeachingContent(sessionData.session_id);
-          if (teachRes.data.success) {
-            const content = teachRes.data.data;
-            
-            // 调试日志
-            console.log('Teach API response:', content);
-            
-            // 更新白板
-            addWhiteboardBlock(content.whiteboard);
-            
-            // 添加AI消息
-            const textContent = content.content as Record<string, any>;
-            
-            // 逐条展示教学内容
-            let delay = 0;
-            
-            if (textContent.introduction) {
-              setTimeout(() => {
-                addMessage({
-                  id: `msg-intro-${Date.now()}`,
-                  role: 'ai',
-                  content: textContent.introduction,
-                  timestamp: new Date(),
-                });
-              }, delay);
-              delay += 800;
-            }
-            
-            if (textContent.definition) {
-              setTimeout(() => {
-                addMessage({
-                  id: `msg-def-${Date.now()}`,
-                  role: 'ai',
-                  content: textContent.definition,
-                  timestamp: new Date(),
-                });
-              }, delay);
-              delay += 800;
-            }
-            
-            if (textContent.example) {
-              setTimeout(() => {
-                addMessage({
-                  id: `msg-example-${Date.now()}`,
-                  role: 'ai',
-                  content: textContent.example,
-                  timestamp: new Date(),
-                });
-              }, delay);
-              delay += 800;
-            }
-            
-            if (textContent.summary) {
-              setTimeout(() => {
-                addMessage({
-                  id: `msg-summary-${Date.now()}`,
-                  role: 'ai',
-                  content: textContent.summary,
-                  timestamp: new Date(),
-                });
-              }, delay);
-              delay += 800;
-            }
-            
-            // 处理提问
-            if (textContent.question) {
-              setTimeout(() => {
-                addMessage({
-                  id: `msg-question-${Date.now()}`,
-                  role: 'ai',
-                  content: textContent.question,
-                  timestamp: new Date(),
-                  type: 'teacher_question',
-                });
-              }, delay);
-            } else {
-              // 没有提问时，引导开始测试
-              setTimeout(() => {
-                addMessage({
-                  id: `msg-guide-${Date.now()}`,
-                  role: 'ai',
-                  content: '这部分内容讲解完毕，输入"开始测试"检验学习效果吧！',
-                  timestamp: new Date(),
-                });
-              }, delay);
-            }
-          }
-        } catch (teachError) {
-          console.error('Failed to get teaching content:', teachError);
-          // 添加欢迎消息作为后备
-          addMessage({
-            id: `msg-welcome-${Date.now()}`,
-            role: 'ai',
-            content: '你好！让我们开始学习吧！输入"开始测试"可以进行知识点评估。',
-            timestamp: new Date(),
-          });
-        }
+        // 流式获取教学内容
+        await fetchTeachingContentStream(sessionData.session_id);
       }
     } catch (error) {
       message.error('启动学习失败，请重试');
@@ -328,7 +247,7 @@ const LearningPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentCourse, setSession, setCurrentKp, setProgress, setLoading, setMessages, addMessage, addWhiteboardBlock]);
+  }, [currentCourse, setSession, setCurrentKp, setProgress, setLoading, setMessages, clearWhiteboard]);
 
   // 自动开始学习（移除 startLearning 依赖，避免重复调用）
   useEffect(() => {
@@ -337,109 +256,87 @@ const LearningPage: React.FC = () => {
     }
   }, [currentCourse, session]);
 
-  // 获取教学内容
-  const fetchTeachingContent = async (sessionId: string) => {
-    try {
-      setLoading(true);
-      const res = await learningApi.getTeachingContent(sessionId);
-      
-      if (res.data.success) {
-        const content = res.data.data;
+  // 流式获取教学内容（增量事件）
+  const fetchTeachingContentStream = async (sessionId: string) => {
+    setStreaming(true);
+    
+    await learningApi.streamTeachingContent(sessionId, {
+      // 白板增量事件
+      onWbTitle: (content) => {
+        setWhiteboardTitle(content);
+      },
+      onWbPoints: (content) => {
+        addWhiteboardPoint(content);
+      },
+      onWbFormulas: (content) => {
+        addWhiteboardFormula(content);
+      },
+      onWbExamples: (content) => {
+        addWhiteboardExample(content);
+      },
+      onWbNotes: (content) => {
+        addWhiteboardNote(content);
+      },
+      // 消息事件
+      onMsgIntro: (content) => {
+        addMessage({
+          id: `msg-intro-${Date.now()}`,
+          role: 'ai',
+          content: `📚 ${content}`,
+          timestamp: new Date(),
+        });
+      },
+      onMsgDef: (content) => {
+        addMessage({
+          id: `msg-def-${Date.now()}`,
+          role: 'ai',
+          content: `💡 **定义**：${content}`,
+          timestamp: new Date(),
+        });
+      },
+      onMsgExample: (content) => {
+        addMessage({
+          id: `msg-example-${Date.now()}`,
+          role: 'ai',
+          content: `📝 **示例**：${content}`,
+          timestamp: new Date(),
+        });
+      },
+      onMsgSummary: (content) => {
+        addMessage({
+          id: `msg-summary-${Date.now()}`,
+          role: 'ai',
+          content: `✨ **总结**：${content}`,
+          timestamp: new Date(),
+        });
+      },
+      onMsgQuestion: (content) => {
+        addMessage({
+          id: `msg-question-${Date.now()}`,
+          role: 'ai',
+          content: `❓ **提问**：${content}`,
+          timestamp: new Date(),
+          type: 'teacher_question',
+        });
+      },
+      // 控制事件
+      onComplete: (nextAction) => {
+        setStreaming(false);
+        // 提交白板内容
+        commitWhiteboard();
         
-        // 调试日志
-        console.log('Teach API response:', content);
-        console.log('Content field:', content.content);
-        console.log('Question field:', content.content?.question);
-        
-        // 更新白板
-        addWhiteboardBlock(content.whiteboard);
-        
-        // 添加AI消息
-        const textContent = content.content as Record<string, any>;
-        
-        // 逐条展示教学内容
-        let delay = 0;
-        
-        if (textContent.introduction) {
-          setTimeout(() => {
-            addMessage({
-              id: `msg-intro-${Date.now()}`,
-              role: 'ai',
-              content: textContent.introduction,
-              timestamp: new Date(),
-            });
-          }, delay);
-          delay += 800;
+        // 处理后续动作
+        if (nextAction === 'start_assessment') {
+          setTimeout(() => startAssessment(), 1500);
+        } else if (nextAction === 'next_knowledge_point') {
+          setTimeout(() => moveToNextKnowledgePoint(), 1500);
         }
-        
-        if (textContent.definition) {
-          setTimeout(() => {
-            addMessage({
-              id: `msg-def-${Date.now()}`,
-              role: 'ai',
-              content: textContent.definition,
-              timestamp: new Date(),
-            });
-          }, delay);
-          delay += 800;
-        }
-        
-        if (textContent.example) {
-          setTimeout(() => {
-            addMessage({
-              id: `msg-example-${Date.now()}`,
-              role: 'ai',
-              content: textContent.example,
-              timestamp: new Date(),
-            });
-          }, delay);
-          delay += 800;
-        }
-        
-        if (textContent.summary) {
-          setTimeout(() => {
-            addMessage({
-              id: `msg-summary-${Date.now()}`,
-              role: 'ai',
-              content: textContent.summary,
-              timestamp: new Date(),
-            });
-          }, delay);
-          delay += 800;
-        }
-        
-        // 根据 next_action 决定后续动作
-        const nextAction = content.next_action;
-        console.log('nextAction:', nextAction, 'hasQuestion:', !!textContent.question);
-        
-        if (textContent.question) {
-          // 有提问，显示问题等待学生回复
-          setTimeout(() => {
-            addMessage({
-              id: `msg-question-${Date.now()}`,
-              role: 'ai',
-              content: textContent.question,
-              timestamp: new Date(),
-              type: 'teacher_question',
-            });
-          }, delay);
-        } else {
-          // 没有提问，引导开始测试
-          setTimeout(() => {
-            addMessage({
-              id: `msg-guide-${Date.now()}`,
-              role: 'ai',
-              content: '这部分内容讲解完毕，输入"开始测试"检验学习效果吧！',
-              timestamp: new Date(),
-            });
-          }, delay);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to get teaching content:', error);
-    } finally {
-      setLoading(false);
-    }
+      },
+      onError: (error) => {
+        message.error(error);
+        setStreaming(false);
+      },
+    });
   };
 
   // 进入下一个知识点（概念类知识点完成后调用）
@@ -477,9 +374,9 @@ const LearningPage: React.FC = () => {
             timestamp: new Date(),
           });
           
-          // 后端已更新session的kp_id，直接获取教学内容
+          // 后端已更新session的kp_id，直接流式获取教学内容
           setTimeout(async () => {
-            await fetchTeachingContent(currentSession.session_id);
+            await fetchTeachingContentStream(currentSession.session_id);
           }, 1000);
         }
       } else if (completeRes.data.success && !completeRes.data.data.next_kp_id) {
@@ -504,7 +401,7 @@ const LearningPage: React.FC = () => {
     }
   };
 
-  // 发送消息
+  // 发送消息（流式）
   const handleSendMessage = async (msg: string) => {
     if (!session) return;
 
@@ -522,70 +419,52 @@ const LearningPage: React.FC = () => {
       return;
     }
 
-    // 发送给后端处理
-    try {
-      setLoading(true);
-      const res = await learningApi.sendMessage(session.session_id, { message: msg });
-      
-      if (res.data.success) {
-        const data = res.data.data;
-        addWhiteboardBlock(data.whiteboard);
+    setStreaming(true);
+    
+    await learningApi.streamSendMessage(session.session_id, msg, {
+      onWbFormulas: (content) => {
+        addWhiteboardFormula(content);
+      },
+      onMsgFeedback: (content) => {
+        addMessage({
+          id: `msg-feedback-${Date.now()}`,
+          role: 'ai',
+          content: `💬 ${content}`,
+          timestamp: new Date(),
+        });
+      },
+      onMsgEncourage: (content) => {
+        addMessage({
+          id: `msg-encourage-${Date.now()}`,
+          role: 'ai',
+          content: `💪 ${content}`,
+          timestamp: new Date(),
+        });
+      },
+      onMsgSupplement: (content) => {
+        addMessage({
+          id: `msg-supplement-${Date.now()}`,
+          role: 'ai',
+          content: `📝 ${content}`,
+          timestamp: new Date(),
+        });
+      },
+      onComplete: (nextAction) => {
+        setStreaming(false);
+        commitWhiteboard();
         
-        const textContent = data.content as Record<string, any>;
-        
-        // 显示后端返回的反馈
-        if (textContent.feedback) {
-          addMessage({
-            id: `msg-feedback-${Date.now()}`,
-            role: 'ai',
-            content: textContent.feedback,
-            timestamp: new Date(),
-          });
+        // 处理后续动作
+        if (nextAction === 'start_assessment') {
+          setTimeout(() => startAssessment(), 1500);
+        } else if (nextAction === 'next_knowledge_point') {
+          setTimeout(() => moveToNextKnowledgePoint(), 1500);
         }
-        
-        // 显示鼓励语
-        if (textContent.encouragement) {
-          setTimeout(() => {
-            addMessage({
-              id: `msg-encourage-${Date.now()}`,
-              role: 'ai',
-              content: `💪 ${textContent.encouragement}`,
-              timestamp: new Date(),
-            });
-          }, 600);
-        }
-        
-        // 显示补充说明
-        if (textContent.supplement) {
-          setTimeout(() => {
-            addMessage({
-              id: `msg-supplement-${Date.now()}`,
-              role: 'ai',
-              content: `📝 ${textContent.supplement}`,
-              timestamp: new Date(),
-            });
-          }, 1200);
-        }
-        
-        // 根据 next_action 决定下一步
-        if (data.next_action === 'start_assessment') {
-          // 开始评估
-          setTimeout(async () => {
-            await startAssessment();
-          }, 1500);
-        } else if (data.next_action === 'next_knowledge_point') {
-          // 直接进入下一个知识点
-          setTimeout(async () => {
-            await moveToNextKnowledgePoint();
-          }, 1500);
-        }
-        // wait_for_student 时不需要额外操作，学生可以继续输入
-      }
-    } catch (error) {
-      message.error('发送失败');
-    } finally {
-      setLoading(false);
-    }
+      },
+      onError: (error) => {
+        message.error(error);
+        setStreaming(false);
+      },
+    });
   };
 
   // 开始评估

@@ -1,8 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-import { Spin, Button, Tooltip } from 'antd';
-import { DownloadOutlined, ClearOutlined, ExpandOutlined } from '@ant-design/icons';
+import { Button, Tooltip } from 'antd';
+import { DownloadOutlined, ClearOutlined } from '@ant-design/icons';
 import html2canvas from 'html2canvas';
 import { useLearningStore } from '../../store';
 import type { WhiteboardContent } from '../../types';
@@ -15,14 +15,14 @@ interface WhiteboardProps {
 const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const { whiteboardBlocks, clearWhiteboard } = useLearningStore();
+  const { whiteboardBlocks, currentWhiteboard, clearWhiteboard } = useLearningStore();
 
   // 自动滚动到底部
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [whiteboardBlocks]);
+  }, [whiteboardBlocks, currentWhiteboard]);
 
   // 下载白板
   const handleDownload = async () => {
@@ -43,42 +43,89 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
     }
   };
 
-  // 渲染混合内容（文字中可能包含 $...$ 公式）
-  const renderMixedContent = (text: string, keyPrefix: string) => {
-    // 匹配 $...$ 格式的公式
-    const parts = text.split(/(\$[^$]+\$)/g);
+  // 渲染混合内容（文字中可能包含 $...$ 公式或纯 LaTeX）
+  const renderMixedContent = (text: unknown, keyPrefix: string) => {
+    // 类型检查：确保是字符串
+    if (typeof text !== 'string') {
+      return <span key={`${keyPrefix}-text`}>{String(text)}</span>;
+    }
     
-    return parts.map((part, index) => {
-      if (part.startsWith('$') && part.endsWith('$')) {
-        // 是公式，去掉 $ 符号后渲染
-        const formula = part.slice(1, -1);
-        return (
-          <span 
-            key={`${keyPrefix}-formula-${index}`}
-            ref={(el) => {
-              if (el) {
-                try {
-                  katex.render(formula, el, {
-                    throwOnError: false,
-                    displayMode: false,
-                  });
-                } catch (e) {
-                  el.textContent = formula;
+    // 检测是否包含 LaTeX 命令
+    const latexCommands = ['\\frac', '\\sqrt', '\\pi', '\\ge', '\\le', '\\neq', '\\ne', '\\pm', '\\cdot', '\\times', '\\div', '\\sum', '\\int', '\\alpha', '\\beta', '\\gamma', '\\theta', '\\infty', '\\rightarrow', '\\left', '\\right', '\\overline', '\\underline', '\\vec', '\\hat', '\\bar'];
+    const hasLatex = latexCommands.some(cmd => text.includes(cmd));
+    
+    // 如果有 $...$ 格式，按 $ 分割
+    if (text.includes('$')) {
+      const parts = text.split(/(\$[^$]+\$)/g);
+      
+      return parts.map((part, index) => {
+        if (part.startsWith('$') && part.endsWith('$')) {
+          // 是公式，去掉 $ 符号后渲染
+          const formula = part.slice(1, -1);
+          return (
+            <span 
+              key={`${keyPrefix}-formula-${index}`}
+              ref={(el) => {
+                if (el) {
+                  try {
+                    katex.render(formula, el, {
+                      throwOnError: false,
+                      displayMode: false,
+                    });
+                  } catch (e) {
+                    el.textContent = formula;
+                  }
                 }
+              }}
+              className="inline-formula"
+            />
+          );
+        }
+        // 普通文字
+        return <span key={`${keyPrefix}-text-${index}`}>{part}</span>;
+      });
+    }
+    
+    // 如果没有 $ 但包含 LaTeX 命令，尝试整体渲染
+    if (hasLatex) {
+      return (
+        <span 
+          key={`${keyPrefix}-latex`}
+          ref={(el) => {
+            if (el) {
+              try {
+                katex.render(text, el, {
+                  throwOnError: false,
+                  displayMode: false,
+                });
+              } catch (e) {
+                // 如果整体渲染失败，尝试识别公式部分
+                el.textContent = text;
               }
-            }}
-            className="inline-formula"
-          />
-        );
-      }
-      // 普通文字
-      return <span key={`${keyPrefix}-text-${index}`}>{part}</span>;
-    });
+            }
+          }}
+          className="inline-formula"
+        />
+      );
+    }
+    
+    // 纯文本
+    return <span key={`${keyPrefix}-text`}>{text}</span>;
   };
 
   // 渲染公式
-  const renderFormula = (formula: string, index: number) => {
+  const renderFormula = (formula: unknown, index: number) => {
     const containerId = `formula-${index}-${Date.now()}`;
+    
+    // 类型检查：确保是字符串
+    if (typeof formula !== 'string') {
+      return (
+        <div key={index} className="whiteboard-formula">
+          {String(formula)}
+        </div>
+      );
+    }
+    
     // 去掉 $ 符号，KaTeX 不需要它们
     const cleanFormula = formula.replace(/^\$+|\$+$/g, '').trim();
     
@@ -131,7 +178,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
             <div className="section-label">要点</div>
             <ul className="key-points-list">
               {block.key_points.map((point, i) => (
-                <li key={i}>{point}</li>
+                <li key={i}>{renderMixedContent(point, `kp-${i}`)}</li>
               ))}
             </ul>
           </div>
@@ -153,7 +200,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
               {block.examples.map((example, i) => (
                 <div key={i} className="example-item">
                   <span className="example-icon">📌</span>
-                  {example}
+                  {renderMixedContent(example, `example-${i}`)}
                 </div>
               ))}
             </div>
@@ -167,7 +214,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
               {block.notes.map((note, i) => (
                 <div key={i} className="note-item">
                   <span className="note-icon">⚠️</span>
-                  {note}
+                  {renderMixedContent(note, `note-${i}`)}
                 </div>
               ))}
             </div>
@@ -205,7 +252,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
           {/* 装饰性网格 */}
           <div className="canvas-grid" />
           
-          {whiteboardBlocks.length === 0 && !loading && (
+          {whiteboardBlocks.length === 0 && !currentWhiteboard.title && !loading && (
             <div className="whiteboard-empty">
               <div className="empty-icon">📝</div>
               <div className="empty-text">等待讲解开始</div>
@@ -213,16 +260,74 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
             </div>
           )}
 
+          {/* 渲染已提交的白板块 */}
           {whiteboardBlocks.map((block, index) => renderBlock(block, index))}
+          
+          {/* 渲染当前正在增量更新的白板内容 */}
+          {(currentWhiteboard.title || 
+            currentWhiteboard.key_points.length > 0 || 
+            currentWhiteboard.formulas.length > 0 || 
+            currentWhiteboard.examples.length > 0 || 
+            currentWhiteboard.notes.length > 0) && (
+            <div className="whiteboard-block streaming">
+              {currentWhiteboard.title && (
+                <div className="block-title">
+                  <span className="title-decoration">◆</span>
+                  {currentWhiteboard.title}
+                </div>
+              )}
+              
+              {currentWhiteboard.key_points.length > 0 && (
+                <div className="block-section">
+                  <div className="section-label">要点</div>
+                  <ul className="key-points-list">
+                    {currentWhiteboard.key_points.map((point, i) => (
+                      <li key={i}>{renderMixedContent(point, `kp-${i}`)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {currentWhiteboard.formulas.length > 0 && (
+                <div className="block-section">
+                  <div className="section-label">公式</div>
+                  <div className="formulas-container">
+                    {currentWhiteboard.formulas.map((formula, i) => renderFormula(formula, i))}
+                  </div>
+                </div>
+              )}
+              
+              {currentWhiteboard.examples.length > 0 && (
+                <div className="block-section">
+                  <div className="section-label">示例</div>
+                  <div className="examples-container">
+                    {currentWhiteboard.examples.map((example, i) => (
+                      <div key={i} className="example-item">
+                        <span className="example-icon">📌</span>
+                        {renderMixedContent(example, `example-${i}`)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {currentWhiteboard.notes.length > 0 && (
+                <div className="block-section">
+                  <div className="section-label">注意</div>
+                  <div className="notes-container">
+                    {currentWhiteboard.notes.map((note, i) => (
+                      <div key={i} className="note-item">
+                        <span className="note-icon">⚠️</span>
+                        {renderMixedContent(note, `note-${i}`)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* 加载遮罩 */}
-      {loading && (
-        <div className="whiteboard-loading">
-          <Spin size="large" tip="正在生成教学内容..." />
-        </div>
-      )}
     </div>
   );
 };

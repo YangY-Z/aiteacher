@@ -1,8 +1,11 @@
 """Learning API routes."""
 
+import json
 from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
+from sse_starlette.sse import EventSourceResponse
 
 from app.core.security import get_current_student_id
 from app.schemas.learning import (
@@ -124,6 +127,37 @@ async def get_teaching_content(
     )
 
 
+@router.post("/session/{session_id}/teach/stream")
+async def get_teaching_content_stream(
+    session_id: str,
+    student_id: Annotated[int, Depends(get_current_student_id)]
+) -> EventSourceResponse:
+    """Get teaching content for current knowledge point as a stream.
+
+    Args:
+        session_id: Session ID.
+        student_id: Authenticated student ID.
+
+    Returns:
+        SSE stream with teaching content.
+    """
+    session = learning_service.get_session(session_id)
+
+    if session.student_id != student_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权访问此会话",
+        )
+
+    student = student_service.get_by_id(student_id)
+
+    async def event_generator():
+        async for event in learning_service.stream_teaching_content(session, student.name):
+            yield event
+
+    return EventSourceResponse(event_generator())
+
+
 @router.post("/session/{session_id}/chat", response_model=APIResponse[ChatResponse])
 async def send_message(
     session_id: str,
@@ -159,6 +193,37 @@ async def send_message(
             next_action=response.get("next_action", "wait_for_student"),
         ),
     )
+
+
+@router.post("/session/{session_id}/chat/stream")
+async def send_message_stream(
+    session_id: str,
+    request: ChatRequest,
+    student_id: Annotated[int, Depends(get_current_student_id)]
+) -> EventSourceResponse:
+    """Send a message in the learning session and get streaming response.
+
+    Args:
+        session_id: Session ID.
+        request: Chat request.
+        student_id: Authenticated student ID.
+
+    Returns:
+        SSE stream with AI response.
+    """
+    session = learning_service.get_session(session_id)
+
+    if session.student_id != student_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权访问此会话",
+        )
+
+    async def event_generator():
+        async for event in learning_service.stream_chat_response(session, request.message):
+            yield event
+
+    return EventSourceResponse(event_generator())
 
 
 @router.get(
