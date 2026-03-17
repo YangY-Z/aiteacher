@@ -25,8 +25,8 @@ class Settings(BaseSettings):
     debug: bool = False
     environment: str = "development"
 
-    # Data directory for loading JSON files
-    data_dir: str = "/Users/zhaoyang/iFlow/aiteacher"
+    # Data directory for loading JSON files (项目根目录)
+    data_dir: str = str(PROJECT_ROOT.parent)
 
     # API
     api_prefix: str = "/api/v1"

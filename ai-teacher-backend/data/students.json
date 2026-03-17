@@ -11,9 +11,21 @@
       "last_login_at": "2026-03-16T21:47:09.870043",
       "created_at": "2026-03-16T16:43:29.844085",
       "updated_at": "2026-03-16T21:47:09.870202"
+    },
+    {
+      "id": 2,
+      "name": "测试学生",
+      "grade": "初一",
+      "password_hash": "cd895c89fff405ee894c43be4780fcc2$e84b5af4fc6bf4f7859b8501d4f5a06cca9767d4b2634624b42c433c7656b623",
+      "phone": "13800138001",
+      "avatar_url": null,
+      "status": "active",
+      "last_login_at": null,
+      "created_at": "2026-03-17T23:03:24.037869",
+      "updated_at": "2026-03-17T23:03:24.037877"
     }
   ],
-  "next_id": 1,
+  "next_id": 2,
   "profiles": [
     {
       "id": 1,
@@ -37,5 +49,5 @@
     }
   ],
   "next_profile_id": 1,
-  "updated_at": "2026-03-16T21:52:02.636167"
+  "updated_at": "2026-03-17T23:03:24.038029"
 }
