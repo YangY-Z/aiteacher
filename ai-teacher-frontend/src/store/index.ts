@@ -171,34 +171,52 @@ export const useLearningStore = create<LearningState>()((set) => ({
     whiteboardBlocks: [],
     currentWhiteboard: initialWhiteboardState,
   }),
-  // 增量更新方法
-  setWhiteboardTitle: (title) => set((state) => ({
-    currentWhiteboard: { ...state.currentWhiteboard, title },
-  })),
-  addWhiteboardPoint: (point) => set((state) => ({
-    currentWhiteboard: {
-      ...state.currentWhiteboard,
-      key_points: [...state.currentWhiteboard.key_points, point],
-    },
-  })),
-  addWhiteboardFormula: (formula) => set((state) => ({
-    currentWhiteboard: {
-      ...state.currentWhiteboard,
-      formulas: [...state.currentWhiteboard.formulas, formula],
-    },
-  })),
-  addWhiteboardExample: (example) => set((state) => ({
-    currentWhiteboard: {
-      ...state.currentWhiteboard,
-      examples: [...state.currentWhiteboard.examples, example],
-    },
-  })),
-  addWhiteboardNote: (note) => set((state) => ({
-    currentWhiteboard: {
-      ...state.currentWhiteboard,
-      notes: [...state.currentWhiteboard.notes, note],
-    },
-  })),
+  // 增量更新方法（添加去重逻辑）
+  setWhiteboardTitle: (title) => set((state) => {
+    // 如果标题已存在，不重复设置
+    if (state.currentWhiteboard.title === title) return state;
+    return { currentWhiteboard: { ...state.currentWhiteboard, title } };
+  }),
+  addWhiteboardPoint: (point) => set((state) => {
+    // 如果要点已存在，不重复添加
+    if (state.currentWhiteboard.key_points.includes(point)) return state;
+    return {
+      currentWhiteboard: {
+        ...state.currentWhiteboard,
+        key_points: [...state.currentWhiteboard.key_points, point],
+      },
+    };
+  }),
+  addWhiteboardFormula: (formula) => set((state) => {
+    // 如果公式已存在，不重复添加
+    if (state.currentWhiteboard.formulas.includes(formula)) return state;
+    return {
+      currentWhiteboard: {
+        ...state.currentWhiteboard,
+        formulas: [...state.currentWhiteboard.formulas, formula],
+      },
+    };
+  }),
+  addWhiteboardExample: (example) => set((state) => {
+    // 如果示例已存在，不重复添加
+    if (state.currentWhiteboard.examples.includes(example)) return state;
+    return {
+      currentWhiteboard: {
+        ...state.currentWhiteboard,
+        examples: [...state.currentWhiteboard.examples, example],
+      },
+    };
+  }),
+  addWhiteboardNote: (note) => set((state) => {
+    // 如果注意事项已存在，不重复添加
+    if (state.currentWhiteboard.notes.includes(note)) return state;
+    return {
+      currentWhiteboard: {
+        ...state.currentWhiteboard,
+        notes: [...state.currentWhiteboard.notes, note],
+      },
+    };
+  }),
   // 将当前白板状态提交到 whiteboardBlocks
   commitWhiteboard: () => set((state) => {
     const wb = state.currentWhiteboard;
@@ -224,7 +242,8 @@ export const useLearningStore = create<LearningState>()((set) => ({
             } 
           : b
       );
-      return { whiteboardBlocks: blocks };
+      // 清空 currentWhiteboard
+      return { whiteboardBlocks: blocks, currentWhiteboard: initialWhiteboardState };
     }
     
     return { 
@@ -235,6 +254,8 @@ export const useLearningStore = create<LearningState>()((set) => ({
         examples: wb.examples,
         notes: wb.notes,
       }],
+      // 清空 currentWhiteboard
+      currentWhiteboard: initialWhiteboardState,
     };
   }),
   reset: () => set(initialLearningState),
