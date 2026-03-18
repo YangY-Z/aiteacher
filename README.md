@@ -6,6 +6,7 @@
 
    ## 2. 创建虚拟环境（可选但推荐）
    python3 -m venv venv
+   
    source venv/bin/activate  # macOS/Linux
 
    ## 3. 安装依赖
