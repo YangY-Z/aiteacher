@@ -21,6 +21,8 @@ import type {
 
 // SSE事件类型（增量事件）
 export type StreamEventType = 
+  // 边讲边写模式
+  | 'segment'
   // 白板增量事件
   | 'wb_title'
   | 'wb_points'
@@ -41,8 +43,25 @@ export type StreamEventType =
   | 'complete'
   | 'error';
 
-// SSE增量事件回调类型
+// 白板片段数据
+export interface WhiteboardSegment {
+  title?: string;
+  points?: string[];
+  formulas?: string[];
+  examples?: string[];
+  notes?: string[];
+}
+
+// segment事件数据
+export interface SegmentData {
+  message: string;
+  whiteboard: WhiteboardSegment;
+  is_question?: boolean;
+}
+
 export interface StreamCallbacks {
+  // 边讲边写模式（同时处理消息和白板）
+  onSegment?: (data: SegmentData) => void;
   // 白板增量事件
   onWbTitle?: (content: string) => void;
   onWbPoints?: (content: string) => void;
@@ -62,6 +81,8 @@ export interface StreamCallbacks {
   onWhiteboard?: (whiteboard: WhiteboardContent) => void;
   onComplete?: (nextAction: string) => void;
   onError?: (error: string) => void;
+  // 阶段推进事件
+  onPhaseAdvance?: (data: { current_phase: number; total_phases: number; next_action: string }) => void;
 }
 
 // 认证API
@@ -141,6 +162,10 @@ export const learningApi = {
               
               // 处理增量事件
               switch (currentEvent) {
+                case 'segment':
+                  // 边讲边写模式：同时处理消息和白板
+                  callbacks.onSegment?.(data);
+                  break;
                 case 'wb_title':
                   callbacks.onWbTitle?.(data.content);
                   break;
@@ -256,6 +281,9 @@ export const learningApi = {
                 case 'msg_supplement':
                   callbacks.onMsgSupplement?.(data.content);
                   break;
+                case 'phase_advance':
+                  callbacks.onPhaseAdvance?.(data);
+                  break;
                 case 'complete':
                   callbacks.onComplete?.(data.next_action || 'wait_for_student');
                   break;
@@ -291,4 +319,25 @@ export const learningApi = {
 
   getProgress: (courseId: string) =>
     api.get<ApiResponse<ProgressResponse>>(`/learning/progress/${courseId}`),
+
+  // 教学阶段相关
+  getPhase: (sessionId: string) =>
+    api.get<ApiResponse<{
+      teaching_mode: string;
+      current_phase: number;
+      total_phases: number;
+      phase_status: string;
+      phase_info: {
+        name: string;
+        description: string;
+        activities: string[];
+      } | null;
+    }>>(`/learning/session/${sessionId}/phase`),
+
+  advancePhase: (sessionId: string) =>
+    api.post<ApiResponse<{
+      current_phase: number;
+      total_phases: number;
+      is_last_phase: boolean;
+    }>>(`/learning/session/${sessionId}/phase/next`),
 };

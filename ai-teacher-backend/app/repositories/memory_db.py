@@ -35,6 +35,12 @@ from app.models.learning import (
     SessionStatus,
 )
 from app.models.assessment import AssessmentQuestion, Difficulty, QuestionType
+from app.models.learner_profile import LearnerProfile
+from app.models.diagnostic import (
+    DiagnosticSession,
+    DiagnosticQuestion,
+    DiagnosticAnswer,
+)
 
 
 @dataclass
@@ -86,10 +92,25 @@ class InMemoryDatabase:
     # Cache (simulating Redis)
     _cache: dict[str, Any] = field(default_factory=dict)
 
+    # Learner profiles (for adaptive learning)
+    _learner_profiles: dict[int, LearnerProfile] = field(default_factory=dict)
+    _learner_profile_id_counter: int = 0
+
+    # Diagnostic sessions
+    _diagnostic_sessions: dict[str, DiagnosticSession] = field(default_factory=dict)
+
+    # Diagnostic questions
+    _diagnostic_questions: dict[str, DiagnosticQuestion] = field(default_factory=dict)
+
+    # Diagnostic answers
+    _diagnostic_answers: dict[int, DiagnosticAnswer] = field(default_factory=dict)
+    _diagnostic_answer_id_counter: int = 0
+
     def __post_init__(self) -> None:
         """Initialize with seed data and load persisted data."""
         self._initialize_seed_data()
         self._load_students_from_file()
+        self.load_learner_profiles_from_file()
 
     def _get_data_file_path(self) -> Path:
         """Get the absolute path to the data file.
@@ -453,6 +474,76 @@ class InMemoryDatabase:
         """Get the next student answer ID."""
         self._student_answer_id_counter += 1
         return self._student_answer_id_counter
+
+    # Learner profile operations
+    def get_next_learner_profile_id(self) -> int:
+        """Get the next learner profile ID."""
+        self._learner_profile_id_counter += 1
+        return self._learner_profile_id_counter
+
+    # Diagnostic answer operations
+    def get_next_diagnostic_answer_id(self) -> int:
+        """Get the next diagnostic answer ID."""
+        self._diagnostic_answer_id_counter += 1
+        return self._diagnostic_answer_id_counter
+
+    def save_learner_profile_data(self) -> None:
+        """Save learner profiles to file."""
+        file_path = self._get_data_file_path()
+
+        try:
+            # Load existing data first
+            existing_data = {}
+            if file_path.exists():
+                with open(file_path, "r", encoding="utf-8") as f:
+                    existing_data = json.load(f)
+
+            # Update learner profiles section
+            learner_profiles_data = []
+            for profile in self._learner_profiles.values():
+                learner_profiles_data.append(profile.to_dict())
+
+            existing_data["learner_profiles"] = learner_profiles_data
+            existing_data["next_learner_profile_id"] = self._learner_profile_id_counter
+            existing_data["learner_profiles_updated_at"] = datetime.now().isoformat()
+
+            # Ensure directory exists
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(existing_data, f, ensure_ascii=False, indent=2)
+
+            logger.debug(f"Saved {len(learner_profiles_data)} learner profiles to {file_path}")
+
+        except Exception as e:
+            logger.error(f"Failed to save learner profiles: {e}")
+
+    def load_learner_profiles_from_file(self) -> None:
+        """Load learner profiles from JSON file."""
+        file_path = self._get_data_file_path()
+
+        if not file_path.exists():
+            logger.debug(f"Learner profile data file not found: {file_path}")
+            return
+
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            learner_profiles_data = data.get("learner_profiles", [])
+            for profile_dict in learner_profiles_data:
+                profile = LearnerProfile.from_dict(profile_dict)
+                self._learner_profiles[profile.id] = profile
+
+            # Restore ID counter
+            self._learner_profile_id_counter = data.get(
+                "next_learner_profile_id", len(self._learner_profiles)
+            )
+
+            logger.info(f"Loaded {len(self._learner_profiles)} learner profiles from {file_path}")
+
+        except Exception as e:
+            logger.error(f"Failed to load learner profiles: {e}")
 
     # Cache operations (Redis simulation)
     def cache_get(self, key: str) -> Optional[Any]:

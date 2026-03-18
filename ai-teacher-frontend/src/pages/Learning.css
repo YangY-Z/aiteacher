@@ -1,129 +1,155 @@
-.learning-layout {
-  min-height: 100vh;
-  background: var(--bg-color);
+/**
+ * 学习页面样式 - V2两列布局
+ */
+
+.learning-page-v2 {
+  height: 100vh;
+  overflow: hidden;
 }
 
-.main-layout {
-  height: calc(100vh - 64px);
-}
-
-.main-content {
+/* 主内容区域 - 两列布局，铺满页面 */
+.main-content-area {
   display: flex;
   flex-direction: row;
-  padding: 16px;
-  gap: 16px;
-}
-
-.whiteboard-section {
-  width: 55%;
-  min-width: 400px;
-}
-
-.chat-section {
   flex: 1;
+  min-height: 0; /* 关键：允许flex子项收缩 */
+  width: 100%;
+  gap: 0;
+  position: relative;
+}
+
+/* 白板区域 - 左侧，自适应宽度 */
+.whiteboard-area {
+  flex: 1;
+  min-width: 300px;
+  min-height: 0; /* 关键：允许flex收缩 */
+  background: #fff;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* 可拖拽分隔条 */
+.resize-divider {
+  width: 4px;
+  background: #e0e0e0;
+  cursor: col-resize;
+  transition: background 0.2s;
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.resize-divider:hover {
+  background: #1890ff;
+}
+
+.resize-divider.dragging {
+  background: #1890ff;
+}
+
+.resize-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 30px;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 1px;
+}
+
+.resize-divider:hover::after {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* 聊天区域 - 右侧 */
+.chat-area {
+  min-width: 280px;
+  max-width: 400px;
+  min-height: 0; /* 关键：允许flex收缩 */
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
   overflow: hidden;
-  min-width: 350px;
+  flex-shrink: 0;
 }
 
-.progress-sider {
-  background: transparent;
-  padding: 16px 16px 16px 0;
-}
-
-.progress-sider .ant-layout-sider-children {
-  height: 100%;
-}
-
-.assessment-actions {
-  padding: 12px 20px;
-  background: #fff;
-  border-top: 1px solid var(--border-color);
-  text-align: center;
-}
-
-.assessment-actions .ant-btn {
-  min-width: 200px;
-  border-radius: 20px;
-}
-
-/* 欢迎页面 */
-.welcome-section {
+/* 完成阶段 */
+.completed-area {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 20px;
   text-align: center;
+  padding: 40px;
 }
 
-.welcome-title {
+.completed-area h2 {
   font-size: 28px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #333;
+  margin-bottom: 16px;
 }
 
-.welcome-desc {
+.completed-area p {
   font-size: 16px;
-  color: var(--text-secondary);
-  max-width: 400px;
+  color: #666;
+  margin-bottom: 24px;
 }
 
-.start-btn {
-  width: 200px;
-  height: 50px;
-  font-size: 16px;
-  border-radius: 25px;
-}
-
+/* 响应式 */
 @media (max-width: 1200px) {
-  .whiteboard-section {
-    width: 50%;
-    min-width: 350px;
+  .whiteboard-area {
+    min-width: 250px;
   }
-  
-  .chat-section {
-    min-width: 300px;
+
+  .chat-area {
+    min-width: 200px;
   }
 }
 
 @media (max-width: 992px) {
-  .progress-sider {
+  /* 小屏幕改为垂直布局 */
+  .main-content-area {
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .whiteboard-area {
+    width: 100% !important;
+    flex: 1;
+    min-height: 0;
+    max-width: none;
+  }
+
+  .resize-divider {
     display: none;
   }
-  
-  .main-content {
-    flex-direction: column;
-    padding: 12px;
-  }
-  
-  .whiteboard-section {
-    width: 100%;
-    min-width: auto;
-    height: 40%;
-    min-height: 280px;
-  }
-  
-  .chat-section {
-    flex: 1;
-    min-width: auto;
-    min-height: 300px;
+
+  .chat-area {
+    width: 100% !important;
+    height: 200px;
+    min-height: 200px;
+    max-width: none;
+    flex-shrink: 0;
   }
 }
 
 @media (max-width: 768px) {
-  .main-content {
-    padding: 8px;
-    gap: 8px;
+  .chat-area {
+    height: 160px;
+    min-height: 160px;
   }
-  
-  .whiteboard-section {
-    height: 35%;
-    min-height: 220px;
+
+  .completed-area h2 {
+    font-size: 24px;
+  }
+
+  .completed-area p {
+    font-size: 14px;
   }
 }

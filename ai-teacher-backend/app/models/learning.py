@@ -298,6 +298,10 @@ class LearningSession:
     result: Optional[SessionResult] = None
     summary: Optional[dict[str, Any]] = None
     created_at: datetime = field(default_factory=datetime.now)
+    # 教学模式相关
+    teaching_mode: Optional[str] = None  # 教学模式类型
+    current_phase: int = 1  # 当前教学阶段（1-4）
+    phase_status: str = "in_progress"  # 阶段状态: in_progress, completed
 
     def complete(
         self,
@@ -321,3 +325,23 @@ class LearningSession:
         self.status = SessionStatus.ABANDONED
         self.end_time = datetime.now()
         self.duration = int((self.end_time - self.start_time).total_seconds())
+
+    def advance_phase(self) -> int:
+        """推进到下一个教学阶段
+        
+        Returns:
+            新的阶段号
+        """
+        self.current_phase += 1
+        self.phase_status = "in_progress"
+        return self.current_phase
+
+    def complete_phase(self) -> None:
+        """标记当前阶段完成"""
+        self.phase_status = "completed"
+
+    def set_teaching_mode(self, mode: str) -> None:
+        """设置教学模式"""
+        self.teaching_mode = mode
+        self.current_phase = 1
+        self.phase_status = "in_progress"

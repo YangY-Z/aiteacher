@@ -187,6 +187,7 @@ export interface Message {
   timestamp: Date;
   type?: 'text' | 'question' | 'teacher_question' | 'feedback';
   question?: QuestionContent;
+  isTyping?: boolean; // 是否正在打字中
 }
 
 export interface QuestionContent {

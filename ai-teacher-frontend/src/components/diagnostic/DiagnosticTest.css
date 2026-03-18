@@ -1,0 +1,186 @@
+/**
+ * 诊断测试样式
+ */
+
+.diagnostic-test {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.diagnostic-test.empty {
+  text-align: center;
+  padding: 60px 24px;
+}
+
+.diagnostic-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.diagnostic-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+}
+
+.diagnostic-subtitle {
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  color: #666;
+}
+
+.progress-text {
+  margin: 8px 0 0 0;
+  font-size: 13px;
+  color: #999;
+}
+
+/* 问题区域 */
+.diagnostic-question {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+}
+
+.question-content {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+/* 选项 */
+.question-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.question-options .option-btn {
+  padding: 14px 20px;
+  background: #f5f7fa;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 15px;
+  color: #333;
+  transition: all 0.2s ease;
+}
+
+.question-options .option-btn:hover:not(:disabled) {
+  background: #e6f4ff;
+  border-color: #1890ff;
+}
+
+.question-options .option-btn.selected {
+  background: #e6f4ff;
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.question-options .option-btn:disabled {
+  cursor: default;
+}
+
+/* 输入框 */
+.question-input input {
+  width: 100%;
+  padding: 14px 20px;
+  border: 2px solid #e8e8e8;
+  border-radius: 10px;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.question-input input:focus {
+  border-color: #1890ff;
+}
+
+/* 点击区域 */
+.question-click-area {
+  text-align: center;
+}
+
+.question-click-area p {
+  margin: 0 0 16px 0;
+  color: #666;
+}
+
+.coordinate-plane {
+  background: #fafafa;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.click-placeholder {
+  color: #999;
+}
+
+/* 底部 */
+.diagnostic-footer {
+  text-align: center;
+}
+
+/* 加载状态 */
+.diagnostic-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 16px;
+  color: #1890ff;
+  z-index: 1000;
+}
+
+/* 结果页面 */
+.diagnostic-test.result {
+  padding: 40px 24px;
+}
+
+.diagnostic-test.result .ant-result {
+  padding: 0;
+}
+
+.diagnostic-test.result .ant-result-icon {
+  font-size: 64px;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .diagnostic-test {
+    padding: 16px;
+  }
+
+  .diagnostic-header h2 {
+    font-size: 20px;
+  }
+
+  .diagnostic-question {
+    padding: 16px;
+  }
+
+  .question-content {
+    font-size: 15px;
+  }
+
+  .question-options .option-btn {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+}

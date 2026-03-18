@@ -1,0 +1,190 @@
+/**
+ * 错题本样式
+ */
+
+.wrong-answer-book {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.book-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.book-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 知识点筛选 */
+.kp-filter {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 8px;
+}
+
+.filter-label {
+  font-size: 13px;
+  color: #666;
+  margin-right: 8px;
+}
+
+.kp-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* 标签页 */
+.ant-tabs {
+  flex: 1;
+}
+
+.ant-tabs-content {
+  height: calc(100% - 46px);
+  overflow-y: auto;
+}
+
+/* 记录列表 */
+.records-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* 记录卡片 */
+.wrong-record-card {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wrong-record-card:hover {
+  border-color: #1890ff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.wrong-record-card.mastered {
+  opacity: 0.7;
+  background: #fafafa;
+}
+
+.record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.kp-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.record-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #444;
+  margin-bottom: 12px;
+  padding: 8px;
+  background: #f5f7fa;
+  border-radius: 4px;
+}
+
+.record-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.answer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.answer-info .wrong {
+  color: #f5222d;
+}
+
+.answer-info .correct {
+  color: #52c41a;
+}
+
+.mastery-info {
+  display: flex;
+  align-items: center;
+}
+
+/* 详情弹窗 */
+.record-detail {
+  padding: 16px 0;
+}
+
+.detail-item {
+  display: flex;
+  margin-bottom: 16px;
+}
+
+.detail-item .label {
+  width: 80px;
+  flex-shrink: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.detail-item .question-text {
+  flex: 1;
+  padding: 8px 12px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.wrong-answer {
+  color: #f5222d;
+  font-weight: 500;
+}
+
+.correct-answer {
+  color: #52c41a;
+  font-weight: 500;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .kp-filter {
+    padding: 10px;
+  }
+
+  .kp-tags {
+    gap: 6px;
+  }
+
+  .wrong-record-card {
+    padding: 12px;
+  }
+
+  .record-content {
+    font-size: 13px;
+  }
+}

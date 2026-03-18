@@ -23,6 +23,25 @@ from app.schemas.learning import (
     SkipRequest,
 )
 from app.schemas.common import APIResponse, PaginationMeta
+from app.schemas.learner_profile import (
+    LearnerTypeInfo,
+    LearnerTypeListResponse,
+    ErrorPatternSchema,
+    LearnerMetricsSchema,
+    LearnerMetricsUpdate,
+    TeachingStrategySchema,
+    LearningPreferenceSchema,
+    LearningPreferenceUpdate,
+    LearnerProfileResponse,
+    LearnerProfileCreate,
+    LearnerClassifyRequest,
+    LearnerClassifyResponse,
+    TypeHistoryEntry,
+    LearnerTypeHistoryResponse,
+    AddErrorPatternRequest,
+    ErrorPatternSummary,
+    ErrorPatternAnalysisResponse,
+)
 
 __all__ = [
     # Student schemas
@@ -47,4 +66,22 @@ __all__ = [
     # Common schemas
     "APIResponse",
     "PaginationMeta",
+    # Learner profile schemas
+    "LearnerTypeInfo",
+    "LearnerTypeListResponse",
+    "ErrorPatternSchema",
+    "LearnerMetricsSchema",
+    "LearnerMetricsUpdate",
+    "TeachingStrategySchema",
+    "LearningPreferenceSchema",
+    "LearningPreferenceUpdate",
+    "LearnerProfileResponse",
+    "LearnerProfileCreate",
+    "LearnerClassifyRequest",
+    "LearnerClassifyResponse",
+    "TypeHistoryEntry",
+    "LearnerTypeHistoryResponse",
+    "AddErrorPatternRequest",
+    "ErrorPatternSummary",
+    "ErrorPatternAnalysisResponse",
 ]

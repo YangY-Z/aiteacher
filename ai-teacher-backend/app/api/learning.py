@@ -22,6 +22,7 @@ from app.schemas.common import APIResponse
 from app.services.learning_service import learning_service
 from app.services.student_service import student_service
 from app.services.backtrack_service import backtrack_service
+from app.repositories.learning_repository import learning_session_repository
 
 router = APIRouter()
 
@@ -484,4 +485,111 @@ async def get_progress(
     return APIResponse(
         success=True,
         data=ProgressResponse(**progress),
+    )
+
+
+@router.post("/session/{session_id}/phase/next")
+async def advance_teaching_phase(
+    session_id: str,
+    student_id: Annotated[int, Depends(get_current_student_id)]
+) -> APIResponse[dict[str, Any]]:
+    """Advance to the next teaching phase.
+
+    Args:
+        session_id: Session ID.
+        student_id: Authenticated student ID.
+
+    Returns:
+        API response with new phase info.
+    """
+    session = learning_service.get_session(session_id)
+
+    if session.student_id != student_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权访问此会话",
+        )
+
+    # Advance to next phase
+    new_phase = session.advance_phase()
+    learning_session_repository.update(session)
+
+    # Get total phase count for this teaching mode
+    from app.models.teaching_mode import TeachingModeType, TEACHING_MODE_CONFIGS
+    total_phases = 4  # default
+    if session.teaching_mode:
+        try:
+            mode_type = TeachingModeType(session.teaching_mode)
+            mode_config = TEACHING_MODE_CONFIGS.get(mode_type)
+            if mode_config:
+                total_phases = len(mode_config.phases)
+        except ValueError:
+            pass
+
+    return APIResponse(
+        success=True,
+        data={
+            "current_phase": new_phase,
+            "total_phases": total_phases,
+            "is_last_phase": new_phase >= total_phases,
+        },
+        message=f"已进入第{new_phase}阶段",
+    )
+
+
+@router.get("/session/{session_id}/phase")
+async def get_current_phase(
+    session_id: str,
+    student_id: Annotated[int, Depends(get_current_student_id)]
+) -> APIResponse[dict[str, Any]]:
+    """Get current teaching phase info.
+
+    Args:
+        session_id: Session ID.
+        student_id: Authenticated student ID.
+
+    Returns:
+        API response with phase info.
+    """
+    session = learning_service.get_session(session_id)
+
+    if session.student_id != student_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权访问此会话",
+        )
+
+    # Get phase info
+    from app.models.teaching_mode import TeachingModeType, TEACHING_MODE_CONFIGS
+    
+    current_phase = session.current_phase or 1
+    phase_info = {}
+    total_phases = 4
+
+    if session.teaching_mode:
+        try:
+            mode_type = TeachingModeType(session.teaching_mode)
+            mode_config = TEACHING_MODE_CONFIGS.get(mode_type)
+            if mode_config:
+                total_phases = len(mode_config.phases)
+                for phase in mode_config.phases:
+                    if phase.order == current_phase:
+                        phase_info = {
+                            "name": phase.name,
+                            "description": phase.description,
+                            "activities": phase.activities,
+                        }
+                        break
+        except ValueError:
+            pass
+
+    return APIResponse(
+        success=True,
+        data={
+            "teaching_mode": session.teaching_mode,
+            "current_phase": current_phase,
+            "total_phases": total_phases,
+            "phase_status": session.phase_status,
+            "phase_info": phase_info,
+        },
     )

@@ -32,7 +32,10 @@ from app.prompts.system_prompt import SYSTEM_PROMPT
 from app.prompts.teaching_prompt import (
     TEACHING_PROMPT,
     get_teaching_requirements,
+    generate_teaching_prompt,
+    get_teaching_mode_for_kp,
 )
+from app.services.teaching_mode_service import teaching_mode_service
 from app.prompts.question_prompt import CHAT_RESPONSE_PROMPT
 
 
@@ -90,12 +93,20 @@ class LearningService:
                 first_kp = course_service.get_first_knowledge_point(course_id)
                 kp_id = first_kp.id
 
+        # Get teaching mode for this knowledge point
+        kp = knowledge_point_repository.get_by_id(kp_id)
+        kp_type = kp.type if kp else "概念"
+        teaching_mode = get_teaching_mode_for_kp(kp_type)
+
         # Create session
         session = LearningSession(
             id=f"SESSION_{uuid.uuid4().hex[:8].upper()}",
             student_id=student_id,
             course_id=course_id,
             kp_id=kp_id,
+            teaching_mode=teaching_mode.value,
+            current_phase=1,
+            phase_status="in_progress",
         )
 
         return learning_session_repository.create(session)
@@ -629,8 +640,27 @@ class LearningService:
             record.get_last_error_type() or "",
         )
 
-        # Build prompt
-        prompt = TEACHING_PROMPT.format(
+        # Determine learner type based on attempt count and history
+        learner_type = "intermediate"  # default
+        if record.attempt_count == 0:
+            learner_type = "novice"
+        elif record.attempt_count >= 3:
+            learner_type = "reviewer"
+        elif record.attempt_count == 1 and record.attempts and record.attempts[0].result == "passed":
+            learner_type = "advanced"
+
+        # Get teaching mode from session or determine from knowledge point type
+        if session.teaching_mode:
+            from app.models.teaching_mode import TeachingModeType
+            teaching_mode = TeachingModeType(session.teaching_mode)
+        else:
+            teaching_mode = get_teaching_mode_for_kp(kp_info["type"])
+
+        # Get current phase from session
+        current_phase = session.current_phase if session.current_phase else 1
+
+        # Build prompt using teaching mode and current phase
+        prompt = generate_teaching_prompt(
             knowledge_point_name=kp_info["name"],
             knowledge_point_id=kp_info["id"],
             knowledge_point_type=kp_info["type"],
@@ -641,6 +671,8 @@ class LearningService:
             attempt_count=record.attempt_count + 1,
             attempt_info=attempt_info,
             teaching_requirements=teaching_requirements,
+            learner_type=learner_type,
+            current_phase=current_phase,
         )
 
         # Stream LLM response and parse JSONL
@@ -670,44 +702,63 @@ class LearningService:
                     data = json.loads(line_fixed)
                     event_type = data.get("type", "")
                     
-                    if event_type == "wb_title":
-                        # 白板标题
+                    if event_type == "segment":
+                        # 边讲边写模式：同时发送消息和白板内容
+                        message_content = data.get("message", "")
+                        whiteboard = data.get("whiteboard", {})
+                        
+                        # 先发送白板内容（如果有）
+                        if whiteboard:
+                            # 发送segment事件（前端可以同时处理消息和白板）
+                            yield {"event": "segment", "data": json.dumps({
+                                "message": message_content,
+                                "whiteboard": whiteboard
+                            }, ensure_ascii=False)}
+                        else:
+                            # 只有消息，没有白板内容
+                            yield {"event": "segment", "data": json.dumps({
+                                "message": message_content,
+                                "whiteboard": {}
+                            }, ensure_ascii=False)}
+                    
+                    elif event_type == "wb_title":
+                        # 白板标题（兼容旧格式）
                         yield {"event": "wb_title", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
                     
                     elif event_type == "wb_points":
-                        # 白板要点（增量）
+                        # 白板要点（增量，兼容旧格式）
                         yield {"event": "wb_points", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
                     
                     elif event_type == "wb_formulas":
-                        # 白板公式（增量）
+                        # 白板公式（增量，兼容旧格式）
                         yield {"event": "wb_formulas", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
                     
                     elif event_type == "wb_examples":
-                        # 白板示例（增量）
+                        # 白板示例（增量，兼容旧格式）
                         yield {"event": "wb_examples", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
                     
                     elif event_type == "wb_notes":
-                        # 白板注意事项（增量）
+                        # 白板注意事项（增量，兼容旧格式）
                         yield {"event": "wb_notes", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
                     
                     elif event_type == "msg_intro":
-                        # 引入消息
+                        # 引入消息（兼容旧格式）
                         yield {"event": "msg_intro", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
                     
                     elif event_type == "msg_def":
-                        # 定义消息
+                        # 定义消息（兼容旧格式）
                         yield {"event": "msg_def", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
                     
                     elif event_type == "msg_example":
-                        # 示例消息
+                        # 示例消息（兼容旧格式）
                         yield {"event": "msg_example", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
                     
                     elif event_type == "msg_summary":
-                        # 总结消息
+                        # 总结消息（兼容旧格式）
                         yield {"event": "msg_summary", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
                     
                     elif event_type == "msg_question":
-                        # 提问消息
+                        # 提问消息（兼容旧格式）
                         yield {"event": "msg_question", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
                     
                     elif event_type == "complete":
@@ -769,6 +820,7 @@ class LearningService:
 
         # Stream LLM response and parse JSONL
         buffer = ""
+        has_feedback = False
         
         for chunk in llm_service.stream_chat(SYSTEM_PROMPT, prompt):
             buffer += chunk
@@ -793,6 +845,7 @@ class LearningService:
                     event_type = data.get("type", "")
                     
                     if event_type == "msg_feedback":
+                        has_feedback = True
                         yield {"event": "msg_feedback", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
                     elif event_type == "msg_encourage":
                         yield {"event": "msg_encourage", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
@@ -816,6 +869,40 @@ class LearningService:
                         yield {"event": "complete", "data": json.dumps({"next_action": data.get("next_action", "wait_for_student")}, ensure_ascii=False)}
             except json.JSONDecodeError:
                 pass
+        
+        # 学生回答后，自动推进到下一阶段
+        if has_feedback:
+            # 获取教学模式配置
+            from app.models.teaching_mode import TeachingModeType, TEACHING_MODE_CONFIGS
+            
+            total_phases = 4
+            if session.teaching_mode:
+                try:
+                    mode_type = TeachingModeType(session.teaching_mode)
+                    mode_config = TEACHING_MODE_CONFIGS.get(mode_type)
+                    if mode_config:
+                        total_phases = len(mode_config.phases)
+                except ValueError:
+                    pass
+            
+            # 推进阶段
+            current_phase = session.current_phase or 1
+            if current_phase < total_phases:
+                # 还有下一阶段
+                session.advance_phase()
+                learning_session_repository.update(session)
+                yield {"event": "phase_advance", "data": json.dumps({
+                    "current_phase": session.current_phase,
+                    "total_phases": total_phases,
+                    "next_action": "next_phase"
+                }, ensure_ascii=False)}
+            else:
+                # 已是最后阶段，进入评估
+                yield {"event": "phase_advance", "data": json.dumps({
+                    "current_phase": current_phase,
+                    "total_phases": total_phases,
+                    "next_action": "start_assessment"
+                }, ensure_ascii=False)}
 
 
 # Global service instance

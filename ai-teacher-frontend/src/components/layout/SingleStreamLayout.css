@@ -1,0 +1,105 @@
+/**
+ * 单流布局样式
+ */
+
+.single-stream-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: #f5f7fa;
+}
+
+/* 极简顶部 */
+.minimal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  height: 56px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.current-task {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.current-task::before {
+  content: '🎯';
+  margin-right: 6px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.learning-map-btn {
+  color: #1890ff;
+  font-size: 14px;
+}
+
+.learning-map-btn:hover {
+  background: rgba(24, 144, 255, 0.1);
+}
+
+.action-btn {
+  color: #666;
+  font-size: 14px;
+}
+
+.action-btn:hover {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+}
+
+/* 主学习区 - 铺满页面 */
+.main-learning-area {
+  flex: 1;
+  min-height: 0; /* 关键：允许flex收缩 */
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* 学习地图抽屉 */
+.learning-map-drawer .ant-drawer-body {
+  padding: 16px;
+}
+
+.learning-map-placeholder {
+  text-align: center;
+  color: #999;
+  padding: 40px 0;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .minimal-header {
+    padding: 8px 12px;
+  }
+
+  .current-task {
+    font-size: 13px;
+  }
+
+  .action-btn span,
+  .learning-map-btn span {
+    display: none;
+  }
+}

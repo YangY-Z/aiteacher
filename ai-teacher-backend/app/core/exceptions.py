@@ -115,3 +115,14 @@ class LearningSessionError(AppException):
         details: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__(message, "LEARNING_SESSION_ERROR", details)
+
+
+class DiagnosticError(AppException):
+    """Raised when diagnostic operation fails."""
+
+    def __init__(
+        self,
+        message: str = "Diagnostic error",
+        details: Optional[dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(message, "DIAGNOSTIC_ERROR", details)

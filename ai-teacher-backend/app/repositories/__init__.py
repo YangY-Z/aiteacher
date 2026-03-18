@@ -13,6 +13,8 @@ from app.repositories.assessment_repository import (
     StudentAnswerRepository,
 )
 from app.repositories.memory_db import InMemoryDatabase
+from app.repositories.learner_profile_repository import LearnerProfileRepository
+from app.repositories.retention_repository import RetentionRepository, AdaptiveRemedyRepository
 
 __all__ = [
     "BaseRepository",
@@ -24,4 +26,7 @@ __all__ = [
     "AssessmentQuestionRepository",
     "StudentAnswerRepository",
     "InMemoryDatabase",
+    "LearnerProfileRepository",
+    "RetentionRepository",
+    "AdaptiveRemedyRepository",
 ]

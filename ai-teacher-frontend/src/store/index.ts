@@ -220,11 +220,17 @@ export const useLearningStore = create<LearningState>()((set) => ({
   // 将当前白板状态提交到 whiteboardBlocks
   commitWhiteboard: () => set((state) => {
     const wb = state.currentWhiteboard;
+    // 防御性检查，确保数组存在
+    const keyPoints = wb.key_points || [];
+    const formulas = wb.formulas || [];
+    const examples = wb.examples || [];
+    const notes = wb.notes || [];
+    
     const hasContent = wb.title || 
-      wb.key_points.length > 0 || 
-      wb.formulas.length > 0 || 
-      wb.examples.length > 0 || 
-      wb.notes.length > 0;
+      keyPoints.length > 0 || 
+      formulas.length > 0 || 
+      examples.length > 0 || 
+      notes.length > 0;
     if (!hasContent) return state;
     
     // 检查是否已存在相同的白板块（避免重复）
@@ -235,10 +241,10 @@ export const useLearningStore = create<LearningState>()((set) => ({
         b.title === wb.title 
           ? { 
               ...b, 
-              key_points: [...b.key_points, ...wb.key_points],
-              formulas: [...b.formulas, ...wb.formulas],
-              examples: [...b.examples, ...wb.examples],
-              notes: [...b.notes, ...wb.notes],
+              key_points: [...(b.key_points || []), ...keyPoints],
+              formulas: [...(b.formulas || []), ...formulas],
+              examples: [...(b.examples || []), ...examples],
+              notes: [...(b.notes || []), ...notes],
             } 
           : b
       );
@@ -249,10 +255,10 @@ export const useLearningStore = create<LearningState>()((set) => ({
     return { 
       whiteboardBlocks: [...state.whiteboardBlocks, {
         title: wb.title,
-        key_points: wb.key_points,
-        formulas: wb.formulas,
-        examples: wb.examples,
-        notes: wb.notes,
+        key_points: keyPoints,
+        formulas: formulas,
+        examples: examples,
+        notes: notes,
       }],
       // 清空 currentWhiteboard
       currentWhiteboard: initialWhiteboardState,

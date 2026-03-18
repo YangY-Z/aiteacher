@@ -1,17 +1,26 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Layout, Modal, Select, message, Button } from 'antd';
+import { Modal, Select, message, Button, Drawer } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import AppHeader from '../components/layout/Header';
+import SingleStreamLayout from '../components/layout/SingleStreamLayout';
+import LearningMap from '../components/layout/LearningMap';
 import Whiteboard from '../components/whiteboard/Whiteboard';
 import ChatList from '../components/chat/ChatList';
 import ChatInput from '../components/chat/ChatInput';
-import ProgressPanel from '../components/progress/ProgressPanel';
+import DiagnosticTest from '../components/diagnostic/DiagnosticTest';
 import { useAuthStore, useCourseStore, useLearningStore } from '../store';
 import { courseApi, learningApi } from '../api';
-import type { WhiteboardContent } from '../types';
 import './Learning.css';
 
-const { Content, Sider } = Layout;
+/**
+ * 学习页面 - V2两列布局
+ * 
+ * 布局：白板(左侧) | AI对话(右侧，默认1/4，可拖拽调整)
+ * 
+ * 流程：
+ * 1. 课前诊断 → 2. 核心学习 → 3. 即时检测 → 4. 课后保持
+ */
+
+type LearningPhase = 'diagnostic' | 'teaching' | 'assessment' | 'completed';
 
 const LearningPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,8 +34,6 @@ const LearningPage: React.FC = () => {
     progress,
     setProgress,
     addMessage,
-    updateStreamingMessage,
-    finishStreamingMessage,
     setMessages,
     isLoading,
     setLoading,
@@ -36,10 +43,7 @@ const LearningPage: React.FC = () => {
     setAssessmentMode,
     assessmentQuestions,
     setAssessmentQuestions,
-    addWhiteboardBlock,
-    updateLastWhiteboardBlock,
     clearWhiteboard,
-    // 新增：增量更新方法
     setWhiteboardTitle,
     addWhiteboardPoint,
     addWhiteboardFormula,
@@ -49,124 +53,27 @@ const LearningPage: React.FC = () => {
     reset,
   } = useLearningStore();
 
+  // 学习阶段
+  const [phase, setPhase] = useState<LearningPhase>('diagnostic');
+  
+  // 诊断相关
+  const [diagnosticSessionId, setDiagnosticSessionId] = useState<string | null>(null);
+  const [diagnosticResult, setDiagnosticResult] = useState<any>(null);
+  
+  // 两列布局 - 右侧聊天区域宽度百分比（默认25%）
+  const [rightPanelWidth, setRightPanelWidth] = useState(25);
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // UI状态
+  const [mapVisible, setMapVisible] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [skipModalVisible, setSkipModalVisible] = useState(false);
-  
-  // 流式消息ID
-  const streamingMsgIdRef = useRef<string | null>(null);
-  
-  // 防止 StrictMode 重复调用
+
+  // 防止重复调用
   const isStartingRef = useRef(false);
   const hasStartedRef = useRef(false);
-
-  // 带参数的提交评估
-  const submitAssessmentWithAnswers = useCallback(async (answers: Record<string, string>) => {
-    const currentSession = useLearningStore.getState().session;
-    if (!currentSession || Object.keys(answers).length === 0) return;
-    
-    try {
-      setLoading(true);
-      const answersList = Object.entries(answers).map(([questionId, answer]) => ({
-        question_id: questionId,
-        answer,
-      }));
-      
-      const res = await learningApi.submitAssessment(currentSession.session_id, { answers: answersList });
-      
-      if (res.data.success) {
-        const result = res.data.data;
-        
-        // 添加结果消息
-        addMessage({
-          id: `msg-${Date.now()}`,
-          role: 'ai',
-          content: result.passed
-            ? `🎉 太棒了！你答对了 ${result.correct_count}/${result.total_questions} 题，成功通过！`
-            : `❌ 很遗憾，你只答对了 ${result.correct_count}/${result.total_questions} 题，需要重新学习。`,
-          timestamp: new Date(),
-          type: 'feedback',
-        });
-        
-        // 更新进度
-        const course = useCourseStore.getState().currentCourse;
-        if (course) {
-          const progressRes = await learningApi.getProgress(course.id);
-          if (progressRes.data.success) {
-            setProgress(progressRes.data.data);
-          }
-        }
-        
-        setAssessmentMode(false);
-        setSelectedAnswers({});
-        setCurrentQuestionIndex(0);
-        
-        // 如果通过，准备下一个知识点
-        if (result.passed && result.next_kp_id) {
-          setTimeout(() => {
-            addMessage({
-              id: `msg-${Date.now() + 1}`,
-              role: 'ai',
-              content: `下一个知识点：${result.next_kp_name}。准备好了吗？输入"开始"继续学习。`,
-              timestamp: new Date(),
-            });
-          }, 1500);
-        }
-      }
-    } catch (error) {
-      message.error('提交失败');
-    } finally {
-      setLoading(false);
-    }
-  }, [addMessage, setProgress, setAssessmentMode, setLoading]);
-
-  // 选择答案后进入下一题
-  const handleSelectAnswer = useCallback((questionId: string, answer: string) => {
-    const questions = useLearningStore.getState().assessmentQuestions;
-    
-    setSelectedAnswers((prev) => {
-      const newAnswers = { ...prev, [questionId]: answer };
-      
-      // 添加用户选择的消息
-      addMessage({
-        id: `msg-${Date.now()}`,
-        role: 'student',
-        content: `选择：${answer}`,
-        timestamp: new Date(),
-      });
-      
-      // 检查是否所有题目都已回答
-      if (questions.length > 0 && Object.keys(newAnswers).length === questions.length) {
-        // 所有题目答完，提交评估
-        setTimeout(() => {
-          submitAssessmentWithAnswers(newAnswers);
-        }, 500);
-      } else {
-        // 显示下一题
-        setTimeout(() => {
-          const nextIndex = Object.keys(newAnswers).length;
-          if (nextIndex < questions.length) {
-            const nextQuestion = questions[nextIndex];
-            addMessage({
-              id: `msg-question-${nextQuestion.id}`,
-              role: 'ai',
-              content: `**第 ${nextIndex + 1} 题**`,
-              timestamp: new Date(),
-              type: 'question',
-              question: {
-                id: nextQuestion.id,
-                content: nextQuestion.content,
-                options: nextQuestion.options,
-              },
-            });
-          }
-        }, 800);
-      }
-      
-      return newAnswers;
-    });
-  }, [addMessage, submitAssessmentWithAnswers]);
+  const phaseAdvanceHandledRef = useRef(false);  // 防止 phase_advance 和 complete 重复处理
 
   // 检查登录状态
   useEffect(() => {
@@ -191,31 +98,120 @@ const LearningPage: React.FC = () => {
     loadCourse();
   }, [setCurrentCourse]);
 
-  // 开始学习会话
+  // 拖拽分隔条处理
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !containerRef.current) return;
+      
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const newWidth = ((containerRect.right - e.clientX) / containerRect.width) * 100;
+      
+      // 限制范围：15% - 50%
+      const clampedWidth = Math.max(15, Math.min(50, newWidth));
+      setRightPanelWidth(clampedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
+  // 开始学习会话（含课前诊断）
   const startLearning = useCallback(async () => {
     if (!currentCourse) return;
     
-    // 防止重复调用（使用 ref）
-    if (isStartingRef.current || hasStartedRef.current) {
-      console.log('startLearning: already starting or started, skipping');
-      return;
-    }
+    if (isStartingRef.current || hasStartedRef.current) return;
     
-    // 防止重复调用（检查 store）
     const currentSession = useLearningStore.getState().session;
     if (currentSession) return;
     
     isStartingRef.current = true;
-    console.log('startLearning: starting...');
     
     try {
       setLoading(true);
+      
+      // 1. 先进行课前诊断
+      setPhase('diagnostic');
+      
+      // 创建诊断会话
+      const diagRes = await fetch('/api/v1/diagnostic/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          course_id: currentCourse.id,
+          kp_id: null, // 使用当前知识点
+        }),
+      });
+      
+      if (diagRes.ok) {
+        const diagData = await diagRes.json();
+        if (diagData.success) {
+          setDiagnosticSessionId(diagData.data.session_id);
+          setLoading(false);
+          return; // 等待诊断完成
+        }
+      }
+      
+      // 如果诊断创建失败，直接开始学习
+      await startTeachingSession();
+      
+    } catch (error) {
+      console.error('诊断启动失败，直接开始学习', error);
+      await startTeachingSession();
+    } finally {
+      setLoading(false);
+    }
+  }, [currentCourse]);
+
+  // 诊断完成回调
+  const handleDiagnosticComplete = useCallback(async (result: any) => {
+    setDiagnosticResult(result);
+    
+    // 根据诊断结果决定学习起点
+    if (result.conclusion === 'full_mastery') {
+      // 已掌握，跳过
+      message.success('你已掌握这个知识点！');
+      // TODO: 进入下一个知识点
+    } else {
+      // 开始学习
+      await startTeachingSession();
+    }
+  }, []);
+
+  // 跳过诊断
+  const handleSkipDiagnostic = useCallback(async () => {
+    await startTeachingSession();
+  }, []);
+
+  // 开始教学会话
+  const startTeachingSession = useCallback(async () => {
+    if (!currentCourse) return;
+    
+    try {
+      setLoading(true);
+      
       const res = await learningApi.startSession({ course_id: currentCourse.id });
       
       if (res.data.success) {
         const sessionData = res.data.data;
         setSession(sessionData);
         hasStartedRef.current = true;
+        setPhase('teaching');
         
         // 获取知识点详情
         if (sessionData.kp_id) {
@@ -249,35 +245,62 @@ const LearningPage: React.FC = () => {
     }
   }, [currentCourse, setSession, setCurrentKp, setProgress, setLoading, setMessages, clearWhiteboard]);
 
-  // 自动开始学习（移除 startLearning 依赖，避免重复调用）
+  // 自动开始学习
   useEffect(() => {
     if (currentCourse && !session) {
       startLearning();
     }
   }, [currentCourse, session]);
 
-  // 流式获取教学内容（增量事件）
+  // 流式获取教学内容
   const fetchTeachingContentStream = async (sessionId: string) => {
     setStreaming(true);
     
     await learningApi.streamTeachingContent(sessionId, {
-      // 白板增量事件
-      onWbTitle: (content) => {
-        setWhiteboardTitle(content);
+      // 边讲边写模式：同时处理消息和白板
+      onSegment: (data) => {
+        // 1. 添加消息
+        if (data.message) {
+          // 检测是否是提问消息
+          const isQuestion = data.is_question === true || 
+            data.message.includes('?') || 
+            data.message.includes('？');
+          
+          addMessage({
+            id: `msg-segment-${Date.now()}`,
+            role: 'ai',
+            content: data.message,
+            timestamp: new Date(),
+            type: isQuestion ? 'teacher_question' : undefined,
+          });
+        }
+        
+        // 2. 更新白板（同步）
+        const wb = data.whiteboard;
+        if (wb) {
+          if (wb.title) {
+            setWhiteboardTitle(wb.title);
+          }
+          if (wb.points && wb.points.length > 0) {
+            wb.points.forEach((point: string) => addWhiteboardPoint(point));
+          }
+          if (wb.formulas && wb.formulas.length > 0) {
+            wb.formulas.forEach((formula: string) => addWhiteboardFormula(formula));
+          }
+          if (wb.examples && wb.examples.length > 0) {
+            wb.examples.forEach((example: string) => addWhiteboardExample(example));
+          }
+          if (wb.notes && wb.notes.length > 0) {
+            wb.notes.forEach((note: string) => addWhiteboardNote(note));
+          }
+        }
       },
-      onWbPoints: (content) => {
-        addWhiteboardPoint(content);
-      },
-      onWbFormulas: (content) => {
-        addWhiteboardFormula(content);
-      },
-      onWbExamples: (content) => {
-        addWhiteboardExample(content);
-      },
-      onWbNotes: (content) => {
-        addWhiteboardNote(content);
-      },
-      // 消息事件
+      // 兼容旧格式
+      onWbTitle: (content) => setWhiteboardTitle(content),
+      onWbPoints: (content) => addWhiteboardPoint(content),
+      onWbFormulas: (content) => addWhiteboardFormula(content),
+      onWbExamples: (content) => addWhiteboardExample(content),
+      onWbNotes: (content) => addWhiteboardNote(content),
       onMsgIntro: (content) => {
         addMessage({
           id: `msg-intro-${Date.now()}`,
@@ -319,17 +342,17 @@ const LearningPage: React.FC = () => {
           type: 'teacher_question',
         });
       },
-      // 控制事件
       onComplete: (nextAction) => {
         setStreaming(false);
-        // 提交白板内容
         commitWhiteboard();
         
-        // 处理后续动作
         if (nextAction === 'start_assessment') {
           setTimeout(() => startAssessment(), 1500);
         } else if (nextAction === 'next_knowledge_point') {
           setTimeout(() => moveToNextKnowledgePoint(), 1500);
+        } else if (nextAction === 'next_phase') {
+          // 进入下一教学阶段
+          setTimeout(() => advanceToNextPhase(), 1500);
         }
       },
       onError: (error) => {
@@ -339,7 +362,7 @@ const LearningPage: React.FC = () => {
     });
   };
 
-  // 进入下一个知识点（概念类知识点完成后调用）
+  // 进入下一个知识点
   const moveToNextKnowledgePoint = async () => {
     const currentSession = useLearningStore.getState().session;
     const currentCourse = useCourseStore.getState().currentCourse;
@@ -347,26 +370,20 @@ const LearningPage: React.FC = () => {
     
     try {
       setLoading(true);
-      
-      // 清空白板，开始新的知识点
       clearWhiteboard();
       
-      // 标记当前知识点为已完成（计入进度）
       const completeRes = await learningApi.completeKnowledgePoint(currentSession.session_id);
       
       if (completeRes.data.success && completeRes.data.data.next_kp_id) {
-        // 更新进度
         const progressRes = await learningApi.getProgress(currentCourse.id);
         if (progressRes.data.success) {
           setProgress(progressRes.data.data);
         }
         
-        // 获取下一个知识点详情
         const kpRes = await courseApi.getKnowledgePoint(currentCourse.id, completeRes.data.data.next_kp_id);
         if (kpRes.data.success) {
           setCurrentKp(kpRes.data.data);
           
-          // 提示进入下一个知识点
           addMessage({
             id: `msg-${Date.now()}`,
             role: 'ai',
@@ -374,19 +391,17 @@ const LearningPage: React.FC = () => {
             timestamp: new Date(),
           });
           
-          // 后端已更新session的kp_id，直接流式获取教学内容
           setTimeout(async () => {
             await fetchTeachingContentStream(currentSession.session_id);
           }, 1000);
         }
       } else if (completeRes.data.success && !completeRes.data.data.next_kp_id) {
-        // 更新进度
         const progressRes = await learningApi.getProgress(currentCourse.id);
         if (progressRes.data.success) {
           setProgress(progressRes.data.data);
         }
         
-        // 所有知识点都学完了
+        setPhase('completed');
         addMessage({
           id: `msg-${Date.now()}`,
           role: 'ai',
@@ -401,11 +416,47 @@ const LearningPage: React.FC = () => {
     }
   };
 
-  // 发送消息（流式）
+  // 进入下一教学阶段
+  const advanceToNextPhase = async () => {
+    const currentSession = useLearningStore.getState().session;
+    if (!currentSession) return;
+    
+    try {
+      setLoading(true);
+      
+      // 调用后端推进阶段
+      const phaseRes = await learningApi.advancePhase(currentSession.session_id);
+      
+      if (phaseRes.data.success) {
+        const { current_phase, total_phases, is_last_phase } = phaseRes.data.data;
+        
+        // 清空白板，准备新阶段
+        clearWhiteboard();
+        
+        // 添加过渡消息
+        addMessage({
+          id: `msg-phase-${Date.now()}`,
+          role: 'ai',
+          content: `📍 进入第${current_phase}/${total_phases}阶段`,
+          timestamp: new Date(),
+        });
+        
+        // 重新获取教学内容
+        setTimeout(async () => {
+          await fetchTeachingContentStream(currentSession.session_id);
+        }, 500);
+      }
+    } catch (error) {
+      message.error('进入下一阶段失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 发送消息
   const handleSendMessage = async (msg: string) => {
     if (!session) return;
 
-    // 添加学生消息
     addMessage({
       id: `msg-student-${Date.now()}`,
       role: 'student',
@@ -413,18 +464,18 @@ const LearningPage: React.FC = () => {
       timestamp: new Date(),
     });
 
-    // 检查是否要开始评估
     if (msg.includes('开始') || msg.includes('测试') || msg.includes('评估')) {
       await startAssessment();
       return;
     }
 
+    // 重置阶段推进标志
+    phaseAdvanceHandledRef.current = false;
+    
     setStreaming(true);
     
     await learningApi.streamSendMessage(session.session_id, msg, {
-      onWbFormulas: (content) => {
-        addWhiteboardFormula(content);
-      },
+      onWbFormulas: (content) => addWhiteboardFormula(content),
       onMsgFeedback: (content) => {
         addMessage({
           id: `msg-feedback-${Date.now()}`,
@@ -453,36 +504,88 @@ const LearningPage: React.FC = () => {
         setStreaming(false);
         commitWhiteboard();
         
-        // 处理后续动作
+        // 如果已经通过 phase_advance 处理，跳过
+        if (phaseAdvanceHandledRef.current) {
+          return;
+        }
+        
         if (nextAction === 'start_assessment') {
           setTimeout(() => startAssessment(), 1500);
         } else if (nextAction === 'next_knowledge_point') {
           setTimeout(() => moveToNextKnowledgePoint(), 1500);
+        } else if (nextAction === 'next_phase') {
+          // 进入下一教学阶段
+          setTimeout(() => advanceToNextPhase(), 1500);
         }
       },
       onError: (error) => {
         message.error(error);
         setStreaming(false);
       },
+      onPhaseAdvance: (data) => {
+        console.log('Phase advance event:', data);
+        
+        // 防御性检查
+        if (!data || !data.next_action) {
+          console.error('Invalid phase_advance data:', data);
+          return;
+        }
+        
+        // 标记已处理，防止 complete 事件重复处理
+        phaseAdvanceHandledRef.current = true;
+        
+        if (data.next_action === 'next_phase') {
+          // 后端已经推进了阶段，前端只需获取新阶段的教学内容
+          const { current_phase, total_phases } = data;
+          
+          // 清空白板，准备新阶段
+          clearWhiteboard();
+          
+          // 添加过渡消息
+          addMessage({
+            id: `msg-phase-${Date.now()}`,
+            role: 'ai',
+            content: `📍 进入第${current_phase}/${total_phases}阶段`,
+            timestamp: new Date(),
+          });
+          
+          // 重新获取教学内容
+          setTimeout(async () => {
+            const currentSession = useLearningStore.getState().session;
+            if (currentSession) {
+              await fetchTeachingContentStream(currentSession.session_id);
+            }
+          }, 500);
+        } else if (data.next_action === 'start_assessment') {
+          // 所有阶段完成，开始评估
+          setTimeout(() => startAssessment(), 1500);
+        }
+      },
     });
   };
 
   // 开始评估
   const startAssessment = async () => {
-    if (!session) return;
+    if (!session) {
+      console.error('startAssessment: no session');
+      return;
+    }
     
     try {
       setLoading(true);
+      console.log('Fetching assessment for session:', session.session_id, 'kp_id:', session.kp_id);
       const res = await learningApi.getAssessment(session.session_id);
+      console.log('Assessment response:', res.data);
       
-      if (res.data.success && res.data.data.questions.length > 0) {
+      if (res.data.success && res.data.data?.questions?.length > 0) {
         const questions = res.data.data.questions;
+        console.log('Questions loaded:', questions.length, questions);
+        
         setAssessmentQuestions(questions);
         setAssessmentMode(true);
+        setPhase('assessment');
         setSelectedAnswers({});
-        setCurrentQuestionIndex(0);
         
-        // 添加评估引导消息
         addMessage({
           id: `msg-${Date.now()}`,
           role: 'ai',
@@ -490,47 +593,95 @@ const LearningPage: React.FC = () => {
           timestamp: new Date(),
         });
         
-        // 只显示第一道题
         setTimeout(() => {
           const firstQuestion = questions[0];
-          addMessage({
-            id: `msg-question-${firstQuestion.id}`,
-            role: 'ai',
-            content: `**第 1 题**`,
-            timestamp: new Date(),
-            type: 'question',
-            question: {
-              id: firstQuestion.id,
-              content: firstQuestion.content,
-              options: firstQuestion.options,
-            },
-          });
+          if (firstQuestion) {
+            addMessage({
+              id: `msg-question-${firstQuestion.id}`,
+              role: 'ai',
+              content: `**第 1 题**`,
+              timestamp: new Date(),
+              type: 'question',
+              question: {
+                id: firstQuestion.id,
+                content: firstQuestion.content,
+                options: firstQuestion.options || [],
+              },
+            });
+          }
         }, 500);
+      } else {
+        console.warn('No questions available:', res.data);
+        message.warning('暂无题目，跳过评估');
+        // 没有题目时，直接进入下一个知识点
+        setTimeout(() => moveToNextKnowledgePoint(), 1500);
       }
     } catch (error) {
+      console.error('获取题目失败:', error);
       message.error('获取题目失败');
     } finally {
       setLoading(false);
     }
   };
 
+  // 选择答案
+  const handleSelectAnswer = useCallback((questionId: string, answer: string) => {
+    const questions = useLearningStore.getState().assessmentQuestions;
+    
+    setSelectedAnswers((prev) => {
+      const newAnswers = { ...prev, [questionId]: answer };
+      
+      addMessage({
+        id: `msg-${Date.now()}`,
+        role: 'student',
+        content: `选择：${answer}`,
+        timestamp: new Date(),
+      });
+      
+      if (questions.length > 0 && Object.keys(newAnswers).length === questions.length) {
+        setTimeout(() => submitAssessmentWithAnswers(newAnswers), 500);
+      } else {
+        setTimeout(() => {
+          const nextIndex = Object.keys(newAnswers).length;
+          if (nextIndex < questions.length) {
+            const nextQuestion = questions[nextIndex];
+            addMessage({
+              id: `msg-question-${nextQuestion.id}`,
+              role: 'ai',
+              content: `**第 ${nextIndex + 1} 题**`,
+              timestamp: new Date(),
+              type: 'question',
+              question: {
+                id: nextQuestion.id,
+                content: nextQuestion.content,
+                options: nextQuestion.options,
+              },
+            });
+          }
+        }, 800);
+      }
+      
+      return newAnswers;
+    });
+  }, [addMessage]);
+
   // 提交评估
-  const submitAssessment = async () => {
-    if (!session || Object.keys(selectedAnswers).length === 0) return;
+  const submitAssessmentWithAnswers = async (answers: Record<string, string>) => {
+    const currentSession = useLearningStore.getState().session;
+    if (!currentSession) return;
     
     try {
       setLoading(true);
-      const answers = Object.entries(selectedAnswers).map(([questionId, answer]) => ({
+      const answersList = Object.entries(answers).map(([questionId, answer]) => ({
         question_id: questionId,
         answer,
       }));
       
-      const res = await learningApi.submitAssessment(session.session_id, { answers });
+      const res = await learningApi.submitAssessment(currentSession.session_id, { answers: answersList });
       
       if (res.data.success) {
         const result = res.data.data;
         
-        // 添加结果消息
         addMessage({
           id: `msg-${Date.now()}`,
           role: 'ai',
@@ -541,9 +692,9 @@ const LearningPage: React.FC = () => {
           type: 'feedback',
         });
         
-        // 更新进度
-        if (currentCourse) {
-          const progressRes = await learningApi.getProgress(currentCourse.id);
+        const course = useCourseStore.getState().currentCourse;
+        if (course) {
+          const progressRes = await learningApi.getProgress(course.id);
           if (progressRes.data.success) {
             setProgress(progressRes.data.data);
           }
@@ -552,7 +703,6 @@ const LearningPage: React.FC = () => {
         setAssessmentMode(false);
         setSelectedAnswers({});
         
-        // 如果通过，准备下一个知识点
         if (result.passed && result.next_kp_id) {
           setTimeout(() => {
             addMessage({
@@ -561,7 +711,11 @@ const LearningPage: React.FC = () => {
               content: `下一个知识点：${result.next_kp_name}。准备好了吗？输入"开始"继续学习。`,
               timestamp: new Date(),
             });
+            setPhase('teaching');
           }, 1500);
+        } else if (!result.passed) {
+          // 未通过，回到学习阶段
+          setPhase('teaching');
         }
       }
     } catch (error) {
@@ -579,17 +733,13 @@ const LearningPage: React.FC = () => {
       await learningApi.skipKnowledgePoint(session.session_id, '学生主动跳过');
       message.success('已跳过当前知识点');
       setSkipModalVisible(false);
-      
-      // 开始新的学习
+      reset();
+      hasStartedRef.current = false;
+      isStartingRef.current = false;
       await startLearning();
     } catch (error) {
       message.error('跳过失败');
     }
-  };
-
-  // 复习
-  const handleReview = () => {
-    setReviewModalVisible(true);
   };
 
   // 暂停学习
@@ -604,41 +754,94 @@ const LearningPage: React.FC = () => {
     });
   };
 
+  // 当前任务显示
+  const currentTask = currentKp ? `掌握 ${currentKp.name}` : '加载中...';
+
   return (
-    <Layout className="learning-layout">
-      <AppHeader />
-      
-      <Layout className="main-layout">
-        <Content className="main-content">
-          <div className="whiteboard-section">
-            <Whiteboard loading={isLoading} />
-          </div>
-          
-          <div className="chat-section">
-            <ChatList 
-              onSelectAnswer={handleSelectAnswer}
-              selectedAnswers={selectedAnswers}
-            />
-            <ChatInput
-              onSend={handleSendMessage}
-              disabled={isLoading}
-              placeholder={
-                isAssessmentMode
-                  ? '请点击上方选项选择答案'
-                  : '请输入你的回答或问题...'
-              }
-            />
-          </div>
-        </Content>
-        
-        <Sider width={280} className="progress-sider">
-          <ProgressPanel
-            onSkip={() => setSkipModalVisible(true)}
-            onReview={handleReview}
-            onPause={handlePause}
+    <div className="learning-page-v2">
+      <SingleStreamLayout
+        currentTask={currentTask}
+        onOpenLearningMap={() => setMapVisible(true)}
+        onPause={handlePause}
+        onSkip={() => setSkipModalVisible(true)}
+      >
+        {/* 诊断阶段 */}
+        {phase === 'diagnostic' && diagnosticSessionId && (
+          <DiagnosticTest
+            sessionId={diagnosticSessionId}
+            onComplete={handleDiagnosticComplete}
+            onSkip={handleSkipDiagnostic}
           />
-        </Sider>
-      </Layout>
+        )}
+
+        {/* 教学/评估阶段 */}
+        {(phase === 'teaching' || phase === 'assessment') && (
+          <div className="main-content-area" ref={containerRef}>
+            {/* 白板区域 - 左侧 */}
+            <div 
+              className="whiteboard-area" 
+              style={{ width: `${100 - rightPanelWidth}%` }}
+            >
+              <Whiteboard loading={isLoading} />
+            </div>
+            
+            {/* 可拖拽分隔条 */}
+            <div 
+              className={`resize-divider ${isDragging ? 'dragging' : ''}`}
+              onMouseDown={handleMouseDown}
+            />
+            
+            {/* 聊天区域 - 右侧 */}
+            <div 
+              className="chat-area"
+              style={{ width: `${rightPanelWidth}%` }}
+            >
+              <ChatList 
+                onSelectAnswer={handleSelectAnswer}
+                selectedAnswers={selectedAnswers}
+              />
+              <ChatInput
+                onSend={handleSendMessage}
+                disabled={isLoading || isStreaming}
+                placeholder={
+                  isAssessmentMode
+                    ? '请点击上方选项选择答案'
+                    : '请输入你的回答或问题...'
+                }
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 完成阶段 */}
+        {phase === 'completed' && (
+          <div className="completed-area">
+            <h2>🎉 恭喜完成所有学习！</h2>
+            <p>你已经掌握了本课程的所有知识点。</p>
+            <Button type="primary" onClick={() => setMapVisible(true)}>
+              查看学习地图
+            </Button>
+          </div>
+        )}
+      </SingleStreamLayout>
+
+      {/* 学习地图抽屉 */}
+      <Drawer
+        title="学习地图"
+        placement="right"
+        width={360}
+        open={mapVisible}
+        onClose={() => setMapVisible(false)}
+      >
+        <LearningMap
+          progress={progress}
+          currentKpId={currentKp?.id}
+          onSelectKp={(kpId) => {
+            // TODO: 切换到指定知识点
+            setMapVisible(false);
+          }}
+        />
+      </Drawer>
 
       {/* 跳过确认弹窗 */}
       <Modal
@@ -652,28 +855,7 @@ const LearningPage: React.FC = () => {
         <p>确定要跳过这个知识点吗？</p>
         <p style={{ color: '#999' }}>跳过后，你可能需要在后续学习中补充这个知识点。</p>
       </Modal>
-
-      {/* 复习选择弹窗 */}
-      <Modal
-        title="选择要复习的知识点"
-        open={reviewModalVisible}
-        onCancel={() => setReviewModalVisible(false)}
-        footer={null}
-      >
-        <Select
-          style={{ width: '100%', marginBottom: 16 }}
-          placeholder="选择知识点"
-          options={
-            progress?.completed_count
-              ? [{ label: '选择已学习的知识点', value: '' }]
-              : [{ label: '暂无可复习的知识点', value: '', disabled: true }]
-          }
-        />
-        <Button type="primary" block>
-          开始复习
-        </Button>
-      </Modal>
-    </Layout>
+    </div>
   );
 };
 
