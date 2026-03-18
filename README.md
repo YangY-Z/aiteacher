@@ -2,7 +2,7 @@
   后端
 
    # 1. 进入后端目录
-   cd /Users/zhaoyang/iFlow/aiteacher/ai-teacher-backend
+   cd ./aiteacher/ai-teacher-backend
 
    # 2. 创建虚拟环境（可选但推荐）
    python3 -m venv venv
@@ -26,7 +26,7 @@
   前端
 
    # 1. 进入前端目录
-   cd /Users/zhaoyang/iFlow/aiteacher/ai-teacher-frontend
+   cd ./aiteacher/ai-teacher-frontend
 
    # 2. 安装依赖
    npm install
