@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>知识地图 - 一次函数</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            padding: 30px 20px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.95rem;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.locked { background: #4a5568; }
+        .legend-dot.available { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .legend-dot.in-progress { 
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        .legend-dot.completed { background: linear-gradient(135deg, #11998e, #38ef7d); }
+
+        .map-container {
+            width: 100%;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .svg-wrapper {
+            min-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* SVG 样式 */
+        .node-group {
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .node-group:hover {
+            transform: scale(1.05);
+        }
+
+        .node-circle {
+            transition: all 0.3s ease;
+        }
+
+        .node-text {
+            font-size: 11px;
+            fill: #fff;
+            text-anchor: middle;
+            pointer-events: none;
+            font-weight: 500;
+        }
+
+        .node-id {
+            font-size: 9px;
+            fill: rgba(255, 255, 255, 0.6);
+            text-anchor: middle;
+        }
+
+        /* 节点状态样式 */
+        .node-locked .node-circle {
+            fill: #2d3748;
+            stroke: #4a5568;
+            stroke-width: 2;
+        }
+
+        .node-available .node-circle {
+            fill: url(#availableGradient);
+            stroke: #667eea;
+            stroke-width: 2;
+            filter: drop-shadow(0 0 8px rgba(102, 126, 234, 0.5));
+        }
+
+        .node-in-progress .node-circle {
+            fill: url(#progressGradient);
+            stroke: #f5576c;
+            stroke-width: 3;
+            filter: drop-shadow(0 0 12px rgba(245, 87, 108, 0.6));
+        }
+
+        .node-completed .node-circle {
+            fill: url(#completedGradient);
+            stroke: #38ef7d;
+            stroke-width: 2;
+            filter: drop-shadow(0 0 8px rgba(56, 239, 125, 0.5));
+        }
+
+        /* 脉动动画 */
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.15);
+                opacity: 0.8;
+            }
+        }
+
+        @keyframes glow {
+            0%, 100% {
+                filter: drop-shadow(0 0 8px rgba(245, 87, 108, 0.6));
+            }
+            50% {
+                filter: drop-shadow(0 0 20px rgba(245, 87, 108, 0.9));
+            }
+        }
+
+        .pulse-ring {
+            fill: none;
+            stroke: #f5576c;
+            stroke-width: 2;
+            opacity: 0;
+            animation: pulseRing 2s ease-out infinite;
+        }
+
+        @keyframes pulseRing {
+            0% {
+                r: 24;
+                opacity: 0.8;
+            }
+            100% {
+                r: 45;
+                opacity: 0;
+            }
+        }
+
+        /* 连线样式 */
+        .dependency-line {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.15);
+            stroke-width: 1.5;
+            transition: stroke 0.3s ease;
+        }
+
+        .dependency-line.active {
+            stroke: rgba(56, 239, 125, 0.5);
+            stroke-width: 2;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: fixed;
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px 18px;
+            max-width: 280px;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .tooltip.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .tooltip-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #00d9ff;
+            margin-bottom: 8px;
+        }
+
+        .tooltip-type {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tooltip-desc {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.5;
+        }
+
+        .tooltip-status {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* 统计面板 */
+        .stats-panel {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 5px;
+        }
+
+        /* 层级标签 */
+        .level-label {
+            font-size: 12px;
+            fill: rgba(255, 255, 255, 0.4);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>知识地图</h1>
+        <p>一次函数 · 共32个知识点 · 按依赖关系分层展示</p>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-dot locked"></div>
+            <span>未解锁</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot available"></div>
+            <span>可学习</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot in-progress"></div>
+            <span>学习中</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot completed"></div>
+            <span>已完成</span>
+        </div>
+    </div>
+
+    <div class="stats-panel">
+        <div class="stat-item">
+            <div class="stat-value" id="completedCount">8</div>
+            <div class="stat-label">已完成</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="inProgressCount">1</div>
+            <div class="stat-label">学习中</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="availableCount">5</div>
+            <div class="stat-label">可学习</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="lockedCount">18</div>
+            <div class="stat-label">未解锁</div>
+        </div>
+    </div>
+
+    <div class="map-container">
+        <div class="svg-wrapper">
+            <svg id="knowledgeMap" width="1400" height="900" viewBox="0 0 1400 900">
+                <!-- 渐变定义 -->
+                <defs>
+                    <linearGradient id="availableGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#667eea"/>
+                        <stop offset="100%" style="stop-color:#764ba2"/>
+                    </linearGradient>
+                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#f093fb"/>
+                        <stop offset="100%" style="stop-color:#f5576c"/>
+                    </linearGradient>
+                    <linearGradient id="completedGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#11998e"/>
+                        <stop offset="100%" style="stop-color:#38ef7d"/>
+                    </linearGradient>
+                    
+                    <!-- 发光滤镜 -->
+                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                        <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+
+                <!-- 连线层 -->
+                <g id="linksLayer"></g>
+                
+                <!-- 节点层 -->
+                <g id="nodesLayer"></g>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Tooltip -->
+    <div class="tooltip" id="tooltip">
+        <div class="tooltip-title"></div>
+        <div class="tooltip-type"></div>
+        <div class="tooltip-desc"></div>
+        <div class="tooltip-status"></div>
+    </div>
+
+    <script>
+        // 知识点数据
+        const knowledgePoints = [
+            { id: "K1", name: "坐标系", type: "概念", level: 0, dependencies: [] },
+            { id: "K2", name: "点的坐标", type: "技能", level: 1, dependencies: ["K1"] },
+            { id: "K3", name: "象限", type: "概念", level: 0, dependencies: ["K1"] },
+            { id: "K4", name: "变量", type: "概念", level: 0, dependencies: [] },
+            { id: "K5", name: "常量", type: "概念", level: 0, dependencies: [] },
+            { id: "K6", name: "函数定义", type: "概念", level: 1, dependencies: ["K4", "K5", "K1"] },
+            { id: "K7", name: "自变量与因变量", type: "概念", level: 2, dependencies: ["K6"] },
+            { id: "K8", name: "函数的定义域", type: "概念", level: 2, dependencies: ["K6"] },
+            { id: "K9", name: "函数值", type: "技能", level: 2, dependencies: ["K6"] },
+            { id: "K10", name: "函数解析式", type: "概念", level: 2, dependencies: ["K6"] },
+            { id: "K11", name: "函数的三种表示法", type: "技能", level: 2, dependencies: ["K10", "K1"] },
+            { id: "K12", name: "正比例函数定义", type: "概念", level: 3, dependencies: ["K6", "K10"] },
+            { id: "K13", name: "正比例函数图象", type: "技能", level: 3, dependencies: ["K11", "K12"] },
+            { id: "K14", name: "正比例函数性质", type: "公式", level: 3, dependencies: ["K12", "K3"] },
+            { id: "K15", name: "一次函数定义", type: "概念", level: 3, dependencies: ["K10", "K12"] },
+            { id: "K16", name: "一次函数与正比例函数关系", type: "概念", level: 3, dependencies: ["K15"] },
+            { id: "K17", name: "描点法画函数图象", type: "技能", level: 4, dependencies: ["K11", "K2"] },
+            { id: "K18", name: "一次函数图象特征", type: "技能", level: 4, dependencies: ["K15"] },
+            { id: "K19", name: "两点确定直线", type: "技能", level: 4, dependencies: ["K17"] },
+            { id: "K20", name: "截距概念", type: "概念", level: 4, dependencies: ["K15"] },
+            { id: "K21", name: "斜率概念", type: "概念", level: 4, dependencies: ["K15"] },
+            { id: "K22", name: "k对图象方向的影响", type: "公式", level: 4, dependencies: ["K18", "K21"] },
+            { id: "K23", name: "b对图象位置的影响", type: "公式", level: 4, dependencies: ["K20"] },
+            { id: "K24", name: "一次函数增减性", type: "公式", level: 4, dependencies: ["K21", "K18"] },
+            { id: "K25", name: "平移变换", type: "技能", level: 5, dependencies: ["K18", "K20"] },
+            { id: "K26", name: "k与b的综合判断", type: "技能", level: 4, dependencies: ["K22", "K23", "K3"] },
+            { id: "K27", name: "待定系数法", type: "技能", level: 6, dependencies: ["K15", "K9"] },
+            { id: "K28", name: "由图象求解析式", type: "技能", level: 6, dependencies: ["K27", "K19"] },
+            { id: "K29", name: "求交点坐标", type: "技能", level: 6, dependencies: ["K27"] },
+            { id: "K30", name: "实际问题建模", type: "技能", level: 6, dependencies: ["K15", "K28"] },
+            { id: "K31", name: "一次函数与方程的关系", type: "概念", level: 6, dependencies: ["K18"] },
+            { id: "K32", name: "一次函数与不等式的关系", type: "概念", level: 6, dependencies: ["K18"] }
+        ];
+
+        // 模拟学习状态
+        const nodeStatus = {
+            "K1": "completed",
+            "K2": "completed",
+            "K3": "completed",
+            "K4": "completed",
+            "K5": "completed",
+            "K6": "completed",
+            "K7": "completed",
+            "K8": "completed",
+            "K9": "in-progress",
+            "K10": "available",
+            "K11": "available",
+            "K12": "available",
+            "K13": "available",
+            "K14": "available",
+            // 其余为 locked
+        };
+
+        // 描述数据
+        const descriptions = {
+            "K1": "平面直角坐标系的建立，包括x轴、y轴、原点的概念",
+            "K2": "用有序数对(x,y)表示平面上点的位置",
+            "K3": "坐标平面被两轴分成四个象限及其特征",
+            "K4": "可以取不同数值的量",
+            "K5": "数值固定不变的量",
+            "K6": "设x和y是两个变量，若x每取一个值，y都有唯一确定的值与之对应，则y是x的函数",
+            "K7": "主动变化的量为自变量，随之变化的量为因变量",
+            "K8": "自变量x允许取值的范围",
+            "K9": "当x取某值时，y对应的值",
+            "K10": "用数学式子表示函数关系",
+            "K11": "解析式法、列表法、图象法",
+            "K12": "y=kx(k≠0)形式的函数",
+            "K13": "正比例函数图象是过原点的直线",
+            "K14": "k>0过一三象限且递增；k<0过二四象限且递减",
+            "K15": "y=kx+b(k≠0)形式的函数",
+            "K16": "当b=0时，一次函数退化为正比例函数",
+            "K17": "列表、描点、连线的作图方法",
+            "K18": "一次函数图象是一条直线",
+            "K19": "画一次函数图象只需描出两点连线",
+            "K20": "直线与y轴交点的纵坐标，即b的值",
+            "K21": "直线倾斜程度的度量，即k的值",
+            "K22": "k>0从左向右上升；k<0从左向右下降",
+            "K23": "b>0与y轴交于正半轴；b<0交于负半轴",
+            "K24": "k>0时y随x增大而增大；k<0时y随x增大而减小",
+            "K25": "上下平移改变b值，左右平移改变x",
+            "K26": "根据k、b符号判断图象经过的象限",
+            "K27": "设出函数解析式，代入条件求k、b",
+            "K28": "从图象上读取点坐标，用待定系数法求解析式",
+            "K29": "联立两一次函数解析式求解方程组",
+            "K30": "将实际问题转化为一次函数求解",
+            "K31": "求ax+b=0的解等价于求y=ax+b与x轴交点横坐标",
+            "K32": "图象在x轴上方/下方对应的x范围即为不等式解集"
+        };
+
+        // 获取节点状态
+        function getStatus(id) {
+            return nodeStatus[id] || "locked";
+        }
+
+        // 计算节点位置 - 按层级分层排列
+        function calculatePositions() {
+            const positions = {};
+            const levelGroups = {};
+            
+            // 按层级分组
+            knowledgePoints.forEach(kp => {
+                if (!levelGroups[kp.level]) {
+                    levelGroups[kp.level] = [];
+                }
+                levelGroups[kp.level].push(kp);
+            });
+
+            const svgWidth = 1400;
+            const startY = 80;
+            const levelHeight = 120;
+            
+            // 为每层的节点计算位置
+            Object.keys(levelGroups).forEach(level => {
+                const nodes = levelGroups[level];
+                const levelY = startY + parseInt(level) * levelHeight;
+                const nodeWidth = svgWidth / (nodes.length + 1);
+                
+                nodes.forEach((node, index) => {
+                    positions[node.id] = {
+                        x: nodeWidth * (index + 1),
+                        y: levelY
+                    };
+                });
+            });
+
+            return positions;
+        }
+
+        // 绘制连线
+        function drawLinks(positions) {
+            const linksLayer = document.getElementById('linksLayer');
+            linksLayer.innerHTML = '';
+
+            knowledgePoints.forEach(kp => {
+                const targetPos = positions[kp.id];
+                const targetStatus = getStatus(kp.id);
+                
+                kp.dependencies.forEach(depId => {
+                    const sourcePos = positions[depId];
+                    if (!sourcePos) return;
+
+                    const sourceStatus = getStatus(depId);
+                    const isActive = sourceStatus === 'completed' && (targetStatus === 'in-progress' || targetStatus === 'available');
+                    
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    
+                    // 贝塞尔曲线
+                    const midY = (sourcePos.y + targetPos.y) / 2;
+                    const d = `M ${sourcePos.x} ${sourcePos.y + 24} 
+                               C ${sourcePos.x} ${midY}, ${targetPos.x} ${midY}, ${targetPos.x} ${targetPos.y - 24}`;
+                    
+                    path.setAttribute('d', d);
+                    path.setAttribute('class', `dependency-line ${isActive ? 'active' : ''}`);
+                    
+                    // 动画效果
+                    if (isActive) {
+                        const length = path.getTotalLength();
+                        path.style.strokeDasharray = length;
+                        path.style.strokeDashoffset = length;
+                        path.style.animation = 'drawLine 1s ease forwards';
+                    }
+                    
+                    linksLayer.appendChild(path);
+                });
+            });
+        }
+
+        // 绘制节点
+        function drawNodes(positions) {
+            const nodesLayer = document.getElementById('nodesLayer');
+            nodesLayer.innerHTML = '';
+
+            // 添加层级标签
+            const levelLabels = ['基础概念', '函数入门', '函数深入', '一次函数', '图象与性质', '综合应用', '高级应用'];
+            for (let i = 0; i <= 6; i++) {
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', '30');
+                label.setAttribute('y', 80 + i * 120);
+                label.setAttribute('class', 'level-label');
+                label.textContent = `L${i} ${levelLabels[i] || ''}`;
+                nodesLayer.appendChild(label);
+            }
+
+            knowledgePoints.forEach(kp => {
+                const pos = positions[kp.id];
+                const status = getStatus(kp.id);
+                
+                const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                group.setAttribute('class', `node-group node-${status}`);
+                group.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
+                group.setAttribute('data-id', kp.id);
+                group.setAttribute('data-name', kp.name);
+                group.setAttribute('data-type', kp.type);
+                group.setAttribute('data-status', status);
+
+                // 脉动环 - 仅学习中状态
+                if (status === 'in-progress') {
+                    for (let i = 0; i < 3; i++) {
+                        const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                        ring.setAttribute('r', '24');
+                        ring.setAttribute('class', 'pulse-ring');
+                        ring.style.animationDelay = `${i * 0.6}s`;
+                        group.appendChild(ring);
+                    }
+                }
+
+                // 主圆形
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('r', '24');
+                circle.setAttribute('class', 'node-circle');
+                group.appendChild(circle);
+
+                // 类型图标
+                const typeIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                typeIcon.setAttribute('y', '-5');
+                typeIcon.setAttribute('class', 'node-text');
+                typeIcon.style.fontSize = '10px';
+                const icons = { '概念': '💡', '技能': '🎯', '公式': '📐' };
+                typeIcon.textContent = icons[kp.type] || '📚';
+                group.appendChild(typeIcon);
+
+                // 节点名称
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('y', '8');
+                text.setAttribute('class', 'node-text');
+                text.textContent = kp.name.length > 5 ? kp.name.substring(0, 5) + '...' : kp.name;
+                group.appendChild(text);
+
+                // 节点ID
+                const idText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                idText.setAttribute('y', '38');
+                idText.setAttribute('class', 'node-id');
+                idText.textContent = kp.id;
+                group.appendChild(idText);
+
+                // 事件监听
+                group.addEventListener('mouseenter', showTooltip);
+                group.addEventListener('mouseleave', hideTooltip);
+                group.addEventListener('click', handleNodeClick);
+
+                nodesLayer.appendChild(group);
+            });
+        }
+
+        // Tooltip 相关
+        const tooltip = document.getElementById('tooltip');
+
+        function showTooltip(e) {
+            const group = e.currentTarget;
+            const id = group.getAttribute('data-id');
+            const name = group.getAttribute('data-name');
+            const type = group.getAttribute('data-type');
+            const status = group.getAttribute('data-status');
+            
+            const statusMap = {
+                'locked': '🔒 未解锁',
+                'available': '✨ 可学习',
+                'in-progress': '📖 学习中',
+                'completed': '✅ 已完成'
+            };
+
+            tooltip.querySelector('.tooltip-title').textContent = `${id} · ${name}`;
+            tooltip.querySelector('.tooltip-type').textContent = type;
+            tooltip.querySelector('.tooltip-desc').textContent = descriptions[id] || '暂无描述';
+            tooltip.querySelector('.tooltip-status').textContent = `状态: ${statusMap[status]}`;
+
+            const rect = group.getBoundingClientRect();
+            tooltip.style.left = `${rect.right + 15}px`;
+            tooltip.style.top = `${rect.top - 10}px`;
+            tooltip.classList.add('show');
+        }
+
+        function hideTooltip() {
+            tooltip.classList.remove('show');
+        }
+
+        // 点击节点
+        function handleNodeClick(e) {
+            const group = e.currentTarget;
+            const id = group.getAttribute('data-id');
+            const status = group.getAttribute('data-status');
+            
+            if (status === 'available' || status === 'in-progress') {
+                alert(`开始学习: ${id} - ${group.getAttribute('data-name')}`);
+            } else if (status === 'completed') {
+                alert(`复习知识点: ${id} - ${group.getAttribute('data-name')}`);
+            } else {
+                alert('该知识点尚未解锁，请先完成前置知识的学习');
+            }
+        }
+
+        // 初始化
+        function init() {
+            const positions = calculatePositions();
+            drawLinks(positions);
+            drawNodes(positions);
+        }
+
+        // 添加连线动画样式
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes drawLine {
+                to {
+                    stroke-dashoffset: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        init();
+    </script>
+</body>
+</html>

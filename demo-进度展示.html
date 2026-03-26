@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 虚拟教师 - 多维度进度展示 Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f7;
+      min-height: 100vh;
+    }
+
+    /* 多维度进度展示区 */
+    .progress-section {
+      background: white;
+      padding: 16px 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .progress-main {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    /* 环形进度条 */
+    .circular-progress {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      flex-shrink: 0;
+    }
+
+    .progress-percentage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 14px;
+      font-weight: 700;
+      color: #007aff;
+    }
+
+    .progress-info { flex: 1; }
+    .module-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1d1d1f;
+      margin-bottom: 4px;
+    }
+    .module-progress {
+      font-size: 14px;
+      color: #86868b;
+      margin-bottom: 4px;
+    }
+    .badge-earned {
+      font-size: 13px;
+      color: #ff9500;
+      font-weight: 500;
+      animation: popIn 0.3s ease;
+    }
+
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* 知识树进度 */
+    .knowledge-tree {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      padding-top: 12px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .knowledge-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .node-indicator {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      transition: all 0.3s ease;
+    }
+
+    .node-indicator.completed { background: #34c759; color: white; }
+    .node-indicator.current {
+      background: #007aff;
+      color: white;
+      animation: pulse 1.5s infinite;
+    }
+    .node-indicator.locked { background: #f0f0f0; color: #c7c7cc; }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.4);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 8px rgba(0, 122, 255, 0);
+      }
+    }
+
+    .node-label {
+      font-size: 10px;
+      color: #86868b;
+      text-align: center;
+      max-width: 50px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .knowledge-node.current .node-label { color: #007aff; font-weight: 600; }
+    .knowledge-node.completed .node-label { color: #34c759; }
+
+    /* 徽章展示 */
+    .badge-display {
+      margin-top: 12px;
+      padding: 12px;
+      background: linear-gradient(135deg, #fff8e1, #ffffff);
+      border-radius: 8px;
+      border: 1px solid #ffecb3;
+      display: none;
+    }
+    .badge-display.show { display: block; animation: slideDown 0.4s ease; }
+    
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .badge-title {
+      font-size: 12px;
+      color: #ff9500;
+      font-weight: 600;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .badge-list {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .badge-item {
+      width: 36px;
+      height: 36px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* 对话区 */
+    .chat-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px 16px 100px;
+      min-height: calc(100vh - 200px);
+    }
+
+    .message {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: slideIn 0.3s ease forwards;
+    }
+
+    @keyframes slideIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.ai { flex-direction: row; }
+    .message.student { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+      background: #f5f5f7;
+    }
+    .message.ai .avatar { background: #007aff; }
+    .message.student .avatar { background: #34c759; }
+
+    .message-content { max-width: 70%; }
+    .message-text {
+      padding: 14px 18px;
+      border-radius: 18px;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #1d1d1f;
+    }
+    .message.ai .message-text {
+      background: white;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .message.student .message-text {
+      background: #007aff;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .option-btn {
+      padding: 12px 16px;
+      background: #f5f5f7;
+      border: 2px solid #e5e5e7;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 15px;
+      text-align: left;
+      width: 100%;
+    }
+    .option-btn:hover:not(:disabled) {
+      border-color: #007aff;
+      background: #f0f8ff;
+    }
+    .option-btn.selected {
+      border-color: #007aff;
+      background: #007aff;
+      color: white;
+    }
+    .option-btn.correct {
+      border-color: #34c759;
+      background: #34c759;
+      color: white;
+    }
+
+    /* 底部输入 */
+    .input-area {
+      background: white;
+      border-top: 1px solid #e5e5e7;
+      padding: 16px 24px;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+    .input-container {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      gap: 12px;
+    }
+    .input-field {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid #e5e5e7;
+      border-radius: 12px;
+      font-size: 15px;
+      outline: none;
+    }
+    .input-field:focus { border-color: #007aff; }
+    .send-btn {
+      padding: 12px 24px;
+      background: #007aff;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .send-btn:hover { background: #0056b3; }
+
+    .controls {
+      position: fixed;
+      top: 200px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 200;
+    }
+    .control-btn {
+      padding: 10px 16px;
+      background: white;
+      border: 2px solid #007aff;
+      border-radius: 8px;
+      color: #007aff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .control-btn:hover { background: #007aff; color: white; }
+  </style>
+</head>
+<body>
+  <!-- 多维度进度展示 -->
+  <div class="progress-section">
+    <div class="progress-main">
+      <!-- 环形进度条 -->
+      <div class="circular-progress">
+        <svg width="60" height="60" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="24" fill="none" stroke="#e5e5e7" stroke-width="6"/>
+          <circle id="progress-ring" cx="30" cy="30" r="24" fill="none" stroke="url(#gradient)" stroke-width="6" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="150.8" style="transition: stroke-dashoffset 0.5s ease; transform: rotate(-90deg); transform-origin: 50% 50%"/>
+          <defs>
+            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#007aff"/>
+              <stop offset="100%" stop-color="#5856d6"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="progress-percentage" id="progress-percent">0%</div>
+      </div>
+      
+      <!-- 进度信息 -->
+      <div class="progress-info">
+        <div class="module-name" id="module-name">模块 2：一次函数定义</div>
+        <div class="module-progress" id="module-progress">进度 0/5</div>
+        <div class="badge-earned" id="badge-earned" style="display: none;">🏅 获得徽章：快速学习者</div>
+      </div>
+    </div>
+
+    <!-- 知识树进度 -->
+    <div class="knowledge-tree" id="knowledge-tree">
+      <!-- 动态生成 -->
+    </div>
+
+    <!-- 徽章展示 -->
+    <div class="badge-display" id="badge-display">
+      <div class="badge-title">🏆 已获得的徽章</div>
+      <div class="badge-list" id="badge-list">
+        <!-- 动态生成 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 对话区 -->
+  <div class="chat-container" id="chat-container"></div>
+
+  <!-- 底部输入 -->
+  <div class="input-area">
+    <div class="input-container">
+      <input type="text" class="input-field" id="input-field" placeholder="输入你的答案或问题..." disabled>
+      <button class="send-btn" id="send-btn" disabled>发送</button>
+    </div>
+  </div>
+
+  <!-- 控制按钮 -->
+  <div class="controls">
+    <button class="control-btn" onclick="nextStep()">▶️ 下一步</button>
+    <button class="control-btn" onclick="restartDemo()">🔄 重新开始</button>
+  </div>
+
+  <script>
+    let currentStep = 0;
+    const totalSteps = 5;
+    const knowledgePoints = [
+      { id: 'k1', name: '函数概念', status: 'completed' },
+      { id: 'k2', name: '一次函数', status: 'current' },
+      { id: 'k3', name: '画图像', status: 'locked' },
+      { id: 'k4', name: '斜率', status: 'locked' },
+      { id: 'k5', name: '应用', status: 'locked' }
+    ];
+    const badges = [];
+
+    function updateProgress() {
+      const percent = Math.round((currentStep / totalSteps) * 100);
+      const circumference = 150.8;
+      const offset = circumference - (percent / 100) * circumference;
+      document.getElementById('progress-ring').style.strokeDashoffset = offset;
+      document.getElementById('progress-percent').textContent = percent + '%';
+      document.getElementById('module-progress').textContent = `进度 ${currentStep}/${totalSteps}`;
+      
+      // 更新知识树
+      knowledgePoints.forEach((kp, idx) => {
+        if (idx < currentStep) kp.status = 'completed';
+        else if (idx === currentStep) kp.status = 'current';
+        else kp.status = 'locked';
+      });
+      renderKnowledgeTree();
+    }
+
+    function renderKnowledgeTree() {
+      const tree = document.getElementById('knowledge-tree');
+      tree.innerHTML = knowledgePoints.map(kp => `
+        <div class="knowledge-node ${kp.status}">
+          <div class="node-indicator ${kp.status}">
+            ${kp.status === 'completed' ? '✓' : kp.status === 'current' ? '●' : '○'}
+          </div>
+          <div class="node-label">${kp.name}</div>
+        </div>
+      `).join('');
+    }
+
+    function addMessage(msg) {
+      const container = document.getElementById('chat-container');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${msg.type}`;
+      messageDiv.innerHTML = `
+        <div class="avatar">${msg.type === 'ai' ? '🤖' : '👤'}</div>
+        <div class="message-content">
+          <div class="message-text">${msg.text}</div>
+          ${msg.options ? `<div class="options">${msg.options.map((opt, idx) => 
+            `<button class="option-btn" onclick="selectOption(${idx}, ${msg.correct}, this)">${opt}</button>`
+          ).join('')}</div>` : ''}
+        </div>
+      `;
+      container.appendChild(messageDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function selectOption(idx, correct, btn) {
+      const buttons = btn.parentElement.querySelectorAll('.option-btn');
+      buttons.forEach((b, i) => {
+        b.disabled = true;
+        if (i === correct) {
+          b.classList.add('correct');
+          b.innerHTML = '✅ ' + b.innerHTML;
+        }
+      });
+      if (idx === correct) {
+        btn.classList.add('selected');
+        setTimeout(() => nextStep(), 800);
+      }
+    }
+
+    const demoSteps = [
+      { type: 'ai', text: '你好！今天我们来学习<strong>一次函数</strong>。', delay: 500 },
+      { type: 'ai', text: '一次函数的标准形式是：<span style="background:#f5f5f7;padding:2px 6px;border-radius:4px;">y = kx + b</span><br><br>其中 k 是斜率，b 是截距。', delay: 800 },
+      { type: 'ai', text: '<strong>下面哪个是一次函数？</strong>', options: ['A. y = 2x + 3', 'B. y = x²', 'C. y = 2/x'], correct: 0, delay: 600 },
+      { type: 'student', text: '我选 A', delay: 300 },
+      { type: 'ai', text: '✅ <strong>完全正确！</strong><br><br>你已经掌握了一次函数的基本概念！🎉', delay: 600 }
+    ];
+
+    async function nextStep() {
+      if (currentStep >= demoSteps.length) {
+        // 显示徽章
+        if (!badges.includes('快速学习者')) {
+          badges.push('快速学习者');
+          document.getElementById('badge-earned').style.display = 'block';
+          document.getElementById('badge-display').classList.add('show');
+          document.getElementById('badge-list').innerHTML += '<div class="badge-item">🏅</div>';
+        }
+        return;
+      }
+      const step = demoSteps[currentStep];
+      if (step.type === 'ai') {
+        const container = document.getElementById('chat-container');
+        const typing = document.createElement('div');
+        typing.className = 'message ai';
+        typing.id = 'typing';
+        typing.innerHTML = '<div class="avatar">🤖</div><div class="message-content"><div class="message-text">...</div></div>';
+        container.appendChild(typing);
+        await new Promise(r => setTimeout(r, step.delay));
+        typing.remove();
+      }
+      addMessage(step);
+      currentStep++;
+      updateProgress();
+    }
+
+    function restartDemo() {
+      currentStep = 0;
+      badges.length = 0;
+      document.getElementById('chat-container').innerHTML = '';
+      document.getElementById('badge-earned').style.display = 'none';
+      document.getElementById('badge-display').classList.remove('show');
+      document.getElementById('badge-list').innerHTML = '';
+      updateProgress();
+      setTimeout(() => nextStep(), 500);
+    }
+
+    window.onload = () => {
+      renderKnowledgeTree();
+      updateProgress();
+      setTimeout(restartDemo, 500);
+    };
+  </script>
+</body>
+</html>

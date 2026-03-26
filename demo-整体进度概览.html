@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>整体进度概览 - AI 虚拟教师</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f5f5f7;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      color: #1d1d1f;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: #86868b;
+      font-size: 16px;
+    }
+
+    /* 整体进度卡片 */
+    .overview-card {
+      background: linear-gradient(135deg, #007aff, #5856d6);
+      color: white;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(0,122,255,0.3);
+    }
+
+    .overview-title {
+      font-size: 18px;
+      margin-bottom: 20px;
+      opacity: 0.9;
+    }
+
+    .overview-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 42px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    /* 模块进度网格 */
+    .modules-section {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .section-title {
+      font-size: 20px;
+      color: #1d1d1f;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .module-card {
+      background: #f5f5f7;
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: 2px solid transparent;
+      position: relative;
+    }
+
+    .module-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .module-card.current {
+      border-color: #007aff;
+      background: #f0f8ff;
+    }
+
+    .module-card.completed {
+      background: #f0fff4;
+      border-color: #34c759;
+    }
+
+    .module-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .module-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .module-icon.locked { background: #e5e5e7; }
+    .module-icon.current { background: #007aff; }
+    .module-icon.completed { background: #34c759; }
+
+    .module-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1d1d1f;
+      flex: 1;
+    }
+
+    .module-desc {
+      font-size: 12px;
+      color: #86868b;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .module-progress-bar {
+      height: 6px;
+      background: #e5e5e7;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .module-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #007aff, #5856d6);
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    .module-card.completed .module-progress-fill {
+      background: #34c759;
+    }
+
+    .module-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #86868b;
+    }
+
+    .module-status {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .module-status.completed { background: #34c759; color: white; }
+    .module-status.current { background: #007aff; color: white; }
+    .module-status.locked { background: #e5e5e7; color: #86868b; }
+
+    /* 徽章墙 */
+    .badges-section {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .badge-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 16px;
+    }
+
+    .badge-item {
+      text-align: center;
+      padding: 12px;
+      background: #f5f5f7;
+      border-radius: 12px;
+      transition: all 0.2s;
+    }
+
+    .badge-item:hover {
+      transform: scale(1.05);
+    }
+
+    .badge-item.locked {
+      opacity: 0.4;
+      filter: grayscale(100%);
+    }
+
+    .badge-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .badge-name {
+      font-size: 11px;
+      color: #1d1d1f;
+      font-weight: 500;
+    }
+
+    /* 按钮 */
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #007aff;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    .btn:hover { background: #0056b3; }
+    .btn-secondary {
+      background: white;
+      color: #007aff;
+      border: 2px solid #007aff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 头部 -->
+    <div class="header">
+      <h1>📊 学习进度总览</h1>
+      <p>一次函数 · 已学习 12 分钟 · 预计剩余 86 分钟</p>
+    </div>
+
+    <!-- 整体进度卡片 -->
+    <div class="overview-card">
+      <div class="overview-title">整体学习进度</div>
+      <div class="overview-stats">
+        <div class="stat-item">
+          <div class="stat-number">12%</div>
+          <div class="stat-label">已完成</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">2/10</div>
+          <div class="stat-label">模块完成</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">🏅 3</div>
+          <div class="stat-label">获得徽章</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模块进度 -->
+    <div class="modules-section">
+      <div class="section-title">
+        <span>📚 模块进度</span>
+        <span style="font-size: 14px; color: #86868b;">共 10 模块 · 98 分钟</span>
+      </div>
+      <div class="modules-grid" id="modules-grid"></div>
+    </div>
+
+    <!-- 徽章墙 -->
+    <div class="badges-section">
+      <div class="section-header">
+        <div class="section-title" style="margin: 0;">🏆 徽章收藏</div>
+        <span style="font-size: 14px; color: #86868b;">3/6</span>
+      </div>
+      <div class="badge-grid" id="badge-grid"></div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div style="text-align: center;">
+      <button class="btn" onclick="continueLearning()">▶️ 继续学习</button>
+      <button class="btn btn-secondary" onclick="location.reload()">🔄 刷新</button>
+    </div>
+  </div>
+
+  <script>
+    const modules = [
+      { id: 1, name: '函数概念', desc: '理解变量、函数定义、表示法', progress: 100, status: 'completed', icon: '📘', time: '10 分钟' },
+      { id: 2, name: '一次函数定义', desc: '学习标准形式 y=kx+b，理解斜率和截距', progress: 20, status: 'current', icon: '📗', time: '2/10 分钟' },
+      { id: 3, name: '画图像', desc: '掌握描点法、两点法画图', progress: 0, status: 'locked', icon: '📈', time: '预计 12 分钟' },
+      { id: 4, name: '斜率深入', desc: '理解斜率正负、大小、平行关系', progress: 0, status: 'locked', icon: '📐', time: '预计 10 分钟' },
+      { id: 5, name: '截距应用', desc: '掌握 y 截距、x 截距的计算和应用', progress: 0, status: 'locked', icon: '📊', time: '预计 8 分钟' },
+      { id: 6, name: '解析式求解', desc: '根据条件求一次函数解析式', progress: 0, status: 'locked', icon: '✏️', time: '预计 10 分钟' },
+      { id: 7, name: '性质总结', desc: '单调性、奇偶性、图像特征', progress: 0, status: 'locked', icon: '📝', time: '预计 8 分钟' },
+      { id: 8, name: '实际应用', desc: '行程问题、成本问题等应用', progress: 0, status: 'locked', icon: '🌍', time: '预计 15 分钟' },
+      { id: 9, name: '综合练习', desc: '混合题型综合训练', progress: 0, status: 'locked', icon: '📋', time: '预计 15 分钟' },
+      { id: 10, name: '单元测试', desc: '本单元综合测试', progress: 0, status: 'locked', icon: '✅', time: '预计 10 分钟' }
+    ];
+
+    const badges = [
+      { id: 1, name: '快速学习者', icon: '🏅', earned: true },
+      { id: 2, name: '首次满分', icon: '💯', earned: true },
+      { id: 3, name: '连续学习', icon: '🔥', earned: true },
+      { id: 4, name: '完美通关', icon: '👑', earned: false },
+      { id: 5, name: '坚持不懈', icon: '💪', earned: false },
+      { id: 6, name: '数学天才', icon: '🧠', earned: false }
+    ];
+
+    function renderModules() {
+      const grid = document.getElementById('modules-grid');
+      grid.innerHTML = modules.map(m => `
+        <div class="module-card ${m.status}" onclick="selectModule(${m.id})">
+          <div class="module-header">
+            <div class="module-icon ${m.status}">${m.icon}</div>
+            <div class="module-name">${m.name}</div>
+            <span class="module-status ${m.status}">${m.status === 'completed' ? '已完成' : m.status === 'current' ? '进行中' : '未开始'}</span>
+          </div>
+          <div class="module-desc">${m.desc}</div>
+          <div class="module-progress-bar">
+            <div class="module-progress-fill" style="width: ${m.progress}%"></div>
+          </div>
+          <div class="module-stats">
+            <span>${m.progress}%</span>
+            <span>${m.time}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderBadges() {
+      const grid = document.getElementById('badge-grid');
+      grid.innerHTML = badges.map(b => `
+        <div class="badge-item ${b.earned ? '' : 'locked'}">
+          <div class="badge-icon">${b.icon}</div>
+          <div class="badge-name">${b.name}</div>
+        </div>
+      `).join('');
+    }
+
+    function selectModule(id) {
+      const module = modules.find(m => m.id === id);
+      if (module.status === 'locked') {
+        alert('请先完成前置模块');
+      } else {
+        alert(`进入模块 ${module.name}`);
+      }
+    }
+
+    function continueLearning() {
+      const current = modules.find(m => m.status === 'current');
+      alert(`继续学习：${current.name}`);
+    }
+
+    window.onload = () => {
+      renderModules();
+      renderBadges();
+    };
+  </script>
+</body>
+</html>

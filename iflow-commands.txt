@@ -1,0 +1,1 @@
+iflow "生成知识地图 SVG 可视化 HTML：树状节点 + 连线，颜色区分状态，当前节点脉动，完整可运行代码" --timeout 120 --output /app/working/aiteacher/demo-知识地图.html

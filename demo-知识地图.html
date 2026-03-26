@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>知识地图 - AI 虚拟教师</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    /* 知识地图容器 */
+    .map-container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .map-title {
+      font-size: 24px;
+      color: #1d1d1f;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    /* SVG 样式 */
+    .knowledge-map {
+      width: 100%;
+      height: 600px;
+    }
+
+    .node-circle {
+      transition: all 0.3s ease;
+    }
+
+    .node-circle.completed {
+      fill: #34c759;
+    }
+
+    .node-circle.current {
+      fill: #007aff;
+      animation: pulse 1.5s infinite;
+    }
+
+    .node-circle.locked {
+      fill: #e5e5e7;
+    }
+
+    @keyframes pulse {
+      0%, 100% { filter: drop-shadow(0 0 0 rgba(0,122,255,0.4)); }
+      50% { filter: drop-shadow(0 0 20px rgba(0,122,255,0.8)); }
+    }
+
+    .node-text {
+      font-size: 14px;
+      font-weight: 600;
+      fill: #1d1d1f;
+      text-anchor: middle;
+    }
+
+    .node-subtext {
+      font-size: 11px;
+      fill: #86868b;
+      text-anchor: middle;
+    }
+
+    .link-line {
+      stroke: #d1d1d1;
+      stroke-width: 2;
+      fill: none;
+    }
+
+    .link-line.active {
+      stroke: #007aff;
+      stroke-width: 3;
+    }
+
+    .link-line.completed {
+      stroke: #34c759;
+      stroke-width: 2;
+    }
+
+    /* 图例 */
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e5e7;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #1d1d1f;
+    }
+
+    .legend-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+    }
+
+    .legend-dot.completed { background: #34c759; }
+    .legend-dot.current { background: #007aff; }
+    .legend-dot.locked { background: #e5e5e7; }
+
+    /* 进度卡片 */
+    .progress-card {
+      background: linear-gradient(135deg, #007aff, #5856d6);
+      color: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .progress-item {
+      text-align: center;
+    }
+
+    .progress-number {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .progress-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    /* 控制按钮 */
+    .controls {
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      background: #007aff;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 0 8px;
+    }
+
+    .btn:hover { background: #0056b3; }
+    .btn-secondary {
+      background: white;
+      color: #007aff;
+      border: 2px solid #007aff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🗺️ 知识地图</h1>
+      <p>一次函数 · 可视化学习路径 · 知识点关联</p>
+    </div>
+
+    <div class="progress-card">
+      <div class="progress-item">
+        <div class="progress-number">62%</div>
+        <div class="progress-label">整体掌握度</div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-number">5/8</div>
+        <div class="progress-label">已完成节点</div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-number">🏅 3</div>
+        <div class="progress-label">获得徽章</div>
+      </div>
+    </div>
+
+    <div class="map-container">
+      <div class="map-title">一次函数知识体系</div>
+      
+      <svg class="knowledge-map" viewBox="0 0 1000 600">
+        <!-- 连线 -->
+        <line class="link-line completed" x1="500" y1="80" x2="300" y2="180" />
+        <line class="link-line completed" x1="500" y1="80" x2="500" y2="180" />
+        <line class="link-line completed" x1="500" y1="80" x2="700" y2="180" />
+        
+        <line class="link-line completed" x1="300" y1="180" x2="400" y2="280" />
+        <line class="link-line completed" x1="500" y1="180" x2="400" y2="280" />
+        <line class="link-line completed" x1="700" y1="180" x2="400" y2="280" />
+        
+        <line class="link-line active" x1="400" y1="280" x2="500" y2="380" />
+        
+        <line class="link-line" x1="500" y1="380" x2="300" y2="480" />
+        <line class="link-line" x1="500" y1="380" x2="500" y2="480" />
+        <line class="link-line" x1="500" y1="380" x2="700" y2="480" />
+        
+        <line class="link-line" x1="300" y1="480" x2="500" y2="560" />
+        <line class="link-line" x1="500" y1="480" x2="500" y2="560" />
+        <line class="link-line" x1="700" y1="480" x2="500" y2="560" />
+
+        <!-- 节点 - 层级 1 -->
+        <g class="node" transform="translate(500, 80)">
+          <circle class="node-circle completed" r="35" />
+          <text class="node-text" y="5">坐标系</text>
+          <text class="node-subtext" y="20">✓ 已掌握</text>
+        </g>
+
+        <!-- 节点 - 层级 2 -->
+        <g class="node" transform="translate(300, 180)">
+          <circle class="node-circle completed" r="35" />
+          <text class="node-text" y="5">变量概念</text>
+          <text class="node-subtext" y="20">✓ 已掌握</text>
+        </g>
+
+        <g class="node" transform="translate(500, 180)">
+          <circle class="node-circle completed" r="35" />
+          <text class="node-text" y="5">函数定义</text>
+          <text class="node-subtext" y="20">✓ 已掌握</text>
+        </g>
+
+        <g class="node" transform="translate(700, 180)">
+          <circle class="node-circle completed" r="35" />
+          <text class="node-text" y="5">图像基础</text>
+          <text class="node-subtext" y="20">✓ 已掌握</text>
+        </g>
+
+        <!-- 节点 - 层级 3 -->
+        <g class="node" transform="translate(400, 280)">
+          <circle class="node-circle completed" r="35" />
+          <text class="node-text" y="5">前置汇总</text>
+          <text class="node-subtext" y="20">✓ 已完成</text>
+        </g>
+
+        <!-- 节点 - 层级 4 (当前) -->
+        <g class="node" transform="translate(500, 380)">
+          <circle class="node-circle current" r="45" />
+          <text class="node-text" y="5" style="fill: white;">一次函数</text>
+          <text class="node-subtext" y="20" style="fill: rgba(255,255,255,0.9);">62% 掌握</text>
+        </g>
+
+        <!-- 节点 - 层级 5 -->
+        <g class="node" transform="translate(300, 480)">
+          <circle class="node-circle locked" r="35" />
+          <text class="node-text" y="5">图像性质</text>
+          <text class="node-subtext" y="20">○ 未开始</text>
+        </g>
+
+        <g class="node" transform="translate(500, 480)">
+          <circle class="node-circle locked" r="35" />
+          <text class="node-text" y="5">应用问题</text>
+          <text class="node-subtext" y="20">○ 未开始</text>
+        </g>
+
+        <g class="node" transform="translate(700, 480)">
+          <circle class="node-circle locked" r="35" />
+          <text class="node-text" y="5">综合练习</text>
+          <text class="node-subtext" y="20">○ 未开始</text>
+        </g>
+
+        <!-- 节点 - 层级 6 (终点) -->
+        <g class="node" transform="translate(500, 560)">
+          <circle class="node-circle locked" r="40" style="stroke: #ffd700; stroke-width: 3;" />
+          <text class="node-text" y="5">🎯 通关</text>
+          <text class="node-subtext" y="20">最终目标</text>
+        </g>
+      </svg>
+
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot completed"></div>
+          <span>已掌握</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot current"></div>
+          <span>进行中</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot locked"></div>
+          <span>未开始</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="continueLearning()">▶️ 继续学习</button>
+      <button class="btn btn-secondary" onclick="location.reload()">🔄 刷新</button>
+    </div>
+  </div>
+
+  <script>
+    function continueLearning() {
+      alert('进入一次函数学习页面');
+    }
+  </script>
+</body>
+</html>

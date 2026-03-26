@@ -1,51 +1,32 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
-import Login from './pages/Login';
-import Learning from './pages/Learning';
-import { useAuthStore } from './store';
+import MinimalLearning from './pages/MinimalLearning';
 import './styles/globals.css';
 
-// 私有路由组件
-const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const token = useAuthStore((state) => state.token);
-  
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  return <>{children}</>;
-};
-
+/**
+ * 极简版AI教师 - 单页面应用
+ * 
+ * 设计原则：
+ * 1. 无登录 - 直接学习
+ * 2. 单列布局 - 居中对话
+ * 3. 三步流程 - 讲解→提问→反馈
+ */
 const App: React.FC = () => {
   return (
     <ConfigProvider
       locale={zhCN}
       theme={{
         token: {
-          colorPrimary: '#4A90D9',
-          colorSuccess: '#67C23A',
-          colorWarning: '#E6A23C',
-          colorError: '#F56C6C',
-          borderRadius: 8,
+          colorPrimary: '#5B8DEF',
+          colorSuccess: '#52C41A',
+          colorError: '#FF4D4F',
+          borderRadius: 12,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         },
       }}
     >
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/learn"
-            element={
-              <PrivateRoute>
-                <Learning />
-              </PrivateRoute>
-            }
-          />
-          <Route path="/" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <MinimalLearning />
     </ConfigProvider>
   );
 };
