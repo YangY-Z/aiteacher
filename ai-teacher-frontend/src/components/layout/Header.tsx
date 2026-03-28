@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layout, Avatar, Progress, Dropdown } from 'antd';
+import { Layout, Avatar, Progress, Dropdown, Space, Button } from 'antd';
 import { UserOutlined, LogoutOutlined, BookOutlined } from '@ant-design/icons';
 import { useAuthStore, useLearningStore, useCourseStore } from '../../store';
 import './Header.css';
@@ -44,6 +44,10 @@ const AppHeader: React.FC = () => {
       </div>
 
       <div className="header-center">
+        <Space>
+          <Button type="link" onClick={() => navigate('/learn')}>学习模块</Button>
+          <Button type="link" onClick={() => navigate('/improvement')}>专项提升</Button>
+        </Space>
         {currentCourse && (
           <div className="course-info">
             <BookOutlined />

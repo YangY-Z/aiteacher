@@ -35,6 +35,7 @@ from app.models.learning import (
     SessionStatus,
 )
 from app.models.assessment import AssessmentQuestion, Difficulty, QuestionType
+from app.models.improvement import ImprovementSession
 
 
 @dataclass
@@ -72,6 +73,9 @@ class InMemoryDatabase:
 
     # Learning sessions
     _learning_sessions: dict[str, LearningSession] = field(default_factory=dict)
+
+    # Improvement sessions (专项提升会话)
+    _improvement_sessions: dict[str, Any] = field(default_factory=dict)
 
     # Assessment questions
     _assessment_questions: dict[str, AssessmentQuestion] = field(default_factory=dict)
@@ -155,7 +159,12 @@ class InMemoryDatabase:
             # Restore profile ID counter
             self._student_profile_id_counter = data.get("next_profile_id", len(self._student_profiles))
 
-            logger.info(f"Loaded {len(self._students)} students and {len(self._student_profiles)} profiles from {file_path}")
+            improvement_sessions_data = data.get("improvement_sessions", [])
+            for session_dict in improvement_sessions_data:
+                session = ImprovementSession.from_dict(session_dict)
+                self._improvement_sessions[session.session_id] = session
+
+            logger.info(f"Loaded {len(self._students)} students, {len(self._student_profiles)} profiles and {len(self._improvement_sessions)} improvement sessions from {file_path}")
 
         except Exception as e:
             logger.error(f"Failed to load students from file: {e}")
@@ -223,6 +232,9 @@ class InMemoryDatabase:
                 "next_id": self._student_id_counter,
                 "profiles": profiles_data,
                 "next_profile_id": self._student_profile_id_counter,
+                "improvement_sessions": [
+                    session.to_dict() for session in self._improvement_sessions.values()
+                ],
                 "updated_at": datetime.now().isoformat(),
             }
 

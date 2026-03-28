@@ -4,6 +4,7 @@ import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import Login from './pages/Login';
 import Learning from './pages/Learning';
+import Improvement from './pages/Improvement';
 import { useAuthStore } from './store';
 import './styles/globals.css';
 
@@ -40,6 +41,14 @@ const App: React.FC = () => {
             element={
               <PrivateRoute>
                 <Learning />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/improvement"
+            element={
+              <PrivateRoute>
+                <Improvement />
               </PrivateRoute>
             }
           />

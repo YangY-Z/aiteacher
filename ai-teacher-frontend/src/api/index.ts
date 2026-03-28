@@ -16,6 +16,10 @@ import type {
   AssessmentResponse,
   ProgressResponse,
   BacktrackDecision,
+  StartImprovementRequest,
+  ImprovementSession,
+  ImprovementQuiz,
+  ImprovementQuizResult,
 } from '../types';
 
 // 认证API
@@ -76,4 +80,31 @@ export const learningApi = {
 
   getProgress: (courseId: string) =>
     api.get<ApiResponse<ProgressResponse>>(`/learning/progress/${courseId}`),
+};
+
+// 专项提升API
+export const improvementApi = {
+  startSession: (data: StartImprovementRequest) =>
+    api.post<ApiResponse<ImprovementSession>>('/improvement/start', data),
+
+  getSession: (sessionId: string) =>
+    api.get<ApiResponse<ImprovementSession>>(`/improvement/session/${sessionId}`),
+
+  submitClarification: (sessionId: string, answer: string) =>
+    api.post<ApiResponse<ImprovementSession>>(`/improvement/session/${sessionId}/clarify`, { answer }),
+
+  generatePlan: (sessionId: string) =>
+    api.post<ApiResponse<ImprovementSession>>(`/improvement/session/${sessionId}/plan`, { confirm_diagnosis: true }),
+
+  startStep: (sessionId: string, stepOrder: number) =>
+    api.post<ApiResponse<Record<string, unknown>>>(`/improvement/session/${sessionId}/step/${stepOrder}/start`),
+
+  completeStep: (sessionId: string, stepOrder: number, notes?: string) =>
+    api.post<ApiResponse<ImprovementSession>>(`/improvement/session/${sessionId}/step/${stepOrder}/complete`, { notes }),
+
+  getQuiz: (sessionId: string) =>
+    api.get<ApiResponse<ImprovementQuiz>>(`/improvement/session/${sessionId}/quiz`),
+
+  submitQuiz: (sessionId: string, answers: { question_id: string; answer: string }[]) =>
+    api.post<ApiResponse<ImprovementQuizResult>>(`/improvement/session/${sessionId}/quiz`, { answers }),
 };

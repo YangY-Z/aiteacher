@@ -1,6 +1,7 @@
 """Learning service for learning session management."""
 
 import json
+import logging
 from typing import Any, Optional
 import uuid
 
@@ -32,6 +33,8 @@ from app.prompts.teaching_prompt import (
     TEACHING_PROMPT,
     get_teaching_requirements,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class LearningService:

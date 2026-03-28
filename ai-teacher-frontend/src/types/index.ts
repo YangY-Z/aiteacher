@@ -174,6 +174,92 @@ export interface RemedialContent {
   practice_questions: string[];
 }
 
+// 专项提升
+export interface ScoreUploadRequest {
+  exam_name: string;
+  score: number;
+  total_score: number;
+  error_description?: string;
+  available_time: number;
+  difficulty: 'basic' | 'normal' | 'challenge';
+  foundation: 'weak' | 'average' | 'good';
+  max_clarification_rounds: number;
+}
+
+export interface StartImprovementRequest {
+  course_id: string;
+  score_input: ScoreUploadRequest;
+}
+
+export interface ClarificationRound {
+  round_number: number;
+  system_question: string;
+  student_answer?: string | null;
+  created_at: string;
+  answered_at?: string | null;
+}
+
+export interface DiagnosisResponse {
+  target_knowledge_point_id: string;
+  target_kp_name: string;
+  confidence: number;
+  reason: string;
+  prerequisite_gaps: string[];
+}
+
+export interface ImprovementPlanStep {
+  step_order: number;
+  knowledge_point_id: string;
+  kp_name: string;
+  goal: string;
+  estimated_minutes: number;
+  is_completed: boolean;
+}
+
+export interface ImprovementPlan {
+  plan_id: string;
+  target_kp_id: string;
+  target_kp_name: string;
+  steps: ImprovementPlanStep[];
+  total_estimated_minutes: number;
+}
+
+export interface ImprovementSession {
+  session_id: string;
+  student_id: string;
+  course_id: string;
+  status: string;
+  max_clarification_rounds: number;
+  score_input?: Record<string, unknown> | null;
+  clarification_rounds: ClarificationRound[];
+  diagnosis?: DiagnosisResponse | null;
+  plan?: ImprovementPlan | null;
+  current_step_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuizQuestion {
+  id: string;
+  type: string;
+  content: string;
+  options?: string[] | null;
+  difficulty: string;
+}
+
+export interface ImprovementQuiz {
+  quiz_id: string;
+  target_kp_id: string;
+  questions: QuizQuestion[];
+}
+
+export interface ImprovementQuizResult {
+  quiz_id: string;
+  score: number;
+  passed: boolean;
+  feedback: string;
+}
+
 // 聊天消息
 export interface Message {
   id: string;

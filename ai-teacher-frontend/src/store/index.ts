@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Student, Course, KnowledgePoint, Message, SessionResponse, ProgressResponse } from '../types';
+import type {
+  Student,
+  Course,
+  KnowledgePoint,
+  Message,
+  SessionResponse,
+  ProgressResponse,
+  ImprovementSession,
+  ImprovementQuiz,
+} from '../types';
 
 interface AuthState {
   token: string | null;
@@ -51,7 +60,7 @@ interface LearningState {
   isAssessmentMode: boolean;
   assessmentQuestions: { id: string; content: string; options: string[] }[];
   whiteboardContent: { formulas: string[]; diagrams: string[] };
-  
+
   setSession: (session: SessionResponse | null) => void;
   setCurrentKp: (kp: KnowledgePoint | null) => void;
   setProgress: (progress: ProgressResponse) => void;
@@ -81,7 +90,6 @@ export const useLearningStore = create<LearningState>()((set) => ({
   setCurrentKp: (kp) => set({ currentKp: kp }),
   setProgress: (progress) => set({ progress }),
   addMessage: (message) => set((state) => {
-    // 避免添加重复消息（React StrictMode 双重调用问题）
     if (state.messages.some(m => m.id === message.id)) {
       return state;
     }
@@ -93,4 +101,32 @@ export const useLearningStore = create<LearningState>()((set) => ({
   setAssessmentQuestions: (questions) => set({ assessmentQuestions: questions }),
   setWhiteboardContent: (content) => set({ whiteboardContent: content }),
   reset: () => set(initialLearningState),
+}));
+
+interface ImprovementState {
+  session: ImprovementSession | null;
+  quiz: ImprovementQuiz | null;
+  stepContent: Record<string, unknown> | null;
+  isLoading: boolean;
+  setSession: (session: ImprovementSession | null) => void;
+  setQuiz: (quiz: ImprovementQuiz | null) => void;
+  setStepContent: (content: Record<string, unknown> | null) => void;
+  setLoading: (loading: boolean) => void;
+  reset: () => void;
+}
+
+const initialImprovementState = {
+  session: null,
+  quiz: null,
+  stepContent: null,
+  isLoading: false,
+};
+
+export const useImprovementStore = create<ImprovementState>()((set) => ({
+  ...initialImprovementState,
+  setSession: (session) => set({ session }),
+  setQuiz: (quiz) => set({ quiz }),
+  setStepContent: (content) => set({ stepContent: content }),
+  setLoading: (loading) => set({ isLoading: loading }),
+  reset: () => set(initialImprovementState),
 }));
