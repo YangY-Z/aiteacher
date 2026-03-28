@@ -20,12 +20,24 @@
       "phone": "13800138001",
       "avatar_url": null,
       "status": "active",
-      "last_login_at": null,
+      "last_login_at": "2026-03-23T00:02:38.370207",
       "created_at": "2026-03-17T23:03:24.037869",
-      "updated_at": "2026-03-17T23:03:24.037877"
+      "updated_at": "2026-03-23T00:02:38.370225"
+    },
+    {
+      "id": 3,
+      "name": "测试用户",
+      "grade": "初一",
+      "password_hash": "275d729459acb953c3d01273883d945a$72c3b7a881fe2533a314b49f882c33e2469d883416770ff4cdd440c196217f61",
+      "phone": "13900000001",
+      "avatar_url": null,
+      "status": "active",
+      "last_login_at": "2026-03-28T10:22:51.022887",
+      "created_at": "2026-03-28T10:22:34.519694",
+      "updated_at": "2026-03-28T10:22:51.022901"
     }
   ],
-  "next_id": 2,
+  "next_id": 3,
   "profiles": [
     {
       "id": 1,
@@ -46,8 +58,321 @@
       "last_session_at": null,
       "created_at": "2026-03-16T21:49:11.136918",
       "updated_at": "2026-03-16T21:52:02.634265"
+    },
+    {
+      "id": 2,
+      "student_id": 2,
+      "course_id": "MATH_JUNIOR_01",
+      "current_kp_id": "K4",
+      "completed_kp_ids": [
+        "K3",
+        "K4"
+      ],
+      "mastered_kp_ids": [
+        "K1"
+      ],
+      "skipped_kp_ids": [
+        "K1"
+      ],
+      "mastery_rate": 0.03125,
+      "total_time": 0,
+      "session_count": 0,
+      "last_session_at": null,
+      "created_at": "2026-03-23T00:02:38.469115",
+      "updated_at": "2026-03-23T00:04:59.978399"
+    },
+    {
+      "id": 3,
+      "student_id": 3,
+      "course_id": "MATH_JUNIOR_01",
+      "current_kp_id": null,
+      "completed_kp_ids": [],
+      "mastered_kp_ids": [],
+      "skipped_kp_ids": [],
+      "mastery_rate": 0.0,
+      "total_time": 0,
+      "session_count": 0,
+      "last_session_at": null,
+      "created_at": "2026-03-28T10:22:51.133015",
+      "updated_at": "2026-03-28T10:22:51.133018"
     }
   ],
-  "next_profile_id": 1,
-  "updated_at": "2026-03-17T23:03:24.038029"
+  "next_profile_id": 3,
+  "improvement_sessions": [
+    {
+      "session_id": "fa43494a-937e-4b9c-b99e-d00cd033bf36",
+      "student_id": "3",
+      "course_id": "MATH_JUNIOR_01",
+      "status": "completed",
+      "max_clarification_rounds": 5,
+      "score_input": {
+        "exam_name": "一元二次函数",
+        "score": 60.0,
+        "total_score": 100.0,
+        "error_description": null,
+        "available_time": 30,
+        "difficulty": "normal",
+        "foundation": "average",
+        "created_at": "2026-03-28T10:23:13.667597"
+      },
+      "clarification_rounds": [
+        {
+          "round_number": 1,
+          "system_question": "你能具体描述一下你在解一元二次函数题目时遇到的困难吗？",
+          "student_answer": "我不懂一元二次怎么解",
+          "candidate_kp_ids": [
+            "K1",
+            "K3",
+            "K4",
+            "K5",
+            "K2"
+          ],
+          "created_at": "2026-03-28T10:23:14.669034",
+          "answered_at": "2026-03-28T10:23:29.004060"
+        },
+        {
+          "round_number": 2,
+          "system_question": "你是不理解一元二次方程的解法，还是对一元二次函数的图像和性质不清楚？",
+          "student_answer": "都不太清楚",
+          "candidate_kp_ids": [
+            "K1",
+            "K3",
+            "K4",
+            "K5",
+            "K2"
+          ],
+          "created_at": "2026-03-28T10:23:30.769984",
+          "answered_at": "2026-03-28T10:23:39.535174"
+        },
+        {
+          "round_number": 3,
+          "system_question": "你能解释一下一元二次函数的图像形状是什么样的吗？它的顶点、对称轴和开口方向分别指什么？",
+          "student_answer": "我一概不知",
+          "candidate_kp_ids": [
+            "K1",
+            "K3",
+            "K4",
+            "K5",
+            "K2"
+          ],
+          "created_at": "2026-03-28T10:23:41.488834",
+          "answered_at": "2026-03-28T10:23:49.803595"
+        },
+        {
+          "round_number": 4,
+          "system_question": "你能画出一个简单的坐标系，并标出x轴、y轴和原点吗？",
+          "student_answer": "可以",
+          "candidate_kp_ids": [
+            "K1",
+            "K3",
+            "K4",
+            "K5",
+            "K2"
+          ],
+          "created_at": "2026-03-28T10:23:54.490996",
+          "answered_at": "2026-03-28T10:24:00.539051"
+        }
+      ],
+      "diagnosis": {
+        "target_knowledge_point_id": "K1",
+        "confidence": 0.55,
+        "reason": "基于已有成绩与澄清信息，先从最可能的薄弱知识点开始专项提升。",
+        "prerequisite_gaps": [],
+        "created_at": "2026-03-28T10:24:01.966405"
+      },
+      "plan": {
+        "plan_id": "fa64fe23-b101-41cf-abab-00b63a6a1533",
+        "target_kp_id": "K1",
+        "steps": [
+          {
+            "step_order": 1,
+            "knowledge_point_id": "K1",
+            "goal": "理解平面直角坐标系的基本概念和构成要素",
+            "estimated_minutes": 8,
+            "is_completed": true,
+            "completed_at": "2026-03-28T10:24:27.405443"
+          },
+          {
+            "step_order": 2,
+            "knowledge_point_id": "K1",
+            "goal": "掌握点的坐标表示方法及各象限点的坐标特征",
+            "estimated_minutes": 10,
+            "is_completed": true,
+            "completed_at": "2026-03-28T10:24:29.604694"
+          },
+          {
+            "step_order": 3,
+            "knowledge_point_id": "K1",
+            "goal": "学习两点间距离公式和中点坐标公式",
+            "estimated_minutes": 7,
+            "is_completed": true,
+            "completed_at": "2026-03-28T10:24:31.287395"
+          },
+          {
+            "step_order": 4,
+            "knowledge_point_id": "K1",
+            "goal": "完成坐标系相关练习题并分析常见错误",
+            "estimated_minutes": 5,
+            "is_completed": true,
+            "completed_at": "2026-03-28T10:24:32.655066"
+          }
+        ],
+        "total_estimated_minutes": 30,
+        "created_at": "2026-03-28T10:24:13.023104"
+      },
+      "current_step_order": 0,
+      "quiz_result": {
+        "quiz_id": "b5035b41-cc9d-467d-a1c2-416cd9bb499d",
+        "questions": [
+          {
+            "id": "K1_Q1",
+            "kp_id": "K1",
+            "type": "选择题",
+            "content": "在平面直角坐标系中，水平方向的数轴叫做什么？",
+            "options": [
+              "A. x轴（横轴）",
+              "B. y轴（纵轴）",
+              "C. 原点",
+              "D. 坐标轴"
+            ],
+            "correct_answer": "A",
+            "explanation": "水平方向的数轴叫做x轴（也叫横轴），垂直方向的数轴叫做y轴（也叫纵轴）。",
+            "difficulty": "基础"
+          },
+          {
+            "id": "K1_Q2",
+            "kp_id": "K1",
+            "type": "选择题",
+            "content": "平面直角坐标系的两条数轴的交点叫做什么？",
+            "options": [
+              "A. 坐标点",
+              "B. 原点",
+              "C. 交点",
+              "D. 零点"
+            ],
+            "correct_answer": "B",
+            "explanation": "两条数轴的交点叫做原点，通常用字母O表示。",
+            "difficulty": "基础"
+          }
+        ],
+        "answers": [
+          {
+            "question_id": "K1_Q1",
+            "answer": "B. y轴（纵轴）"
+          },
+          {
+            "question_id": "K1_Q2",
+            "answer": "C. 交点"
+          }
+        ],
+        "score": 0.0,
+        "passed": false,
+        "feedback": "建议复习当前目标知识点后再次测试。",
+        "submitted_at": "2026-03-28T10:24:40.574229"
+      },
+      "created_at": "2026-03-28T10:23:13.667659",
+      "updated_at": "2026-03-28T10:24:40.574238",
+      "completed_at": "2026-03-28T10:24:40.574237"
+    },
+    {
+      "session_id": "bec02d92-f053-4849-8f1f-d47561b8278f",
+      "student_id": "3",
+      "course_id": "MATH_JUNIOR_01",
+      "status": "learning",
+      "max_clarification_rounds": 2,
+      "score_input": {
+        "exam_name": "一元二次函数",
+        "score": 60.0,
+        "total_score": 100.0,
+        "error_description": null,
+        "available_time": 30,
+        "difficulty": "normal",
+        "foundation": "average",
+        "created_at": "2026-03-28T10:35:54.613742"
+      },
+      "clarification_rounds": [
+        {
+          "round_number": 1,
+          "system_question": "你能描述一下你在解决一元二次函数问题时具体遇到的困难是什么吗？",
+          "student_answer": "我面对一元二次方程没有解题思路",
+          "candidate_kp_ids": [
+            "K1",
+            "K3",
+            "K4",
+            "K5",
+            "K2"
+          ],
+          "created_at": "2026-03-28T10:35:55.736695",
+          "answered_at": "2026-03-28T10:36:18.929316"
+        },
+        {
+          "round_number": 2,
+          "system_question": "你能具体说说在解决一元二次方程时，你在哪个步骤感到困难？比如是因式分解、配方法、公式法还是其他方法？",
+          "student_answer": "主要是因式分解没有思路",
+          "candidate_kp_ids": [
+            "K1",
+            "K3",
+            "K4",
+            "K5",
+            "K2"
+          ],
+          "created_at": "2026-03-28T10:36:20.299788",
+          "answered_at": "2026-03-28T10:36:41.293725"
+        }
+      ],
+      "diagnosis": {
+        "target_knowledge_point_id": "K1",
+        "confidence": 0.55,
+        "reason": "基于已有成绩与澄清信息，先从最可能的薄弱知识点开始专项提升。",
+        "prerequisite_gaps": [],
+        "created_at": "2026-03-28T10:36:42.923533"
+      },
+      "plan": {
+        "plan_id": "a7b1494a-5c07-4660-837e-f2a15a90d493",
+        "target_kp_id": "K1",
+        "steps": [
+          {
+            "step_order": 1,
+            "knowledge_point_id": "K1",
+            "goal": "理解平面直角坐标系的建立、x轴、y轴和原点的概念",
+            "estimated_minutes": 10,
+            "is_completed": false,
+            "completed_at": null
+          },
+          {
+            "step_order": 2,
+            "knowledge_point_id": "K1",
+            "goal": "掌握点的坐标表示方法及各象限内点的坐标特征",
+            "estimated_minutes": 8,
+            "is_completed": false,
+            "completed_at": null
+          },
+          {
+            "step_order": 3,
+            "knowledge_point_id": "K1",
+            "goal": "学习两点间距离公式及中点公式应用",
+            "estimated_minutes": 7,
+            "is_completed": false,
+            "completed_at": null
+          },
+          {
+            "step_order": 4,
+            "knowledge_point_id": "K1",
+            "goal": "完成坐标系相关练习题并整理常见错误",
+            "estimated_minutes": 5,
+            "is_completed": false,
+            "completed_at": null
+          }
+        ],
+        "total_estimated_minutes": 30,
+        "created_at": "2026-03-28T10:36:49.407241"
+      },
+      "current_step_order": 1,
+      "quiz_result": null,
+      "created_at": "2026-03-28T10:35:54.613820",
+      "updated_at": "2026-03-28T10:37:10.572383",
+      "completed_at": null
+    }
+  ],
+  "updated_at": "2026-03-28T10:37:10.572925"
 }
