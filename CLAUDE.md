@@ -229,3 +229,160 @@ Interactive API docs available at `http://localhost:8008/docs` when backend is r
 - `GET /api/v1/learning/session/{id}/assessment` - Get assessment questions
 - `POST /api/v1/learning/session/{id}/assessment` - Submit answers
 - `GET /api/v1/learning/progress/{course_id}` - Get student progress
+
+## Agent 架构（专项提升模块）
+
+### 概述
+
+专项提升模块采用 **Agent 驱动架构**，LLM 自主决策流程分支和工具调用，替代原有的确定性 workflow。
+
+**核心优势：**
+- LLM 自主决策诊断策略、方案生成、教学讲解、评估流程
+- 灵活应对不同学生场景
+- 易于扩展新工具和决策逻辑
+
+### 工具列表
+
+#### 核心工具（已实现）
+
+1. **diagnose_student** - 诊断学生薄弱知识点
+   - 输入：学生成绩、错误描述、基础水平
+   - 输出：目标知识点 ID、置信度、诊断原因
+   - 实现：`app/agents/tools/improvement_tools.py`
+
+2. **clarify_student** - 澄清学生知识缺口
+   - 输入：候选知识点列表、澄清轮数、学生回答
+   - 输出：澄清问题或诊断结果
+   - 实现：`app/agents/tools/improvement_tools.py`
+
+3. **generate_learning_plan** - 生成学习方案
+   - 输入：目标知识点、可用时间、难度、基础水平
+   - 输出：分步学习方案（步骤、目标、预计时间）
+   - 实现：`app/agents/tools/improvement_tools.py`
+
+4. **teach_knowledge_point** - 生成教学内容
+   - 输入：知识点 ID、学习目标、尝试次数
+   - 输出：讲解内容、白板公式、下一步行动
+   - 实现：`app/agents/tools/improvement_tools.py`
+
+5. **evaluate_quiz** - 评估小测答题
+   - 输入：知识点 ID、学生答案
+   - 输出：得分、是否通过、反馈
+   - 实现：`app/agents/tools/improvement_tools.py`
+
+#### 可扩展工具（TODO）
+
+这些工具已定义接口，暂未实现具体逻辑。可根据需求逐步实现：
+
+1. **analyze_error_pattern** - 分析错误模式
+   - 依赖：错误分析服务 / 知识图谱
+   - 实现位置：`app/agents/tools/improvement_tools.py`
+
+2. **query_knowledge_graph** - 查询知识图谱
+   - 依赖：图数据库 / 知识图谱服务
+   - 实现位置：`app/agents/tools/improvement_tools.py`
+
+3. **fetch_similar_questions** - 获取相似题目
+   - 依赖：题库搜索服务
+   - 实现位置：`app/agents/tools/improvement_tools.py`
+
+4. **record_learning_progress** - 记录学习进度
+   - 依赖：学生档案服务
+   - 实现位置：`app/agents/tools/improvement_tools.py`
+
+### Agent 决策流程
+
+```
+1. 接收学生成绩输入
+   ↓
+2. 调用 diagnose_student
+   ├─ 诊断成功（置信度 > 0.7）→ 跳到 4
+   └─ 诊断失败 → 3
+   ↓
+3. 调用 clarify_student（循环，最多 N 轮）
+   ├─ 澄清成功 → 4
+   └─ 澄清失败（超过轮数）→ 使用默认诊断 → 4
+   ↓
+4. 调用 generate_learning_plan
+   ↓
+5. 循环执行每个 step：
+   ├─ 调用 teach_knowledge_point
+   ├─ 等待学生反馈
+   └─ 根据反馈决定：继续 / 重新讲解 / 跳过
+   ↓
+6. 调用 evaluate_quiz
+   ├─ 通过 → 结束
+   └─ 失败 → 决定：重新讲解 / 回溯 / 结束
+```
+
+### API 端点
+
+**Agent 驱动的新端点：**
+- `POST /api/v1/improvement/agent/run` - 运行专项提升 Agent 流程
+
+**现有端点（保持向后兼容）：**
+- `POST /api/v1/improvement/start` - 创建会话（workflow 模式）
+- `GET /api/v1/improvement/session/{id}` - 获取会话状态
+- `POST /api/v1/improvement/session/{id}/clarify` - 提交澄清回答
+- `POST /api/v1/improvement/session/{id}/plan` - 生成学习方案
+- `POST /api/v1/improvement/session/{id}/step/{order}` - 开始学习步骤
+- `POST /api/v1/improvement/session/{id}/step/{order}/complete` - 完成学习步骤
+- `GET /api/v1/improvement/session/{id}/quiz` - 获取小测题目
+- `POST /api/v1/improvement/session/{id}/quiz` - 提交小测答案
+
+### 扩展指南
+
+#### 添加新工具
+
+1. 在 `app/agents/tools/improvement_tools.py` 中定义工具类：
+   ```python
+   class MyToolInput(BaseModel):
+       """工具输入。"""
+       param1: str
+       param2: int
+
+   class MyToolOutput(BaseModel):
+       """工具输出。"""
+       result: str
+   ```
+
+2. 在 `ImprovementTools` 类中实现工具方法：
+   ```python
+   def my_tool(self, input_data: MyToolInput) -> MyToolOutput:
+       """工具实现。"""
+       # 实现逻辑
+       return MyToolOutput(result="...")
+   ```
+
+3. 在 `app/agents/improvement_agent.py` 中注册工具（如需 Agent 自主调用）
+
+4. 在 `app/agents/prompts/improvement_agent_prompt.py` 中更新 Agent 系统提示，描述新工具用途
+
+#### 修改 Agent 决策逻辑
+
+Agent 的决策逻辑在 `app/agents/improvement_agent.py` 的 `run()` 方法中。修改流程：
+
+1. 调整工具调用顺序
+2. 修改条件判断逻辑
+3. 添加新的决策分支
+
+### 文件结构
+
+```
+ai-teacher-backend/app/
+├── agents/
+│   ├── __init__.py
+│   ├── improvement_agent.py          # Agent 主类
+│   ├── tools/
+│   │   ├── __init__.py
+│   │   └── improvement_tools.py      # 工具定义和实现
+│   └── prompts/
+│       ├── __init__.py
+│       └── improvement_agent_prompt.py  # Agent 系统提示
+├── api/
+│   └── improvement.py                # 包含 /agent/run 端点
+├── services/
+│   └── improvement_service.py        # 原有 workflow 服务（保持兼容）
+└── ...
+```
+

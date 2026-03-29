@@ -258,10 +258,15 @@ class ImprovementService:
         session.quiz_result.score = score
         session.quiz_result.passed = passed
         session.quiz_result.feedback = "已达到本次专项提升目标。" if passed else "建议复习当前目标知识点后再次测试。"
-        session.quiz_result.submitted_at = datetime.now()
-        session.status = ImprovementSessionStatus.COMPLETED
-        session.completed_at = datetime.now()
-        session.updated_at = datetime.now()
+        now = datetime.now()
+        session.quiz_result.submitted_at = now
+        session.updated_at = now
+        if passed:
+            session.status = ImprovementSessionStatus.COMPLETED
+            session.completed_at = now
+        else:
+            session.status = ImprovementSessionStatus.QUIZ
+            session.completed_at = None
         self.improvement_repo.update_session(session)
         return session.quiz_result
 

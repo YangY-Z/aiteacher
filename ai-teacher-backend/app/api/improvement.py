@@ -21,8 +21,16 @@ from app.schemas.improvement import (
 from app.services.course_service import course_service
 from app.services.improvement_service import ImprovementService, improvement_service
 from app.models.improvement import DifficultyLevel, FoundationLevel, ScoreInput
+from app.agents.improvement_agent import ImprovementAgent
 
 router = APIRouter()
+
+# 初始化 Agent
+improvement_agent = ImprovementAgent(
+    improvement_service=improvement_service,
+    course_service=course_service,
+    llm_service=improvement_service.llm_service,
+)
 
 
 def _build_session_response(service: ImprovementService, session) -> ImprovementSessionResponse:
@@ -239,3 +247,56 @@ async def submit_quiz(
         ),
         message="小测已提交",
     )
+
+
+@router.post("/agent/run", response_model=APIResponse[ImprovementSessionResponse])
+async def run_improvement_agent(
+    request: StartImprovementRequest,
+    student_id: Annotated[int, Depends(get_current_student_id)],
+) -> APIResponse[ImprovementSessionResponse]:
+    """运行专项提升 Agent 流程。
+
+    Agent 自主决策诊断、方案生成、教学讲解、评估流程。
+    """
+    score_input = ScoreInput(
+        exam_name=request.score_input.exam_name,
+        score=request.score_input.score,
+        total_score=request.score_input.total_score,
+        error_description=request.score_input.error_description,
+        available_time=request.score_input.available_time,
+        difficulty=DifficultyLevel(request.score_input.difficulty),
+        foundation=FoundationLevel(request.score_input.foundation),
+    )
+
+    # 创建初始会话
+    session = improvement_service.start_session(
+        str(student_id),
+        request.course_id,
+        score_input,
+        request.score_input.max_clarification_rounds,
+    )
+
+    try:
+        # 运行 Agent
+        updated_session = improvement_agent.run(
+            session_id=session.session_id,
+            student_id=str(student_id),
+            course_id=request.course_id,
+            score=request.score_input.score,
+            total_score=request.score_input.total_score,
+            error_description=request.score_input.error_description,
+            available_time=request.score_input.available_time,
+            difficulty=request.score_input.difficulty,
+            foundation=request.score_input.foundation,
+        )
+        return APIResponse(
+            success=True,
+            data=_build_session_response(improvement_service, updated_session),
+            message="Agent 流程已执行",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Agent 流程失败：{str(e)}",
+        ) from e
+

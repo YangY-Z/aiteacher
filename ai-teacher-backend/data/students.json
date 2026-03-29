@@ -32,9 +32,9 @@
       "phone": "13900000001",
       "avatar_url": null,
       "status": "active",
-      "last_login_at": "2026-03-28T10:22:51.022887",
+      "last_login_at": "2026-03-29T11:51:20.026506",
       "created_at": "2026-03-28T10:22:34.519694",
-      "updated_at": "2026-03-28T10:22:51.022901"
+      "updated_at": "2026-03-29T11:51:20.026516"
     }
   ],
   "next_id": 3,
@@ -372,7 +372,903 @@
       "created_at": "2026-03-28T10:35:54.613820",
       "updated_at": "2026-03-28T10:37:10.572383",
       "completed_at": null
+    },
+    {
+      "session_id": "851bc008-ed8d-401c-b8ea-730102cb6cd6",
+      "student_id": "1",
+      "course_id": "MATH_JUNIOR_01",
+      "status": "clarifying",
+      "max_clarification_rounds": 5,
+      "score_input": {
+        "exam_name": "专项验证",
+        "score": 30,
+        "total_score": 100,
+        "error_description": "图象题错了2道",
+        "available_time": 30,
+        "difficulty": "normal",
+        "foundation": "weak",
+        "created_at": "2026-03-29T00:52:53.288702"
+      },
+      "clarification_rounds": [
+        {
+          "round_number": 1,
+          "system_question": "你更容易错在图象判断还是解析式求解？",
+          "student_answer": null,
+          "candidate_kp_ids": [
+            "K4",
+            "K5",
+            "K2",
+            "K6",
+            "K7"
+          ],
+          "created_at": "2026-03-29T00:52:54.788300",
+          "answered_at": null
+        }
+      ],
+      "diagnosis": null,
+      "plan": null,
+      "current_step_order": 0,
+      "quiz_result": null,
+      "created_at": "2026-03-29T00:52:53.288726",
+      "updated_at": "2026-03-29T00:52:53.288727",
+      "completed_at": null
+    },
+    {
+      "session_id": "8ad411b1-efb0-4c09-9852-ceae5727c531",
+      "student_id": "1",
+      "course_id": "MATH_JUNIOR_01",
+      "status": "quiz",
+      "max_clarification_rounds": 5,
+      "score_input": {
+        "exam_name": "专项验证",
+        "score": 30,
+        "total_score": 100,
+        "error_description": "图象题错了2道",
+        "available_time": 30,
+        "difficulty": "normal",
+        "foundation": "weak",
+        "created_at": "2026-03-29T00:58:57.353444"
+      },
+      "clarification_rounds": [
+        {
+          "round_number": 1,
+          "system_question": "你更容易错在图象判断还是解析式求解？",
+          "student_answer": "图象判断总是出错",
+          "candidate_kp_ids": [
+            "K4",
+            "K5",
+            "K2",
+            "K6",
+            "K7"
+          ],
+          "created_at": "2026-03-29T00:58:58.739429",
+          "answered_at": "2026-03-29T00:58:58.741820"
+        }
+      ],
+      "diagnosis": {
+        "target_knowledge_point_id": "K6",
+        "confidence": 0.85,
+        "reason": "学生明确表示在图象判断方面存在问题，而函数定义(K6)是理解图象特征的基础，学生可能未能准确把握函数的本质特性，导致无法正确判断函数图象",
+        "prerequisite_gaps": [
+          "K4",
+          "K5",
+          "K7"
+        ],
+        "created_at": "2026-03-29T00:58:59.741459"
+      },
+      "plan": {
+        "plan_id": "248c130a-49c0-4c02-bdd4-6c0361b8f669",
+        "target_kp_id": "K6",
+        "steps": [
+          {
+            "step_order": 1,
+            "knowledge_point_id": "K5",
+            "goal": "复习变量与常量的概念，理解函数定义中的变量关系",
+            "estimated_minutes": 10,
+            "is_completed": true,
+            "completed_at": "2026-03-29T00:59:01.506881"
+          },
+          {
+            "step_order": 2,
+            "knowledge_point_id": "K6",
+            "goal": "掌握函数定义的核心：x每取一个值，y都有唯一确定的值与之对应",
+            "estimated_minutes": 8,
+            "is_completed": true,
+            "completed_at": "2026-03-29T00:59:01.507867"
+          },
+          {
+            "step_order": 3,
+            "knowledge_point_id": "K6",
+            "goal": "学习通过图象判断是否为函数的方法：垂直线检验法",
+            "estimated_minutes": 7,
+            "is_completed": true,
+            "completed_at": "2026-03-29T00:59:01.508894"
+          },
+          {
+            "step_order": 4,
+            "knowledge_point_id": "K6",
+            "goal": "练习函数图象判断，巩固函数定义的应用",
+            "estimated_minutes": 5,
+            "is_completed": true,
+            "completed_at": "2026-03-29T00:59:01.509966"
+          }
+        ],
+        "total_estimated_minutes": 30,
+        "created_at": "2026-03-29T00:59:01.505336"
+      },
+      "current_step_order": 0,
+      "quiz_result": null,
+      "created_at": "2026-03-29T00:58:57.353464",
+      "updated_at": "2026-03-29T00:59:01.509969",
+      "completed_at": null
+    },
+    {
+      "session_id": "81527d08-a6da-4a9f-be50-8953787257d6",
+      "student_id": "1",
+      "course_id": "MATH_JUNIOR_01",
+      "status": "quiz",
+      "max_clarification_rounds": 5,
+      "score_input": {
+        "exam_name": "专项回归测试",
+        "score": 30,
+        "total_score": 100,
+        "error_description": "概念理解不清",
+        "available_time": 30,
+        "difficulty": "normal",
+        "foundation": "weak",
+        "created_at": "2026-03-29T01:17:14.648229"
+      },
+      "clarification_rounds": [
+        {
+          "round_number": 1,
+          "system_question": "你能具体描述一下你在一次函数题目中遇到的困难吗？是理解函数概念、图像绘制还是解析式求解方面的问题？",
+          "student_answer": "函数定义和概念总是混淆",
+          "candidate_kp_ids": [
+            "K4",
+            "K5",
+            "K2",
+            "K6",
+            "K7"
+          ],
+          "created_at": "2026-03-29T01:17:15.667852",
+          "answered_at": "2026-03-29T01:17:15.669434"
+        }
+      ],
+      "diagnosis": {
+        "target_knowledge_point_id": "K6",
+        "confidence": 0.85,
+        "reason": "学生明确提到函数定义和概念混淆，而K6函数定义是核心知识点，直接影响学生对函数概念的理解",
+        "prerequisite_gaps": [
+          "K4",
+          "K5",
+          "K7"
+        ],
+        "created_at": "2026-03-29T01:17:17.114271"
+      },
+      "plan": {
+        "plan_id": "99c87c96-612b-4cbf-9b2f-0c515bca9ff3",
+        "target_kp_id": "K6",
+        "steps": [
+          {
+            "step_order": 1,
+            "knowledge_point_id": "K5",
+            "goal": "复习变量与常量的概念",
+            "estimated_minutes": 8,
+            "is_completed": true,
+            "completed_at": "2026-03-29T01:17:18.300028"
+          },
+          {
+            "step_order": 2,
+            "knowledge_point_id": "K6",
+            "goal": "理解函数定义的核心要素：两个变量、对应关系、唯一确定值",
+            "estimated_minutes": 10,
+            "is_completed": true,
+            "completed_at": "2026-03-29T01:17:18.301041"
+          },
+          {
+            "step_order": 3,
+            "knowledge_point_id": "K6",
+            "goal": "通过实例分析判断是否为函数关系",
+            "estimated_minutes": 8,
+            "is_completed": true,
+            "completed_at": "2026-03-29T01:17:18.301884"
+          },
+          {
+            "step_order": 4,
+            "knowledge_point_id": "K6",
+            "goal": "函数定义与日常生活的联系与应用",
+            "estimated_minutes": 4,
+            "is_completed": true,
+            "completed_at": "2026-03-29T01:17:18.302710"
+          }
+        ],
+        "total_estimated_minutes": 30,
+        "created_at": "2026-03-29T01:17:18.298471"
+      },
+      "current_step_order": 0,
+      "quiz_result": {
+        "quiz_id": "0a458f1b-562b-4cb3-9fa5-4c0f550f0bb6",
+        "questions": [
+          {
+            "id": "K6_Q1",
+            "kp_id": "K6",
+            "type": "选择题",
+            "content": "下列说法正确的是：",
+            "options": [
+              "A. 对于x的每一个值，y都有唯一的值与之对应，则y是x的函数",
+              "B. 对于x的每一个值，y都有多个值与之对应，则y是x的函数",
+              "C. 函数中一个y值只能对应一个x值",
+              "D. 函数中x和y必须都是正数"
+            ],
+            "correct_answer": "A",
+            "explanation": "函数的定义是：对于x的每一个值，y都有唯一确定的值与之对应。关键点是\"唯一确定\"。",
+            "difficulty": "基础"
+          },
+          {
+            "id": "K6_Q2",
+            "kp_id": "K6",
+            "type": "选择题",
+            "content": "下列关系中，y是x的函数的是：",
+            "options": [
+              "A. y² = x（x ≥ 0）",
+              "B. y = |x|",
+              "C. |y| = x（x ≥ 0）",
+              "D. x = y²"
+            ],
+            "correct_answer": "B",
+            "explanation": "对于y = |x|，每一个x都有唯一确定的y值与之对应，符合函数定义。其他选项中，一个x可能对应多个y值。",
+            "difficulty": "中等"
+          }
+        ],
+        "answers": [
+          {
+            "question_id": "K6_Q1",
+            "answer": "__wrong__"
+          },
+          {
+            "question_id": "K6_Q2",
+            "answer": "__wrong__"
+          }
+        ],
+        "score": 0.0,
+        "passed": false,
+        "feedback": "建议复习当前目标知识点后再次测试。",
+        "submitted_at": "2026-03-29T01:17:18.304476"
+      },
+      "created_at": "2026-03-29T01:17:14.648249",
+      "updated_at": "2026-03-29T01:17:18.304476",
+      "completed_at": null
+    },
+    {
+      "session_id": "e7333dd0-d880-4e67-bf3b-a92aab374bab",
+      "student_id": "1",
+      "course_id": "MATH_JUNIOR_01",
+      "status": "completed",
+      "max_clarification_rounds": 5,
+      "score_input": {
+        "exam_name": "专项回归测试",
+        "score": 30,
+        "total_score": 100,
+        "error_description": "概念理解不清",
+        "available_time": 30,
+        "difficulty": "normal",
+        "foundation": "weak",
+        "created_at": "2026-03-29T01:17:18.306291"
+      },
+      "clarification_rounds": [
+        {
+          "round_number": 1,
+          "system_question": "你能具体描述一下你在一次函数单元中遇到的主要困难是什么？是函数概念理解、图像分析还是解析式求解？",
+          "student_answer": "函数定义和概念总是混淆",
+          "candidate_kp_ids": [
+            "K4",
+            "K5",
+            "K2",
+            "K6",
+            "K7"
+          ],
+          "created_at": "2026-03-29T01:17:19.052282",
+          "answered_at": "2026-03-29T01:17:19.053841"
+        }
+      ],
+      "diagnosis": {
+        "target_knowledge_point_id": "K6",
+        "confidence": 0.85,
+        "reason": "学生明确提到函数定义和概念混淆，而K6是函数定义的核心知识点，前置知识包括变量和常量(K4和K5)，可能是这些基础概念理解不清导致函数定义混淆",
+        "prerequisite_gaps": [
+          "K4",
+          "K5"
+        ],
+        "created_at": "2026-03-29T01:17:20.868982"
+      },
+      "plan": {
+        "plan_id": "447eafd9-c485-422d-90c0-e1acc925ead1",
+        "target_kp_id": "K6",
+        "steps": [
+          {
+            "step_order": 1,
+            "knowledge_point_id": "K4",
+            "goal": "理解变量与常量的概念及区别",
+            "estimated_minutes": 8,
+            "is_completed": true,
+            "completed_at": "2026-03-29T01:17:22.115235"
+          },
+          {
+            "step_order": 2,
+            "knowledge_point_id": "K5",
+            "goal": "掌握变量与常量在实际问题中的应用",
+            "estimated_minutes": 7,
+            "is_completed": true,
+            "completed_at": "2026-03-29T01:17:22.116649"
+          },
+          {
+            "step_order": 3,
+            "knowledge_point_id": "K6",
+            "goal": "学习函数定义的核心要素：x取值与y唯一对应关系",
+            "estimated_minutes": 10,
+            "is_completed": true,
+            "completed_at": "2026-03-29T01:17:22.117926"
+          },
+          {
+            "step_order": 4,
+            "knowledge_point_id": "K6",
+            "goal": "通过实例辨析函数关系与非函数关系",
+            "estimated_minutes": 5,
+            "is_completed": true,
+            "completed_at": "2026-03-29T01:17:22.119131"
+          }
+        ],
+        "total_estimated_minutes": 30,
+        "created_at": "2026-03-29T01:17:22.113023"
+      },
+      "current_step_order": 0,
+      "quiz_result": {
+        "quiz_id": "b4ad900f-51c1-4f82-9730-272180989478",
+        "questions": [
+          {
+            "id": "K6_Q1",
+            "kp_id": "K6",
+            "type": "选择题",
+            "content": "下列说法正确的是：",
+            "options": [
+              "A. 对于x的每一个值，y都有唯一的值与之对应，则y是x的函数",
+              "B. 对于x的每一个值，y都有多个值与之对应，则y是x的函数",
+              "C. 函数中一个y值只能对应一个x值",
+              "D. 函数中x和y必须都是正数"
+            ],
+            "correct_answer": "A",
+            "explanation": "函数的定义是：对于x的每一个值，y都有唯一确定的值与之对应。关键点是\"唯一确定\"。",
+            "difficulty": "基础"
+          },
+          {
+            "id": "K6_Q2",
+            "kp_id": "K6",
+            "type": "选择题",
+            "content": "下列关系中，y是x的函数的是：",
+            "options": [
+              "A. y² = x（x ≥ 0）",
+              "B. y = |x|",
+              "C. |y| = x（x ≥ 0）",
+              "D. x = y²"
+            ],
+            "correct_answer": "B",
+            "explanation": "对于y = |x|，每一个x都有唯一确定的y值与之对应，符合函数定义。其他选项中，一个x可能对应多个y值。",
+            "difficulty": "中等"
+          }
+        ],
+        "answers": [
+          {
+            "question_id": "K6_Q1",
+            "answer": "A"
+          },
+          {
+            "question_id": "K6_Q2",
+            "answer": "B"
+          }
+        ],
+        "score": 1.0,
+        "passed": true,
+        "feedback": "已达到本次专项提升目标。",
+        "submitted_at": "2026-03-29T01:17:22.121920"
+      },
+      "created_at": "2026-03-29T01:17:18.306312",
+      "updated_at": "2026-03-29T01:17:22.121920",
+      "completed_at": "2026-03-29T01:17:22.121920"
+    },
+    {
+      "session_id": "21ee5a22-5494-4171-98dd-184033220b0f",
+      "student_id": "1",
+      "course_id": "MATH_JUNIOR_01",
+      "status": "quiz",
+      "max_clarification_rounds": 5,
+      "score_input": {
+        "exam_name": "专项回归测试",
+        "score": 30,
+        "total_score": 100,
+        "error_description": "概念理解不清",
+        "available_time": 30,
+        "difficulty": "normal",
+        "foundation": "weak",
+        "created_at": "2026-03-29T10:01:40.911754"
+      },
+      "clarification_rounds": [
+        {
+          "round_number": 1,
+          "system_question": "你能具体描述一下在做一次函数题目时，你主要在哪些环节感到困难？",
+          "student_answer": "函数定义和概念总是混淆",
+          "candidate_kp_ids": [
+            "K4",
+            "K5",
+            "K2",
+            "K6",
+            "K7"
+          ],
+          "created_at": "2026-03-29T10:01:42.190900",
+          "answered_at": "2026-03-29T10:01:42.193246"
+        }
+      ],
+      "diagnosis": {
+        "target_knowledge_point_id": "K6",
+        "confidence": 0.85,
+        "reason": "学生明确提到'函数定义和概念总是混淆'，直接指向K6函数定义这一知识点的问题。函数定义是理解一次函数的基础，学生在此处的混淆会影响后续所有相关内容的学习。",
+        "prerequisite_gaps": [
+          "K4",
+          "K5"
+        ],
+        "created_at": "2026-03-29T10:01:43.342712"
+      },
+      "plan": {
+        "plan_id": "fca9bf32-e582-496e-af94-a63ff4ad7572",
+        "target_kp_id": "K6",
+        "steps": [
+          {
+            "step_order": 1,
+            "knowledge_point_id": "K5",
+            "goal": "复习变量与常量的概念，明确它们的区别",
+            "estimated_minutes": 8,
+            "is_completed": true,
+            "completed_at": "2026-03-29T10:01:47.286130"
+          },
+          {
+            "step_order": 2,
+            "knowledge_point_id": "K6",
+            "goal": "理解函数定义的核心：x取一个值，y有唯一确定的值对应",
+            "estimated_minutes": 10,
+            "is_completed": true,
+            "completed_at": "2026-03-29T10:01:47.287743"
+          },
+          {
+            "step_order": 3,
+            "knowledge_point_id": "K6",
+            "goal": "通过实例分析判断是否为函数关系，强化理解",
+            "estimated_minutes": 7,
+            "is_completed": true,
+            "completed_at": "2026-03-29T10:01:47.289189"
+          },
+          {
+            "step_order": 4,
+            "knowledge_point_id": "K6",
+            "goal": "完成函数定义相关练习题，巩固概念理解",
+            "estimated_minutes": 5,
+            "is_completed": true,
+            "completed_at": "2026-03-29T10:01:47.290587"
+          }
+        ],
+        "total_estimated_minutes": 30,
+        "created_at": "2026-03-29T10:01:47.283033"
+      },
+      "current_step_order": 0,
+      "quiz_result": {
+        "quiz_id": "91e879b4-0a6a-400f-88e0-31fed0812bb3",
+        "questions": [
+          {
+            "id": "K6_Q1",
+            "kp_id": "K6",
+            "type": "选择题",
+            "content": "下列说法正确的是：",
+            "options": [
+              "A. 对于x的每一个值，y都有唯一的值与之对应，则y是x的函数",
+              "B. 对于x的每一个值，y都有多个值与之对应，则y是x的函数",
+              "C. 函数中一个y值只能对应一个x值",
+              "D. 函数中x和y必须都是正数"
+            ],
+            "correct_answer": "A",
+            "explanation": "函数的定义是：对于x的每一个值，y都有唯一确定的值与之对应。关键点是\"唯一确定\"。",
+            "difficulty": "基础"
+          },
+          {
+            "id": "K6_Q2",
+            "kp_id": "K6",
+            "type": "选择题",
+            "content": "下列关系中，y是x的函数的是：",
+            "options": [
+              "A. y² = x（x ≥ 0）",
+              "B. y = |x|",
+              "C. |y| = x（x ≥ 0）",
+              "D. x = y²"
+            ],
+            "correct_answer": "B",
+            "explanation": "对于y = |x|，每一个x都有唯一确定的y值与之对应，符合函数定义。其他选项中，一个x可能对应多个y值。",
+            "difficulty": "中等"
+          }
+        ],
+        "answers": [
+          {
+            "question_id": "K6_Q1",
+            "answer": "__wrong__"
+          },
+          {
+            "question_id": "K6_Q2",
+            "answer": "__wrong__"
+          }
+        ],
+        "score": 0.0,
+        "passed": false,
+        "feedback": "建议复习当前目标知识点后再次测试。",
+        "submitted_at": "2026-03-29T10:01:47.293423"
+      },
+      "created_at": "2026-03-29T10:01:40.911771",
+      "updated_at": "2026-03-29T10:01:47.293423",
+      "completed_at": null
+    },
+    {
+      "session_id": "197bbae1-81b6-4eec-a91e-16894bffd868",
+      "student_id": "1",
+      "course_id": "MATH_JUNIOR_01",
+      "status": "completed",
+      "max_clarification_rounds": 5,
+      "score_input": {
+        "exam_name": "专项回归测试",
+        "score": 30,
+        "total_score": 100,
+        "error_description": "概念理解不清",
+        "available_time": 30,
+        "difficulty": "normal",
+        "foundation": "weak",
+        "created_at": "2026-03-29T10:01:47.296118"
+      },
+      "clarification_rounds": [
+        {
+          "round_number": 1,
+          "system_question": "你能具体说明一下在哪些题目上出现了概念理解不清的情况吗？",
+          "student_answer": "函数定义和概念总是混淆",
+          "candidate_kp_ids": [
+            "K4",
+            "K5",
+            "K2",
+            "K6",
+            "K7"
+          ],
+          "created_at": "2026-03-29T10:01:50.854947",
+          "answered_at": "2026-03-29T10:01:50.857264"
+        }
+      ],
+      "diagnosis": {
+        "target_knowledge_point_id": "K6",
+        "confidence": 0.85,
+        "reason": "学生明确提到函数定义和概念总是混淆，直接指向K6函数定义这一核心知识点的问题",
+        "prerequisite_gaps": [
+          "K4",
+          "K5",
+          "K7"
+        ],
+        "created_at": "2026-03-29T10:01:52.296760"
+      },
+      "plan": {
+        "plan_id": "a7aaf2f8-da83-4e11-baeb-cb5aa4c75de0",
+        "target_kp_id": "K6",
+        "steps": [
+          {
+            "step_order": 1,
+            "knowledge_point_id": "K5",
+            "goal": "复习变量与常量的概念",
+            "estimated_minutes": 8,
+            "is_completed": true,
+            "completed_at": "2026-03-29T10:01:56.148037"
+          },
+          {
+            "step_order": 2,
+            "knowledge_point_id": "K6",
+            "goal": "理解函数定义的核心：变量对应关系",
+            "estimated_minutes": 10,
+            "is_completed": true,
+            "completed_at": "2026-03-29T10:01:56.150008"
+          },
+          {
+            "step_order": 3,
+            "knowledge_point_id": "K6",
+            "goal": "通过实例分析函数定义的判断方法",
+            "estimated_minutes": 7,
+            "is_completed": true,
+            "completed_at": "2026-03-29T10:01:56.151743"
+          },
+          {
+            "step_order": 4,
+            "knowledge_point_id": "K6",
+            "goal": "区分函数与非函数的实例练习",
+            "estimated_minutes": 5,
+            "is_completed": true,
+            "completed_at": "2026-03-29T10:01:56.153419"
+          }
+        ],
+        "total_estimated_minutes": 30,
+        "created_at": "2026-03-29T10:01:56.145142"
+      },
+      "current_step_order": 0,
+      "quiz_result": {
+        "quiz_id": "b143bbed-d18c-4b82-8f15-91cae017d48d",
+        "questions": [
+          {
+            "id": "K6_Q1",
+            "kp_id": "K6",
+            "type": "选择题",
+            "content": "下列说法正确的是：",
+            "options": [
+              "A. 对于x的每一个值，y都有唯一的值与之对应，则y是x的函数",
+              "B. 对于x的每一个值，y都有多个值与之对应，则y是x的函数",
+              "C. 函数中一个y值只能对应一个x值",
+              "D. 函数中x和y必须都是正数"
+            ],
+            "correct_answer": "A",
+            "explanation": "函数的定义是：对于x的每一个值，y都有唯一确定的值与之对应。关键点是\"唯一确定\"。",
+            "difficulty": "基础"
+          },
+          {
+            "id": "K6_Q2",
+            "kp_id": "K6",
+            "type": "选择题",
+            "content": "下列关系中，y是x的函数的是：",
+            "options": [
+              "A. y² = x（x ≥ 0）",
+              "B. y = |x|",
+              "C. |y| = x（x ≥ 0）",
+              "D. x = y²"
+            ],
+            "correct_answer": "B",
+            "explanation": "对于y = |x|，每一个x都有唯一确定的y值与之对应，符合函数定义。其他选项中，一个x可能对应多个y值。",
+            "difficulty": "中等"
+          }
+        ],
+        "answers": [
+          {
+            "question_id": "K6_Q1",
+            "answer": "A"
+          },
+          {
+            "question_id": "K6_Q2",
+            "answer": "B"
+          }
+        ],
+        "score": 1.0,
+        "passed": true,
+        "feedback": "已达到本次专项提升目标。",
+        "submitted_at": "2026-03-29T10:01:56.156868"
+      },
+      "created_at": "2026-03-29T10:01:47.296154",
+      "updated_at": "2026-03-29T10:01:56.156868",
+      "completed_at": "2026-03-29T10:01:56.156868"
+    },
+    {
+      "session_id": "fa6eaf26-5f44-4123-9e64-9167999f661d",
+      "student_id": "1",
+      "course_id": "MATH_JUNIOR_01",
+      "status": "quiz",
+      "max_clarification_rounds": 5,
+      "score_input": {
+        "exam_name": "专项回归测试",
+        "score": 30,
+        "total_score": 100,
+        "error_description": "概念理解不清",
+        "available_time": 30,
+        "difficulty": "normal",
+        "foundation": "weak",
+        "created_at": "2026-03-29T10:03:54.015738"
+      },
+      "clarification_rounds": [
+        {
+          "round_number": 1,
+          "system_question": "你能具体说明哪些题目做错了吗？是关于函数图像、解析式还是其他概念的问题？",
+          "student_answer": "函数定义和概念总是混淆",
+          "candidate_kp_ids": [
+            "K4",
+            "K5",
+            "K2",
+            "K6",
+            "K7"
+          ],
+          "created_at": "2026-03-29T10:03:55.502816",
+          "answered_at": "2026-03-29T10:03:55.506203"
+        }
+      ],
+      "diagnosis": {
+        "target_knowledge_point_id": "K6",
+        "confidence": 0.85,
+        "reason": "学生明确提到函数定义和概念总是混淆，这直接指向K6函数定义知识点，因为函数定义是理解函数概念的基础",
+        "prerequisite_gaps": [
+          "K4",
+          "K5"
+        ],
+        "created_at": "2026-03-29T10:03:56.646273"
+      },
+      "plan": {
+        "plan_id": "edf7329d-f0ae-4eae-9987-d7ebdef96adc",
+        "target_kp_id": "K6",
+        "steps": [
+          {
+            "step_order": 1,
+            "knowledge_point_id": "K5",
+            "goal": "复习变量与常量的概念，理解它们之间的区别",
+            "estimated_minutes": 8,
+            "is_completed": true,
+            "completed_at": "2026-03-29T10:03:58.681145"
+          },
+          {
+            "step_order": 2,
+            "knowledge_point_id": "K6",
+            "goal": "学习函数定义，掌握x与y之间的对应关系",
+            "estimated_minutes": 10,
+            "is_completed": true,
+            "completed_at": "2026-03-29T10:03:58.684774"
+          },
+          {
+            "step_order": 3,
+            "knowledge_point_id": "K6",
+            "goal": "通过实例分析，判断函数关系与非函数关系",
+            "estimated_minutes": 7,
+            "is_completed": true,
+            "completed_at": "2026-03-29T10:03:58.687420"
+          },
+          {
+            "step_order": 4,
+            "knowledge_point_id": "K6",
+            "goal": "练习函数定义的判断题，巩固对函数概念的理解",
+            "estimated_minutes": 5,
+            "is_completed": true,
+            "completed_at": "2026-03-29T10:03:58.689570"
+          }
+        ],
+        "total_estimated_minutes": 30,
+        "created_at": "2026-03-29T10:03:58.675982"
+      },
+      "current_step_order": 0,
+      "quiz_result": {
+        "quiz_id": "ea6c2293-cd09-487e-83a6-28335d13533b",
+        "questions": [
+          {
+            "id": "K6_Q1",
+            "kp_id": "K6",
+            "type": "选择题",
+            "content": "下列说法正确的是：",
+            "options": [
+              "A. 对于x的每一个值，y都有唯一的值与之对应，则y是x的函数",
+              "B. 对于x的每一个值，y都有多个值与之对应，则y是x的函数",
+              "C. 函数中一个y值只能对应一个x值",
+              "D. 函数中x和y必须都是正数"
+            ],
+            "correct_answer": "A",
+            "explanation": "函数的定义是：对于x的每一个值，y都有唯一确定的值与之对应。关键点是\"唯一确定\"。",
+            "difficulty": "基础"
+          },
+          {
+            "id": "K6_Q2",
+            "kp_id": "K6",
+            "type": "选择题",
+            "content": "下列关系中，y是x的函数的是：",
+            "options": [
+              "A. y² = x（x ≥ 0）",
+              "B. y = |x|",
+              "C. |y| = x（x ≥ 0）",
+              "D. x = y²"
+            ],
+            "correct_answer": "B",
+            "explanation": "对于y = |x|，每一个x都有唯一确定的y值与之对应，符合函数定义。其他选项中，一个x可能对应多个y值。",
+            "difficulty": "中等"
+          }
+        ],
+        "answers": [
+          {
+            "question_id": "K6_Q1",
+            "answer": "__wrong__"
+          },
+          {
+            "question_id": "K6_Q2",
+            "answer": "__wrong__"
+          }
+        ],
+        "score": 0.0,
+        "passed": false,
+        "feedback": "建议复习当前目标知识点后再次测试。",
+        "submitted_at": "2026-03-29T10:03:58.693516"
+      },
+      "created_at": "2026-03-29T10:03:54.015753",
+      "updated_at": "2026-03-29T10:03:58.693516",
+      "completed_at": null
+    },
+    {
+      "session_id": "c933737f-1e53-4e2a-b833-696b089a566c",
+      "student_id": "3",
+      "course_id": "MATH_JUNIOR_01",
+      "status": "learning",
+      "max_clarification_rounds": 2,
+      "score_input": {
+        "exam_name": "一元二次函数",
+        "score": 30.0,
+        "total_score": 100.0,
+        "error_description": "很差",
+        "available_time": 30,
+        "difficulty": "normal",
+        "foundation": "average",
+        "created_at": "2026-03-29T11:51:42.443949"
+      },
+      "clarification_rounds": [
+        {
+          "round_number": 1,
+          "system_question": "你在解答一元二次函数题目时，具体是在哪个环节遇到困难？是函数图像理解、解析式求解，还是其他方面？",
+          "student_answer": "不懂得基础概念",
+          "candidate_kp_ids": [
+            "K1",
+            "K3",
+            "K4",
+            "K5",
+            "K2"
+          ],
+          "created_at": "2026-03-29T11:51:43.735831",
+          "answered_at": "2026-03-29T11:51:57.091335"
+        }
+      ],
+      "diagnosis": {
+        "target_knowledge_point_id": "K1",
+        "confidence": 0.85,
+        "reason": "学生明确表示不懂得基础概念，而坐标系(K1)是一元二次函数学习的基础前置知识，没有对坐标系的理解，后续的函数学习将非常困难。",
+        "prerequisite_gaps": [],
+        "created_at": "2026-03-29T11:51:58.191624"
+      },
+      "plan": {
+        "plan_id": "9b955a59-3428-4da6-bbe7-54d1b4c73063",
+        "target_kp_id": "K1",
+        "steps": [
+          {
+            "step_order": 1,
+            "knowledge_point_id": "K1",
+            "goal": "理解平面直角坐标系的基本构成：x轴、y轴和原点的概念",
+            "estimated_minutes": 10,
+            "is_completed": false,
+            "completed_at": null
+          },
+          {
+            "step_order": 2,
+            "knowledge_point_id": "K1",
+            "goal": "学习如何在坐标系中确定点的位置，理解有序数对的概念",
+            "estimated_minutes": 10,
+            "is_completed": false,
+            "completed_at": null
+          },
+          {
+            "step_order": 3,
+            "knowledge_point_id": "K1",
+            "goal": "练习坐标系中点的绘制和坐标读取，掌握象限划分特点",
+            "estimated_minutes": 5,
+            "is_completed": false,
+            "completed_at": null
+          },
+          {
+            "step_order": 4,
+            "knowledge_point_id": "K1",
+            "goal": "完成坐标系基础概念小测，检查理解程度并查漏补缺",
+            "estimated_minutes": 5,
+            "is_completed": false,
+            "completed_at": null
+          }
+        ],
+        "total_estimated_minutes": 30,
+        "created_at": "2026-03-29T11:52:01.818033"
+      },
+      "current_step_order": 1,
+      "quiz_result": null,
+      "created_at": "2026-03-29T11:51:42.444053",
+      "updated_at": "2026-03-29T11:52:51.895134",
+      "completed_at": null
     }
   ],
-  "updated_at": "2026-03-28T10:37:10.572925"
+  "updated_at": "2026-03-29T11:52:51.895901"
 }
