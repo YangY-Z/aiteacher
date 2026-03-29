@@ -107,4 +107,8 @@ export const improvementApi = {
 
   submitQuiz: (sessionId: string, answers: { question_id: string; answer: string }[]) =>
     api.post<ApiResponse<ImprovementQuizResult>>(`/improvement/session/${sessionId}/quiz`, { answers }),
+
+  // Agent 模式
+  runAgent: (data: StartImprovementRequest) =>
+    api.post<ApiResponse<ImprovementSession>>('/improvement/agent/run', data),
 };

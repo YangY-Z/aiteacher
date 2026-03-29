@@ -198,9 +198,10 @@ class ImprovementTools:
         """生成教学内容。"""
         from app.prompts.teaching_prompt import TEACHING_PROMPT, get_teaching_requirements
         from app.prompts.system_prompt import SYSTEM_PROMPT
+        from app.repositories.course_repository import knowledge_point_repository
 
         kp_info = self.course_service.get_knowledge_point_info(input_data.knowledge_point_id)
-        kp = self.course_service.knowledge_point_repository.get_by_id(input_data.knowledge_point_id)
+        kp = knowledge_point_repository.get_by_id(input_data.knowledge_point_id)
 
         prompt = TEACHING_PROMPT.format(
             knowledge_point_name=kp_info["name"],
@@ -259,31 +260,162 @@ class ImprovementTools:
             feedback="已达到本次专项提升目标。" if passed else "建议复习当前目标知识点后再次测试。",
         )
 
-    # 可扩展工具（暂不实现）
+    # 可扩展工具（已实现）
 
     def analyze_error_pattern(self, student_id: str, error_history: list[dict]) -> dict:
-        """分析错误模式。TODO: 实现"""
+        """分析错误模式，识别学生的常见错误类型。"""
+        if not error_history:
+            return {
+                "error_root_cause": "无错误历史",
+                "suggested_kp_ids": [],
+                "error_types": [],
+            }
+
+        # 统计错误类型
+        error_types = {}
+        for error in error_history:
+            error_type = error.get("type", "unknown")
+            error_types[error_type] = error_types.get(error_type, 0) + 1
+
+        # 找出最常见的错误类型
+        most_common_error = max(error_types.items(), key=lambda x: x[1])[0] if error_types else "unknown"
+
+        # 根据错误类型推荐补救知识点
+        error_to_kp_map = {
+            "calculation": ["K1", "K2"],  # 计算错误 → 基础知识点
+            "concept": ["K3", "K4"],      # 概念错误 → 概念知识点
+            "application": ["K5", "K6"],  # 应用错误 → 应用知识点
+        }
+
+        suggested_kp_ids = error_to_kp_map.get(most_common_error, ["K1"])
+
         return {
-            "error_root_cause": "待实现",
-            "suggested_kp_ids": [],
+            "error_root_cause": f"主要错误类型：{most_common_error}（出现 {error_types.get(most_common_error, 0)} 次）",
+            "suggested_kp_ids": suggested_kp_ids,
+            "error_types": error_types,
         }
 
     def query_knowledge_graph(self, kp_id: str, query_type: str) -> dict:
-        """查询知识图谱。TODO: 实现"""
+        """查询知识图谱，获取知识点的前置、后续、相关知识点。"""
+        kp_info = self.course_service.get_knowledge_point_info(kp_id)
+
+        if query_type == "prerequisites":
+            # 获取前置知识点
+            related_kp_ids = kp_info.get("dependency_names", [])
+        elif query_type == "successors":
+            # 获取后续知识点（通过反向查询）
+            all_kps = self.course_service.get_course_knowledge_points("MATH_JUNIOR_01")
+            related_kp_ids = [
+                kp["id"] for kp in all_kps
+                if kp_id in kp.get("dependencies", [])
+            ]
+        elif query_type == "related":
+            # 获取相关知识点（同一类别）
+            kp_type = kp_info.get("type", "")
+            all_kps = self.course_service.get_course_knowledge_points("MATH_JUNIOR_01")
+            related_kp_ids = [
+                kp["id"] for kp in all_kps
+                if kp["type"] == kp_type and kp["id"] != kp_id
+            ]
+        else:
+            related_kp_ids = []
+
         return {
-            "related_kp_ids": [],
-            "dependencies": [],
+            "query_type": query_type,
+            "target_kp_id": kp_id,
+            "related_kp_ids": related_kp_ids,
+            "dependencies": kp_info.get("dependencies", []),
         }
 
-    def fetch_similar_questions(self, kp_id: str, difficulty: str, question_type: str) -> dict:
-        """获取相似题目。TODO: 实现"""
+    def fetch_similar_questions(self, kp_id: str, difficulty: str, question_type: str = "选择题") -> dict:
+        """获取相似题目，用于练习和巩固。"""
+        from app.repositories.assessment_repository import assessment_question_repository
+
+        # 获取该知识点的所有题目
+        all_questions = assessment_question_repository.get_by_kp(kp_id)
+
+        if not all_questions:
+            return {
+                "questions": [],
+                "count": 0,
+                "message": f"知识点 {kp_id} 暂无题目",
+            }
+
+        # 按难度和题型筛选
+        filtered_questions = [
+            q for q in all_questions
+            if q.difficulty == difficulty and q.type == question_type
+        ]
+
+        # 如果筛选结果为空，返回所有题目
+        if not filtered_questions:
+            filtered_questions = all_questions[:3]
+
         return {
-            "questions": [],
+            "questions": [
+                {
+                    "id": q.id,
+                    "content": q.content,
+                    "type": q.type,
+                    "difficulty": q.difficulty,
+                    "options": q.options if hasattr(q, "options") else [],
+                }
+                for q in filtered_questions[:5]  # 最多返回 5 道题
+            ],
+            "count": len(filtered_questions),
+            "total_available": len(all_questions),
         }
 
     def record_learning_progress(self, student_id: str, kp_id: str, mastery: float) -> dict:
-        """记录学习进度。TODO: 实现"""
-        return {
-            "success": True,
-            "message": "进度记录待实现",
-        }
+        """记录学生的学习进度和掌握度。"""
+        from app.repositories.learning_repository import student_profile_repository
+
+        try:
+            # 获取学生档案
+            profile = student_profile_repository.get_by_student_and_course(
+                int(student_id),
+                "MATH_JUNIOR_01",
+            )
+
+            if not profile:
+                return {
+                    "success": False,
+                    "message": f"学生 {student_id} 的档案不存在",
+                }
+
+            # 更新掌握度
+            if mastery >= 0.8:
+                # 标记为已掌握
+                if kp_id not in profile.mastered_kp_ids:
+                    profile.mastered_kp_ids.append(kp_id)
+                if kp_id in profile.completed_kp_ids:
+                    profile.completed_kp_ids.remove(kp_id)
+            elif mastery >= 0.6:
+                # 标记为已完成
+                if kp_id not in profile.completed_kp_ids:
+                    profile.completed_kp_ids.append(kp_id)
+            else:
+                # 标记为需要复习
+                pass
+
+            # 更新掌握率
+            total_kps = len(profile.mastered_kp_ids) + len(profile.completed_kp_ids)
+            profile.mastery_rate = len(profile.mastered_kp_ids) / total_kps if total_kps > 0 else 0.0
+
+            # 保存更新
+            student_profile_repository.update(profile)
+
+            return {
+                "success": True,
+                "message": f"学生 {student_id} 的知识点 {kp_id} 掌握度已更新为 {mastery:.2%}",
+                "mastery": mastery,
+                "mastery_rate": profile.mastery_rate,
+            }
+
+        except Exception as e:
+            logger.error(f"记录学习进度失败：{e}")
+            return {
+                "success": False,
+                "message": f"记录失败：{str(e)}",
+            }
+
