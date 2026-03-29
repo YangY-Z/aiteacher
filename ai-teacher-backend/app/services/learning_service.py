@@ -1,9 +1,12 @@
 """Learning service for learning session management."""
 
 import json
+import logging
 import re
 from typing import Any, Optional, AsyncGenerator
 import uuid
+
+logger = logging.getLogger(__name__)
 
 from app.core.exceptions import EntityNotFoundError, LearningSessionError
 from app.models.learning import (

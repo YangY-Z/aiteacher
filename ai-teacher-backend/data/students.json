@@ -8,9 +8,9 @@
       "phone": "17866812222",
       "avatar_url": null,
       "status": "active",
-      "last_login_at": "2026-03-16T21:47:09.870043",
+      "last_login_at": "2026-03-29T19:37:15.158002",
       "created_at": "2026-03-16T16:43:29.844085",
-      "updated_at": "2026-03-16T21:47:09.870202"
+      "updated_at": "2026-03-29T19:37:15.158019"
     },
     {
       "id": 2,
@@ -23,9 +23,21 @@
       "last_login_at": "2026-03-17T15:29:07.030547",
       "created_at": "2026-03-17T15:28:42.970394",
       "updated_at": "2026-03-17T15:29:07.030557"
+    },
+    {
+      "id": 3,
+      "name": "赵阳阳",
+      "grade": "初一",
+      "password_hash": "3b99dd33118f33db9464149eccbef38c$3a9c9a56598c455e8fd86f4561f1cb32780bf9953febb91e69f19e103fdb5310",
+      "phone": "17866819281",
+      "avatar_url": null,
+      "status": "active",
+      "last_login_at": "2026-03-29T22:48:49.752895",
+      "created_at": "2026-03-29T17:45:17.477196",
+      "updated_at": "2026-03-29T22:48:49.752904"
     }
   ],
-  "next_id": 2,
+  "next_id": 3,
   "profiles": [
     {
       "id": 1,
@@ -86,8 +98,38 @@
       "last_session_at": null,
       "created_at": "2026-03-17T15:29:07.456618",
       "updated_at": "2026-03-17T20:11:20.937297"
+    },
+    {
+      "id": 3,
+      "student_id": 3,
+      "course_id": "linear-function",
+      "current_kp_id": null,
+      "completed_kp_ids": [],
+      "mastered_kp_ids": [],
+      "skipped_kp_ids": [],
+      "mastery_rate": 0.0,
+      "total_time": 0,
+      "session_count": 0,
+      "last_session_at": null,
+      "created_at": "2026-03-29T20:48:37.668184",
+      "updated_at": "2026-03-29T20:48:37.668197"
+    },
+    {
+      "id": 4,
+      "student_id": 3,
+      "course_id": "MATH_JUNIOR_01",
+      "current_kp_id": null,
+      "completed_kp_ids": [],
+      "mastered_kp_ids": [],
+      "skipped_kp_ids": [],
+      "mastery_rate": 0.0,
+      "total_time": 0,
+      "session_count": 0,
+      "last_session_at": null,
+      "created_at": "2026-03-29T20:49:55.775071",
+      "updated_at": "2026-03-29T20:49:55.775079"
     }
   ],
-  "next_profile_id": 2,
-  "updated_at": "2026-03-18T19:36:25.722709"
+  "next_profile_id": 4,
+  "updated_at": "2026-03-29T22:48:49.762022"
 }

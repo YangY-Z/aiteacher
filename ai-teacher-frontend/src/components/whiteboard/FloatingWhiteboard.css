@@ -1,0 +1,358 @@
+/* 浮动白板样式 */
+
+/* 透明遮罩层 - 点击关闭白板 */
+.whiteboard-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  background: transparent;
+}
+
+/* 白板基础样式 */
+.floating-whiteboard {
+  position: fixed;
+  z-index: 1000;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+/* 迷你态基础样式 */
+.floating-whiteboard.mini {
+  left: 16px;
+  bottom: 90px;
+  width: 200px;
+  height: 140px;
+  cursor: pointer;
+  z-index: 100;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* 首次显示迷你态 - 从下方滑入 */
+.floating-whiteboard.mini.initial {
+  animation: slideInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* 从展开态收缩到迷你态 */
+.floating-whiteboard.mini.shrinking {
+  animation: shrinkToMini 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.floating-whiteboard.mini:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+  border-color: #007aff;
+}
+
+/* 收起到迷你态动画 */
+@keyframes shrinkToMini {
+  0% {
+    left: 50%;
+    top: 50%;
+    bottom: auto;
+    width: 640px;
+    height: 480px;
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    left: 16px;
+    top: auto;
+    bottom: 90px;
+    width: 200px;
+    height: 140px;
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 迷你态头部 */
+.mini-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(245, 245, 247, 0.9);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.mini-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.mini-expand-btn {
+  color: #86868b !important;
+  padding: 2px 6px !important;
+  height: auto !important;
+}
+
+.mini-expand-btn:hover {
+  color: #007aff !important;
+}
+
+.mini-preview {
+  height: calc(100% - 36px);
+  overflow: hidden;
+}
+
+/* 展开态 - 居中可拖动 */
+.floating-whiteboard.expanded {
+  left: 50%;
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  width: 640px;
+  height: 480px;
+  max-width: 90vw;
+  max-height: 80vh;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  cursor: move;
+}
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* 展开态头部 */
+.floating-whiteboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(245, 245, 247, 0.95);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px 16px 0 0;
+  cursor: move;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.title-icon {
+  font-size: 16px;
+}
+
+.sidebar-btn {
+  color: #86868b !important;
+  padding: 8px !important;
+  height: auto !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+}
+
+.sidebar-btn:hover {
+  color: #007aff !important;
+  background: rgba(0, 122, 255, 0.08) !important;
+}
+
+/* 白板内容区 */
+.floating-whiteboard-content {
+  height: calc(100% - 48px);
+  overflow: auto;
+  /* 保持深色主题 */
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: 20px 16px;
+}
+
+.floating-whiteboard.expanded .whiteboard-canvas {
+  height: 100%;
+  padding: 16px;
+  /* 确保文字颜色为白色 */
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.floating-whiteboard.mini .whiteboard-canvas {
+  min-height: auto;
+  height: 100%;
+  padding: 6px;
+  background: transparent;
+}
+
+/* 空状态 */
+.whiteboard-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.floating-whiteboard.mini .whiteboard-empty {
+  padding: 10px;
+}
+
+.floating-whiteboard.expanded .whiteboard-empty {
+  padding: 40px;
+}
+
+.empty-icon {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.floating-whiteboard.expanded .empty-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+}
+
+.empty-text {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.floating-whiteboard.expanded .empty-text {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.empty-hint {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
+}
+
+.floating-whiteboard.expanded .empty-hint {
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+/* 内容块标题 */
+.block-title {
+  font-weight: 600;
+  color: #fff;
+}
+
+.floating-whiteboard.mini .block-title {
+  font-size: 11px;
+}
+
+.floating-whiteboard.expanded .block-title {
+  font-size: 16px;
+}
+
+/* 标签 */
+.section-label {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.floating-whiteboard.mini .section-label {
+  font-size: 9px;
+}
+
+.floating-whiteboard.expanded .section-label {
+  font-size: 13px;
+}
+
+/* 要点列表 */
+.key-points-list {
+  padding-left: 16px;
+  margin: 0;
+}
+
+.floating-whiteboard.mini .key-points-list {
+  padding-left: 10px;
+}
+
+.key-points-list li {
+  line-height: 1.5;
+  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.floating-whiteboard.mini .key-points-list li {
+  font-size: 9px;
+  line-height: 1.4;
+  margin-bottom: 2px;
+}
+
+.floating-whiteboard.expanded .key-points-list li {
+  font-size: 14px;
+}
+
+/* 公式容器 */
+.formulas-container {
+  font-family: 'Times New Roman', serif;
+}
+
+.floating-whiteboard.mini .formulas-container {
+  font-size: 10px;
+}
+
+.floating-whiteboard.expanded .formulas-container {
+  font-size: 14px;
+}
+
+/* 隐藏迷你态的网格 */
+.floating-whiteboard.mini .canvas-grid {
+  display: none;
+}
+
+/* 新内容提示动画 */
+.floating-whiteboard.mini.has-new-content {
+  animation: pulse 0.5s ease-out;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+  50% {
+    box-shadow: 0 8px 32px rgba(0, 122, 255, 0.3);
+    border-color: #007aff;
+  }
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .floating-whiteboard.mini {
+    width: 160px;
+    height: 110px;
+    left: 12px;
+    bottom: 80px;
+  }
+
+  .floating-whiteboard.expanded {
+    width: 95vw;
+    height: 70vh;
+  }
+}

@@ -26,7 +26,7 @@ const LoginPage: React.FC = () => {
       
       setAuth(access_token, user);
       message.success(`欢迎回来，${student_name}！`);
-      navigate('/learn');
+      navigate('/center');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
       message.error(err.response?.data?.message || '登录失败，请检查手机号和密码');

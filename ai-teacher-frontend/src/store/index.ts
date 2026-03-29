@@ -50,6 +50,9 @@ interface WhiteboardState {
   notes: string[];
 }
 
+// 白板显示状态
+export type WhiteboardViewMode = 'hidden' | 'mini' | 'expanded';
+
 interface LearningState {
   session: SessionResponse | null;
   currentKp: KnowledgePoint | null;
@@ -63,6 +66,8 @@ interface LearningState {
   // 新增：当前白板状态（用于增量更新）
   currentWhiteboard: WhiteboardState;
   streamingMessageId: string | null;
+  // 白板显示模式
+  whiteboardMode: WhiteboardViewMode;
   
   setSession: (session: SessionResponse | null) => void;
   setCurrentKp: (kp: KnowledgePoint | null) => void;
@@ -85,6 +90,9 @@ interface LearningState {
   addWhiteboardExample: (example: string) => void;
   addWhiteboardNote: (note: string) => void;
   commitWhiteboard: () => void;
+  // 白板显示模式控制
+  setWhiteboardMode: (mode: WhiteboardViewMode) => void;
+  toggleWhiteboardExpand: () => void;
   reset: () => void;
 }
 
@@ -108,6 +116,7 @@ const initialLearningState = {
   whiteboardBlocks: [],
   currentWhiteboard: initialWhiteboardState,
   streamingMessageId: null,
+  whiteboardMode: 'hidden' as WhiteboardViewMode,
 };
 
 export const useLearningStore = create<LearningState>()((set) => ({
@@ -158,7 +167,12 @@ export const useLearningStore = create<LearningState>()((set) => ({
     if (!hasContent) {
       return state;
     }
-    return { whiteboardBlocks: [...state.whiteboardBlocks, block] };
+    // 如果当前白板是隐藏状态，自动切换到 mini 模式
+    const newMode = state.whiteboardMode === 'hidden' ? 'mini' : state.whiteboardMode;
+    return { 
+      whiteboardBlocks: [...state.whiteboardBlocks, block],
+      whiteboardMode: newMode,
+    };
   }),
   updateLastWhiteboardBlock: (block) => set((state) => {
     if (state.whiteboardBlocks.length === 0) return state;
@@ -170,6 +184,7 @@ export const useLearningStore = create<LearningState>()((set) => ({
   clearWhiteboard: () => set({ 
     whiteboardBlocks: [],
     currentWhiteboard: initialWhiteboardState,
+    whiteboardMode: 'hidden',
   }),
   // 增量更新方法（添加去重逻辑）
   setWhiteboardTitle: (title) => set((state) => {
@@ -233,6 +248,9 @@ export const useLearningStore = create<LearningState>()((set) => ({
       notes.length > 0;
     if (!hasContent) return state;
     
+    // 如果当前白板是隐藏状态，自动切换到 mini 模式
+    const newMode = state.whiteboardMode === 'hidden' ? 'mini' : state.whiteboardMode;
+    
     // 检查是否已存在相同的白板块（避免重复）
     const existingBlock = state.whiteboardBlocks.find(b => b.title === wb.title);
     if (existingBlock) {
@@ -249,7 +267,11 @@ export const useLearningStore = create<LearningState>()((set) => ({
           : b
       );
       // 清空 currentWhiteboard
-      return { whiteboardBlocks: blocks, currentWhiteboard: initialWhiteboardState };
+      return { 
+        whiteboardBlocks: blocks, 
+        currentWhiteboard: initialWhiteboardState,
+        whiteboardMode: newMode,
+      };
     }
     
     return { 
@@ -262,7 +284,13 @@ export const useLearningStore = create<LearningState>()((set) => ({
       }],
       // 清空 currentWhiteboard
       currentWhiteboard: initialWhiteboardState,
+      whiteboardMode: newMode,
     };
   }),
+  // 白板显示模式控制
+  setWhiteboardMode: (mode) => set({ whiteboardMode: mode }),
+  toggleWhiteboardExpand: () => set((state) => ({
+    whiteboardMode: state.whiteboardMode === 'expanded' ? 'mini' : 'expanded',
+  })),
   reset: () => set(initialLearningState),
 }));

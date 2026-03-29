@@ -1,22 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Button, message, Spin } from 'antd';
-import MinimalChat from '../components/chat/MinimalChat';
-import MinimalProgress from '../components/progress/MinimalProgress';
+import { Button, message } from 'antd';
+import { LogoutOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
+import FloatingWhiteboard from '../components/whiteboard/FloatingWhiteboard';
+import { useAuthStore, useLearningStore } from '../store';
 import './MinimalLearning.css';
 
-/**
- * 极简版学习页面
- * 
- * 核心设计：
- * 1. 单列居中布局
- * 2. 三步循环：讲解 → 提问 → 反馈
- * 3. 流式对话，打字机效果
- */
-
-// 学习阶段
 type LearningPhase = 'explain' | 'question' | 'feedback';
 
-// 消息类型
 interface Message {
   id: string;
   role: 'ai' | 'student';
@@ -25,7 +18,6 @@ interface Message {
   phase?: LearningPhase;
 }
 
-// 简化的状态
 interface LearningState {
   currentTopic: string;
   phase: LearningPhase;
@@ -34,23 +26,87 @@ interface LearningState {
   sessionId: string | null;
 }
 
-// 知识点数据（10 个核心模块）
-const KNOWLEDGE_MODULES = [
-  { id: '1', name: '函数概念', status: 'completed' as const },
-  { id: '2', name: '一次函数', status: 'current' as const },
-  { id: '3', name: '斜率计算', status: 'locked' as const },
-  { id: '4', name: '截距理解', status: 'locked' as const },
-  { id: '5', name: '图像绘制', status: 'locked' as const },
-  { id: '6', name: '性质应用', status: 'locked' as const },
-  { id: '7', name: '实际问题', status: 'locked' as const },
-  { id: '8', name: '综合练习', status: 'locked' as const },
-  { id: '9', name: '单元测试', status: 'locked' as const },
-  { id: '10', name: '拓展提升', status: 'locked' as const },
-];
+// 渲染带有公式的内容
+const renderContentWithFormula = (content: string): React.ReactNode => {
+  const parts: React.ReactNode[] = [];
+  let key = 0;
+  
+  // 匹配模式：$$...$$（块级）、$...$（行内）、\[...\]（块级）、\(...\)（行内）
+  const formulaPatterns = [
+    { regex: /\$\$([\s\S]*?)\$\$/g, isBlock: true },
+    { regex: /\\\[([\s\S]*?)\\\]/g, isBlock: true },
+    { regex: /\$([^$\n]+?)\$/g, isBlock: false },
+    { regex: /\\\(([^)]+?)\\\)/g, isBlock: false },
+  ];
+  
+  // 收集所有公式位置
+  const allFormulas: { start: number; end: number; formula: string; isBlock: boolean }[] = [];
+  
+  for (const pattern of formulaPatterns) {
+    pattern.regex.lastIndex = 0; // 重置 regex 状态
+    let match;
+    while ((match = pattern.regex.exec(content)) !== null) {
+      // 检查是否已被其他公式包含
+      const isOverlapping = allFormulas.some(
+        f => match!.index >= f.start && match!.index < f.end
+      );
+      if (!isOverlapping) {
+        allFormulas.push({
+          start: match.index,
+          end: match.index + match[0].length,
+          formula: match[1].trim(),
+          isBlock: pattern.isBlock,
+        });
+      }
+    }
+  }
+  
+  // 按位置排序
+  allFormulas.sort((a, b) => a.start - b.start);
+  
+  // 构建渲染结果
+  let lastIndex = 0;
+  for (const formula of allFormulas) {
+    // 添加公式前的文本
+    if (formula.start > lastIndex) {
+      parts.push(
+        <span key={key++}>{content.slice(lastIndex, formula.start)}</span>
+      );
+    }
+    
+    // 渲染公式
+    try {
+      const html = katex.renderToString(formula.formula, {
+        throwOnError: false,
+        displayMode: formula.isBlock,
+      });
+      parts.push(
+        <span
+          key={key++}
+          className={formula.isBlock ? 'formula-block' : 'formula-inline'}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      );
+    } catch {
+      parts.push(<span key={key++}>{formula.formula}</span>);
+    }
+    
+    lastIndex = formula.end;
+  }
+  
+  // 添加剩余文本
+  if (lastIndex < content.length) {
+    parts.push(<span key={key++}>{content.slice(lastIndex)}</span>);
+  }
+  
+  return parts.length > 0 ? parts : content;
+};
 
 const MinimalLearning: React.FC = () => {
-  // 核心状态
-  const [currentModule, setCurrentModule] = useState(2);
+  const navigate = useNavigate();
+  const { user, logout, token } = useAuthStore();
+  const { setWhiteboardTitle, addWhiteboardPoint } = useLearningStore();
+  
   const [state, setState] = useState<LearningState>({
     currentTopic: '一次函数',
     phase: 'explain',
@@ -61,117 +117,124 @@ const MinimalLearning: React.FC = () => {
   
   const chatRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // 消息队列和显示控制
+  const messageQueueRef = useRef<Array<{content: string, phase: LearningPhase}>>([]);
+  const isDisplayingRef = useRef(false);
 
-  // 自动滚动到底部
+  const getAuthHeaders = useCallback(() => ({
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token || localStorage.getItem('token')}`,
+  }), [token]);
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = '/login';
+  };
+
   useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
   }, [state.messages]);
 
-  // 添加消息
-  const addMessage = useCallback((msg: Omit<Message, 'id' | 'timestamp'>) => {
-    const newMsg: Message = {
-      ...msg,
-      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      timestamp: new Date(),
-    };
+  // 直接添加消息到状态
+  const addMessageNow = useCallback((role: 'ai' | 'student', content: string, phase: LearningPhase) => {
+    const msgId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     setState(prev => ({
       ...prev,
-      messages: [...prev.messages, newMsg],
+      messages: [...prev.messages, {
+        id: msgId,
+        role,
+        content,
+        timestamp: new Date(),
+        phase,
+      }],
     }));
-    return newMsg.id;
   }, []);
 
-  // 更新最后一条消息（用于流式）
-  const updateLastMessage = useCallback((content: string) => {
-    setState(prev => {
-      const messages = [...prev.messages];
-      if (messages.length > 0) {
-        messages[messages.length - 1] = {
-          ...messages[messages.length - 1],
-          content,
-        };
-      }
-      return { ...prev, messages };
-    });
+  // 将消息加入队列，逐个显示
+  const queueMessage = useCallback((content: string, phase: LearningPhase) => {
+    messageQueueRef.current.push({ content, phase });
+    processQueue();
   }, []);
 
-  // 开始学习会话
-  const startSession = useCallback(async () => {
-    try {
-      setState(prev => ({ ...prev, isStreaming: true }));
-      
-      // 创建会话
-      const res = await fetch('/api/v1/learning/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ course_id: 'linear-function' }),
-      });
-      
-      if (!res.ok) {
-        throw new Error('启动失败');
-      }
-      
-      const data = await res.json();
-      const sessionId = data.data?.session_id;
-      
-      if (sessionId) {
-        setState(prev => ({ ...prev, sessionId }));
-        // 开始讲解
-        await fetchExplain(sessionId);
-      }
-    } catch (error) {
-      console.error('启动失败:', error);
-      message.error('启动失败，请刷新重试');
-      setState(prev => ({ ...prev, isStreaming: false }));
-    }
-  }, []);
+  // 处理消息队列，每条消息间隔 800ms
+  const processQueue = () => {
+    if (isDisplayingRef.current) return;
+    if (messageQueueRef.current.length === 0) return;
+    
+    isDisplayingRef.current = true;
+    const item = messageQueueRef.current.shift()!;
+    
+    addMessageNow('ai', item.content, item.phase);
+    
+    // 延迟后处理下一条
+    setTimeout(() => {
+      isDisplayingRef.current = false;
+      processQueue();
+    }, 800);
+  };
 
   // 流式获取讲解内容
-  const fetchExplain = async (sessionId: string) => {
+  const streamTeaching = async (sessionId: string) => {
     abortControllerRef.current = new AbortController();
     
-    // 添加AI消息占位
-    const msgId = addMessage({ role: 'ai', content: '', phase: 'explain' });
-    let fullContent = '';
-    
     try {
-      const res = await fetch(`/api/v1/learning/${sessionId}/explain`, {
+      const res = await fetch(`/api/v1/learning/session/${sessionId}/teach/stream`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token || localStorage.getItem('token')}`,
+        },
         signal: abortControllerRef.current.signal,
       });
+      
+      if (!res.ok) throw new Error(`请求失败: ${res.status}`);
       
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
       
       if (!reader) return;
       
+      let buffer = '';
+      let currentEventType = '';
+      
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
         
         for (const line of lines) {
+          if (line.startsWith('event:')) {
+            currentEventType = line.slice(6).trim();
+            continue;
+          }
+          
           if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
+            const data = line.slice(6).trim();
+            if (!data || data === '[DONE]') continue;
             
             try {
               const json = JSON.parse(data);
-              if (json.content) {
-                fullContent += json.content;
-                updateLastMessage(fullContent);
+              
+              if (currentEventType === 'segment' && json.message) {
+                queueMessage(json.message, 'explain');
               }
-              if (json.next_action === 'question') {
+              
+              if (json.whiteboard) {
+                if (json.whiteboard.title) setWhiteboardTitle(json.whiteboard.title);
+                if (json.whiteboard.points) {
+                  json.whiteboard.points.forEach((p: string) => addWhiteboardPoint(p));
+                }
+              }
+              
+              if (currentEventType === 'complete' || json.next_action === 'question') {
                 setState(prev => ({ ...prev, phase: 'question' }));
               }
-            } catch {
-              // 非JSON，作为纯文本处理
-              fullContent += data;
-              updateLastMessage(fullContent);
-            }
+            } catch (e) {}
           }
         }
       }
@@ -184,94 +247,112 @@ const MinimalLearning: React.FC = () => {
     }
   };
 
-  // 发送学生回答
+  // 发送消息
   const handleSend = useCallback(async (content: string) => {
-    if (!state.sessionId || state.isStreaming) return;
+    if (state.isStreaming) return;
     
-    // 添加学生消息
-    addMessage({ role: 'student', content, phase: state.phase });
-    
-    // 获取AI反馈
+    addMessageNow('student', content, state.phase);
     setState(prev => ({ ...prev, isStreaming: true }));
-    abortControllerRef.current = new AbortController();
-    
-    const msgId = addMessage({ role: 'ai', content: '', phase: 'feedback' });
-    let fullContent = '';
     
     try {
-      const res = await fetch(`/api/v1/learning/${state.sessionId}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: content }),
-        signal: abortControllerRef.current.signal,
-      });
-      
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-      
-      if (!reader) return;
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      if (!state.sessionId) {
+        const res = await fetch('/api/v1/learning/start', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ course_id: 'MATH_JUNIOR_01' }),
+        });
         
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        if (!res.ok) throw new Error(`创建会话失败: ${res.status}`);
         
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
+        const data = await res.json();
+        const sessionId = data.data?.session_id;
+        
+        if (sessionId) {
+          setState(prev => ({ ...prev, sessionId }));
+          await streamTeaching(sessionId);
+        }
+      } else {
+        const res = await fetch(`/api/v1/learning/session/${state.sessionId}/chat/stream`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ message: content }),
+        });
+        
+        if (!res.ok) throw new Error(`请求失败: ${res.status}`);
+        
+        const reader = res.body?.getReader();
+        const decoder = new TextDecoder();
+        
+        if (!reader) return;
+        
+        let buffer = '';
+        let currentEventType = '';
+        
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          
+          for (const line of lines) {
+            if (line.startsWith('event:')) {
+              currentEventType = line.slice(6).trim();
+              continue;
+            }
             
-            try {
-              const json = JSON.parse(data);
-              if (json.content) {
-                fullContent += json.content;
-                updateLastMessage(fullContent);
-              }
-              if (json.next_action === 'question') {
-                setState(prev => ({ ...prev, phase: 'question' }));
-              } else if (json.next_action === 'explain') {
-                setState(prev => ({ ...prev, phase: 'explain' }));
-              }
-            } catch {
-              fullContent += data;
-              updateLastMessage(fullContent);
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6).trim();
+              if (!data || data === '[DONE]') continue;
+              
+              try {
+                const json = JSON.parse(data);
+                if (json.content) {
+                  queueMessage(json.content, 'feedback');
+                }
+                if (json.next_action === 'question') {
+                  setState(prev => ({ ...prev, phase: 'question' }));
+                }
+              } catch (e) {}
             }
           }
         }
       }
     } catch (error: any) {
-      if (error.name !== 'AbortError') {
-        console.error('发送失败:', error);
-        message.error('发送失败，请重试');
-      }
+      console.error('发送失败:', error);
+      message.error('发送失败，请重试');
     } finally {
       setState(prev => ({ ...prev, isStreaming: false }));
     }
-  }, [state.sessionId, state.isStreaming, state.phase, addMessage, updateLastMessage]);
+  }, [state.sessionId, state.isStreaming, state.phase, addMessageNow, getAuthHeaders, queueMessage]);
 
-  // 初始启动
+  // 初始化欢迎消息
   useEffect(() => {
-    // 显示欢迎消息
-    addMessage({
-      role: 'ai',
-      content: '你好！我是你的AI老师。今天我们来学习"一次函数"。准备好了吗？输入任何内容开始学习。',
-      phase: 'explain',
-    });
+    const timer = setTimeout(() => {
+      queueMessage('你好！我是你的AI老师。今天我们来学习"一次函数"。准备好了吗？输入任何内容开始学习。', 'explain');
+    }, 300);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   return (
     <div className="minimal-learning">
-      {/* 顶部标题栏 */}
       <header className="minimal-header">
         <div className="header-content">
-          <h1 className="header-title">AI教师</h1>
-          <span className="header-topic">当前学习：{state.currentTopic}</span>
+          <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate('/center')} className="back-btn">
+            学习中心
+          </Button>
+          <div className="header-right">
+            <span className="header-topic">{state.currentTopic}</span>
+            <div className="user-info">
+              <span className="user-name">{user?.name || '学生'}</span>
+              <Button type="text" icon={<LogoutOutlined />} onClick={handleLogout} className="logout-btn" title="退出登录" />
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* 主聊天区域 */}
       <main className="minimal-main">
         <div className="chat-container" ref={chatRef}>
           {state.messages.map((msg) => (
@@ -279,35 +360,17 @@ const MinimalLearning: React.FC = () => {
               <div className="message-avatar">
                 {msg.role === 'ai' ? '👨‍🏫' : '👨‍🎓'}
               </div>
-              <div className="message-content">
-                {msg.content || <Spin size="small" />}
-              </div>
+              <div className="message-content">{renderContentWithFormula(msg.content)}</div>
             </div>
           ))}
-          
-          {state.isStreaming && state.messages.length > 0 && 
-           state.messages[state.messages.length - 1].role === 'ai' && 
-           !state.messages[state.messages.length - 1].content && (
-            <div className="message ai">
-              <div className="message-avatar">👨‍🏫</div>
-              <div className="message-content">
-                <Spin size="small" />
-              </div>
-            </div>
-          )}
         </div>
       </main>
 
-      {/* 底部输入区 */}
       <footer className="minimal-footer">
         <div className="input-container">
           <textarea
             className="input-field"
-            placeholder={
-              state.phase === 'explain' ? '请输入你的问题...' :
-              state.phase === 'question' ? '请输入你的回答...' :
-              '请输入你的想法...'
-            }
+            placeholder={state.phase === 'explain' ? '请输入你的问题...' : '请输入你的回答...'}
             disabled={state.isStreaming}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -335,6 +398,8 @@ const MinimalLearning: React.FC = () => {
           </button>
         </div>
       </footer>
+      
+      <FloatingWhiteboard loading={state.isStreaming} />
     </div>
   );
 };
