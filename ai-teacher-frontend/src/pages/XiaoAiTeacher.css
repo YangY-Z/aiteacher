@@ -1,0 +1,550 @@
+/* 小艾老师页面样式 */
+
+.xiaoai-teacher {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f0f4f8 0%, #e8f4fc 50%, #f5f7fa 100%);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ============ 右上角引导语 ============ */
+
+.guide-tip {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  font-size: 14px;
+  color: #6b7280;
+  z-index: 100;
+  animation: guideFadeIn 0.5s ease-out, guideFadeOut 0.5s ease-in 4.5s forwards;
+}
+
+.guide-icon {
+  font-size: 18px;
+}
+
+@keyframes guideFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes guideFadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+/* ============ 呼吸圆球区域 ============ */
+
+.orb-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+  margin-top: 40px;
+}
+
+.orb-wrapper {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 外层光晕 */
+.orb-glow {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, rgba(59, 130, 246, 0.1) 40%, transparent 70%);
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* 主圆球 */
+.orb {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 30%, #60a5fa 60%, #93c5fd 100%);
+  box-shadow: 
+    0 0 40px rgba(59, 130, 246, 0.4),
+    0 0 80px rgba(59, 130, 246, 0.2),
+    inset 0 -20px 40px rgba(0, 0, 0, 0.1),
+    inset 0 20px 40px rgba(255, 255, 255, 0.2);
+  animation: orbBreathe 4s ease-in-out infinite;
+  position: relative;
+  z-index: 1;
+}
+
+/* 内部高光 */
+.orb-inner {
+  position: absolute;
+  top: 15px;
+  left: 20px;
+  width: 40px;
+  height: 30px;
+  background: radial-gradient(ellipse, rgba(255, 255, 255, 0.6) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: innerGlow 4s ease-in-out infinite;
+}
+
+/* 脉冲环 */
+.orb-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px solid rgba(59, 130, 246, 0.5);
+  animation: pulseRing 3s ease-out infinite;
+}
+
+@keyframes orbBreathe {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 
+      0 0 40px rgba(59, 130, 246, 0.4),
+      0 0 80px rgba(59, 130, 246, 0.2),
+      inset 0 -20px 40px rgba(0, 0, 0, 0.1),
+      inset 0 20px 40px rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 
+      0 0 60px rgba(59, 130, 246, 0.5),
+      0 0 100px rgba(59, 130, 246, 0.3),
+      inset 0 -20px 40px rgba(0, 0, 0, 0.1),
+      inset 0 20px 40px rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes innerGlow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* 预设问题文本（打字机效果） */
+.preset-text {
+  margin-top: 24px;
+  text-align: center;
+  padding: 0 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.preset-text:hover {
+  transform: scale(1.02);
+}
+
+.preset-text .text-content {
+  display: inline-block;
+  color: #3b82f6;
+  font-weight: 500;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  padding: 12px 24px;
+  border-radius: 24px;
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* 光标闪烁 */
+.cursor {
+  display: inline-block;
+  color: #3b82f6;
+  font-weight: 300;
+  animation: cursorBlink 1s infinite;
+  margin-left: 2px;
+}
+
+@keyframes cursorBlink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* 点击提示 */
+.click-hint {
+  display: block;
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 8px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============ 对话区域 ============ */
+
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+  min-height: 200px;
+}
+
+/* 消息列表 */
+.message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 80px;
+}
+
+.message-item {
+  display: flex;
+  gap: 12px;
+  animation: messageIn 0.3s ease-out;
+}
+
+@keyframes messageIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-item.user {
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+.message-item.ai .message-avatar {
+  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+}
+
+.message-content {
+  max-width: 75%;
+  padding: 14px 18px;
+  border-radius: 20px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #374151;
+}
+
+.message-item.ai .message-content {
+  background: white;
+  border-radius: 20px 20px 20px 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.message-item.user .message-content {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border-radius: 20px 20px 4px 20px;
+}
+
+/* 打字指示器 */
+.typing-dots {
+  display: flex;
+  gap: 4px;
+  padding: 14px 18px !important;
+}
+
+.typing-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b82f6;
+  animation: typingDot 1.4s infinite;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingDot {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+/* ============ 开始学习横幅 ============ */
+
+.start-learning-banner {
+  position: fixed;
+  bottom: 90px;
+  left: 16px;
+  right: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+  border-radius: 16px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  animation: slideUp 0.4s ease-out;
+  z-index: 10;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.banner-icon {
+  font-size: 24px;
+}
+
+.banner-text {
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.banner-text strong {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.start-learning-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 24px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-learning-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+}
+
+.start-learning-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ============ 输入区域 ============ */
+
+.input-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.chat-input {
+  flex: 1;
+  min-height: 44px;
+  max-height: 120px;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  font-size: 15px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  transition: all 0.3s ease;
+  background: #f9fafb;
+}
+
+.chat-input:focus {
+  border-color: #3b82f6;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.chat-input::placeholder {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.send-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.send-button:hover:not(:disabled) {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.send-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.send-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ============ 响应式适配 ============ */
+
+@media (max-width: 480px) {
+  .orb-wrapper {
+    width: 140px;
+    height: 140px;
+  }
+
+  .orb {
+    width: 100px;
+    height: 100px;
+  }
+
+  .orb-glow {
+    width: 160px;
+    height: 160px;
+  }
+
+  .preset-text .text-content {
+    padding: 10px 18px;
+    font-size: 14px;
+  }
+
+  .guide-tip {
+    left: 16px;
+    right: 16px;
+    font-size: 13px;
+    padding: 10px 16px;
+  }
+
+  .message-content {
+    max-width: 85%;
+    font-size: 14px;
+  }
+
+  .start-learning-banner {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .banner-content {
+    justify-content: center;
+  }
+}

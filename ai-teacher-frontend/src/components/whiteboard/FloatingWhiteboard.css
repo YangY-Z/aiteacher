@@ -127,7 +127,10 @@
   max-height: 80vh;
   border: 1px solid rgba(0, 0, 0, 0.1);
   cursor: move;
+  animation: expandFadeIn 0.3s ease;
 }
+
+@keyframes expandFadeIn {
   from {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.9);

@@ -1,8 +1,7 @@
-/* 学习中心 - 合并进度概览和知识地图 */
+/* 陪伴学习 - 合并进度概览和知识地图 */
 
 .learning-center {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
   padding: 20px;
   box-sizing: border-box;
 }

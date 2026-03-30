@@ -4,7 +4,7 @@ import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import Login from './pages/Login';
 import MinimalLearning from './pages/MinimalLearning';
-import LearningCenter from './pages/LearningCenter';
+import LearningMain from './pages/LearningMain';
 import { useAuthStore } from './store';
 import './styles/globals.css';
 
@@ -48,12 +48,12 @@ const App: React.FC = () => {
             }
           />
           
-          {/* 学习中心 - 合并进度和知识地图 */}
+          {/* 学习中心 - 包含陪伴学习和专项突破两个Tab */}
           <Route
             path="/center"
             element={
               <PrivateRoute>
-                <LearningCenter />
+                <LearningMain />
               </PrivateRoute>
             }
           />

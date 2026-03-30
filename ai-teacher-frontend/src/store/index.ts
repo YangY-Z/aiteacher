@@ -294,3 +294,38 @@ export const useLearningStore = create<LearningState>()((set) => ({
   })),
   reset: () => set(initialLearningState),
 }));
+
+// ============ 专项突破状态管理 ============
+
+import type {
+  ImprovementSession,
+  ImprovementQuiz,
+} from '../types';
+
+interface ImprovementState {
+  session: ImprovementSession | null;
+  quiz: ImprovementQuiz | null;
+  stepContent: Record<string, unknown> | null;
+  isLoading: boolean;
+  setSession: (session: ImprovementSession | null) => void;
+  setQuiz: (quiz: ImprovementQuiz | null) => void;
+  setStepContent: (content: Record<string, unknown> | null) => void;
+  setLoading: (loading: boolean) => void;
+  reset: () => void;
+}
+
+const initialImprovementState = {
+  session: null,
+  quiz: null,
+  stepContent: null,
+  isLoading: false,
+};
+
+export const useImprovementStore = create<ImprovementState>()((set) => ({
+  ...initialImprovementState,
+  setSession: (session) => set({ session }),
+  setQuiz: (quiz) => set({ quiz }),
+  setStepContent: (content) => set({ stepContent: content }),
+  setLoading: (loading) => set({ isLoading: loading }),
+  reset: () => set(initialImprovementState),
+}));

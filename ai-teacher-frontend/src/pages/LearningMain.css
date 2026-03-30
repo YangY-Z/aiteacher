@@ -1,0 +1,91 @@
+/* 学习主页面 - Tab 切换 */
+
+.learning-main {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+}
+
+/* 顶部Tab切换 */
+.main-tabs {
+  display: flex;
+  background: white;
+  padding: 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.main-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 24px;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  font-weight: 500;
+  color: #86868b;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.main-tab-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 3px;
+  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
+  border-radius: 3px 3px 0 0;
+  transition: width 0.3s ease;
+}
+
+.main-tab-btn:hover {
+  color: #007aff;
+  background: #f5f7fa;
+}
+
+.main-tab-btn.active {
+  color: #007aff;
+  font-weight: 600;
+}
+
+.main-tab-btn.active::after {
+  width: 60%;
+}
+
+.tab-icon {
+  font-size: 20px;
+}
+
+.tab-label {
+  font-size: 15px;
+}
+
+/* 内容区域 */
+.main-content {
+  /* 子组件有自己的背景，这里保持透明 */
+}
+
+/* 响应式适配 */
+@media (max-width: 480px) {
+  .main-tab-btn {
+    padding: 12px 16px;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .tab-icon {
+    font-size: 24px;
+  }
+  
+  .tab-label {
+    font-size: 13px;
+  }
+}

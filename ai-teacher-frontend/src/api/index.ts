@@ -17,6 +17,10 @@ import type {
   ProgressResponse,
   BacktrackDecision,
   WhiteboardContent,
+  StartImprovementRequest,
+  ImprovementSession,
+  ImprovementQuiz,
+  ImprovementQuizResult,
 } from '../types';
 
 // SSE事件类型（增量事件）
@@ -340,4 +344,51 @@ export const learningApi = {
       total_phases: number;
       is_last_phase: boolean;
     }>>(`/learning/session/${sessionId}/phase/next`),
+};
+
+// 专项提升API
+export const improvementApi = {
+  startSession: (data: StartImprovementRequest) =>
+    api.post<ApiResponse<ImprovementSession>>('/improvement/start', data),
+
+  getSession: (sessionId: string) =>
+    api.get<ApiResponse<ImprovementSession>>(`/improvement/session/${sessionId}`),
+
+  submitClarification: (sessionId: string, answer: string) =>
+    api.post<ApiResponse<ImprovementSession>>(`/improvement/session/${sessionId}/clarify`, { answer }),
+
+  generatePlan: (sessionId: string) =>
+    api.post<ApiResponse<ImprovementSession>>(`/improvement/session/${sessionId}/plan`, { confirm_diagnosis: true }),
+
+  startStep: (sessionId: string, stepOrder: number) =>
+    api.post<ApiResponse<Record<string, unknown>>>(`/improvement/session/${sessionId}/step/${stepOrder}/start`),
+
+  completeStep: (sessionId: string, stepOrder: number, notes?: string) =>
+    api.post<ApiResponse<ImprovementSession>>(`/improvement/session/${sessionId}/step/${stepOrder}/complete`, { notes }),
+
+  getQuiz: (sessionId: string) =>
+    api.get<ApiResponse<ImprovementQuiz>>(`/improvement/session/${sessionId}/quiz`),
+
+  submitQuiz: (sessionId: string, answers: { question_id: string; answer: string }[]) =>
+    api.post<ApiResponse<ImprovementQuizResult>>(`/improvement/session/${sessionId}/quiz`, { answers }),
+};
+
+// 对话推荐API
+export interface ChatRecommendRequest {
+  message: string;
+  session_id?: string;
+  student_id?: number;
+}
+
+export interface ChatRecommendResponse {
+  reply: string;
+  is_ready: boolean;
+  recommended_kp: string | null;
+  recommended_kp_name: string | null;
+  session_id: string;
+}
+
+export const chatApi = {
+  recommend: (data: ChatRecommendRequest) =>
+    api.post<ApiResponse<ChatRecommendResponse>>('/chat/recommend', data),
 };

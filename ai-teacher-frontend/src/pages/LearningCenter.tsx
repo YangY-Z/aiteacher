@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store';
 import './LearningCenter.css';
@@ -33,6 +33,12 @@ interface KnowledgeNode {
 interface KnowledgeLink {
   from: string;
   to: string;
+}
+
+interface LearningCenterProps {
+  recommendedKpId?: string | null;
+  autoStart?: boolean;
+  onLearningStarted?: () => void;
 }
 
 const modules: Module[] = [
@@ -88,10 +94,24 @@ const links: KnowledgeLink[] = [
 
 type TabType = 'modules' | 'map';
 
-const LearningCenter: React.FC = () => {
+const LearningCenter: React.FC<LearningCenterProps> = ({ 
+  recommendedKpId, 
+  autoStart, 
+  onLearningStarted 
+}) => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<TabType>('modules');
+
+  // 当 autoStart 为 true 时，自动跳转到学习页面
+  useEffect(() => {
+    if (autoStart && recommendedKpId) {
+      // 通知父组件学习已开始
+      onLearningStarted?.();
+      // 跳转到学习页面
+      navigate(`/learn?kp_id=${recommendedKpId}`);
+    }
+  }, [autoStart, recommendedKpId, onLearningStarted, navigate]);
 
   const completedCount = modules.filter(m => m.status === 'completed').length;
   const earnedBadgeCount = badges.filter(b => b.earned).length;
@@ -127,7 +147,7 @@ const LearningCenter: React.FC = () => {
       <div className="center-container">
         {/* 头部 */}
         <div className="center-header">
-          <h1>学习中心</h1>
+          <h1>陪伴学习</h1>
           <p>一次函数 · 已学习 12 分钟 · 预计剩余 86 分钟</p>
         </div>
 

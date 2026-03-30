@@ -196,3 +196,100 @@ export interface QuestionContent {
   options: string[];
   selected?: string;
 }
+
+// ============ 专项突破相关类型 ============
+
+// 成绩上传请求
+export interface ScoreUploadRequest {
+  exam_name: string;
+  score: number;
+  total_score: number;
+  error_description?: string;
+  available_time: number;
+  difficulty: 'basic' | 'normal' | 'challenge';
+  foundation: 'weak' | 'average' | 'good';
+  max_clarification_rounds: number;
+}
+
+// 开始专项突破请求
+export interface StartImprovementRequest {
+  course_id: string;
+  score_input: ScoreUploadRequest;
+}
+
+// 澄清轮次
+export interface ClarificationRound {
+  round_number: number;
+  system_question: string;
+  student_answer?: string | null;
+  created_at: string;
+  answered_at?: string | null;
+}
+
+// 诊断结果
+export interface DiagnosisResponse {
+  target_knowledge_point_id: string;
+  target_kp_name: string;
+  confidence: number;
+  reason: string;
+  prerequisite_gaps: string[];
+}
+
+// 学习方案步骤
+export interface ImprovementPlanStep {
+  step_order: number;
+  knowledge_point_id: string;
+  kp_name: string;
+  goal: string;
+  estimated_minutes: number;
+  is_completed: boolean;
+}
+
+// 学习方案
+export interface ImprovementPlan {
+  plan_id: string;
+  target_kp_id: string;
+  target_kp_name: string;
+  steps: ImprovementPlanStep[];
+  total_estimated_minutes: number;
+}
+
+// 专项突破会话
+export interface ImprovementSession {
+  session_id: string;
+  student_id: string;
+  course_id: string;
+  status: string;
+  max_clarification_rounds: number;
+  score_input?: Record<string, unknown> | null;
+  clarification_rounds: ClarificationRound[];
+  diagnosis?: DiagnosisResponse | null;
+  plan?: ImprovementPlan | null;
+  current_step_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// 小测问题
+export interface QuizQuestion {
+  id: string;
+  type: string;
+  content: string;
+  options?: string[] | null;
+  difficulty: string;
+}
+
+// 小测
+export interface ImprovementQuiz {
+  quiz_id: string;
+  target_kp_id: string;
+  questions: QuizQuestion[];
+}
+
+// 小测结果
+export interface ImprovementQuizResult {
+  quiz_id: string;
+  score: number;
+  passed: boolean;
+  feedback: string;
+}

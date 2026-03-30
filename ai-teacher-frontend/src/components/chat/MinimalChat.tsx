@@ -32,13 +32,13 @@ const MinimalChat: React.FC<MinimalChatProps> = ({
             <div className="message-text">{msg.content}</div>
             
             {/* 选择题选项 */}
-            {msg.options && (
+            {msg.options && msg.options.length > 0 && (
               <div className="message-options">
                 {msg.options.map((option, idx) => (
                   <button
                     key={idx}
                     className={`option-btn ${msg.selectedOption === idx ? 'selected' : ''} ${
-                      msg.selectedOption !== undefined && idx === msg.options.findIndex(o => o.includes('✅')) ? 'correct' : ''
+                      msg.selectedOption !== undefined && msg.options && idx === msg.options.findIndex(o => o.includes('✅')) ? 'correct' : ''
                     } ${
                       msg.selectedOption === idx && msg.isCorrect === false ? 'incorrect' : ''
                     }`}

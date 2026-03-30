@@ -283,7 +283,6 @@
     opacity: 0;
   }
 }
-}
 
 .send-btn:hover:not(:disabled) {
   background: #0056b3;
