@@ -533,6 +533,364 @@ class LearnerProfileService:
             }
             for lt in LearnerType
         ]
+    
+    def get_weak_knowledge_points(
+        self,
+        student_id: int,
+        course_id: str,
+        threshold: float = 0.6,
+    ) -> list[dict]:
+        """识别薄弱知识点
+
+        Args:
+            student_id: 学生ID
+            course_id: 课程ID
+            threshold: 掌握度阈值，低于此值视为薄弱
+
+        Returns:
+            薄弱知识点列表，包含：
+            - kp_id: 知识点ID
+            - kp_name: 知识点名称
+            - mastery: 当前掌握度
+            - error_count: 错误次数
+            - error_patterns: 主要错误模式
+        """
+        from app.repositories.learning_repository import learning_record_repository
+        from app.repositories.course_repository import knowledge_point_repository
+        
+        weak_kps = []
+        
+        # 获取学生学习记录
+        learning_records = learning_record_repository.get_by_student_and_course(
+            student_id, course_id
+        )
+        
+        # 获取学习者画像（用于获取错误模式）
+        profile = learner_profile_repository.get_by_student_and_course(
+            student_id, course_id
+        )
+        
+        for record in learning_records:
+            # 计算掌握度
+            mastery = self._calculate_kp_mastery(record)
+            
+            if mastery < threshold:
+                kp = knowledge_point_repository.get_by_id(record.kp_id)
+                
+                # 获取该知识点的错误模式
+                error_patterns = []
+                if profile:
+                    for ep in profile.metrics.error_patterns:
+                        # 检查错误示例中是否包含该知识点
+                        for example in ep.examples:
+                            if kp and kp.name in example:
+                                error_patterns.append({
+                                    "type": ep.pattern_type.value,
+                                    "frequency": ep.frequency,
+                                })
+                                break
+                
+                weak_kps.append({
+                    "kp_id": record.kp_id,
+                    "kp_name": kp.name if kp else record.kp_id,
+                    "mastery": mastery,
+                    "error_count": sum(
+                        1 for a in record.attempts if a.result == "failed"
+                    ),
+                    "status": record.status.value,
+                    "error_patterns": error_patterns,
+                })
+        
+        # 按掌握度排序（最薄弱的在前）
+        weak_kps.sort(key=lambda x: x["mastery"])
+        
+        return weak_kps
+    
+    def _calculate_kp_mastery(self, record) -> float:
+        """计算知识点掌握度
+
+        Args:
+            record: 学习记录
+
+        Returns:
+            掌握度 (0.0 - 1.0)
+        """
+        if record.status.value == "mastered":
+            return 1.0
+        
+        if not record.attempts:
+            return 0.0
+        
+        # 基于尝试次数和通过率计算
+        total_attempts = len(record.attempts)
+        passed_attempts = sum(1 for a in record.attempts if a.result == "passed")
+        
+        # 考虑最近的表现（最近一次尝试权重更高）
+        if record.attempts:
+            last_result = record.attempts[-1].result
+            last_score = record.attempts[-1].score if hasattr(record.attempts[-1], 'score') else 0.5
+            
+            # 综合计算：通过率占60%，最近得分占40%
+            pass_rate = passed_attempts / total_attempts
+            mastery = pass_rate * 0.6 + last_score * 0.4
+        else:
+            mastery = 0.0
+        
+        return min(1.0, max(0.0, mastery))
+    
+    def get_teaching_strategy_for_kp(
+        self,
+        student_id: int,
+        course_id: str,
+        kp_id: str,
+        kp_type: Optional[str] = None,
+    ) -> dict:
+        """获取针对特定知识点的教学策略
+
+        综合考虑学习者类型和知识点类型，返回完整的教学策略配置。
+
+        Args:
+            student_id: 学生ID
+            course_id: 课程ID
+            kp_id: 知识点ID
+            kp_type: 知识点类型（概念/公式/技能）
+
+        Returns:
+            教学策略配置字典
+        """
+        # 1. 获取学习者分类
+        learner_type, reason, metrics = self.classify_learner(
+            student_id, course_id, kp_id
+        )
+        
+        # 2. 获取基础教学策略
+        strategy = self.get_teaching_strategy(learner_type, kp_type)
+        
+        # 3. 获取主要错误模式
+        dominant_error = None
+        if metrics.error_patterns:
+            # 按频率排序，取最高的
+            sorted_patterns = sorted(
+                metrics.error_patterns,
+                key=lambda x: x.frequency,
+                reverse=True
+            )
+            dominant_error = sorted_patterns[0].pattern_type.value
+        
+        # 4. 生成教学要求
+        teaching_requirements = self._generate_teaching_requirements(
+            learner_type, metrics, dominant_error
+        )
+        
+        return {
+            "learner_type": learner_type.value,
+            "learner_type_description": LearnerType.get_description(learner_type),
+            "classification_reason": reason,
+            "metrics": {
+                "prerequisite_mastery": metrics.prerequisite_mastery,
+                "current_kp_mastery": metrics.current_kp_mastery,
+                "learning_velocity": metrics.learning_velocity,
+                "average_score": metrics.average_score,
+            },
+            "strategy": {
+                "primary_strategy": strategy.primary_strategy,
+                "secondary_strategies": strategy.secondary_strategies,
+                "example_count": strategy.example_count,
+                "practice_count": strategy.practice_count,
+                "hint_level": strategy.hint_level,
+                "pacing": strategy.pacing,
+                "focus_areas": strategy.focus_areas,
+                "scaffolding": strategy.scaffolding,
+            },
+            "dominant_error_pattern": dominant_error,
+            "teaching_requirements": teaching_requirements,
+        }
+    
+    def _generate_teaching_requirements(
+        self,
+        learner_type: LearnerType,
+        metrics: LearnerMetrics,
+        dominant_error: Optional[str],
+    ) -> list[str]:
+        """根据学习者画像生成教学要求
+
+        Args:
+            learner_type: 学习者类型
+            metrics: 学习指标
+            dominant_error: 主要错误模式
+
+        Returns:
+            教学要求列表
+        """
+        requirements = []
+        
+        # 根据学习者类型
+        if learner_type == LearnerType.NOVICE:
+            requirements.append("从基础概念开始讲解，使用通俗易懂的语言")
+            requirements.append("每个知识点配合2-3个简单示例")
+            requirements.append("讲解过程中多提问确认理解")
+            requirements.append("放慢教学节奏，确保每一步都清晰")
+            
+        elif learner_type == LearnerType.INTERMEDIATE:
+            requirements.append("可以直接讲解核心内容")
+            requirements.append("引导学生发现规律和结论")
+            requirements.append("使用启发式提问")
+            
+        elif learner_type == LearnerType.REVIEWER:
+            requirements.append("重点复习关键概念")
+            requirements.append("使用不同于之前的讲解方式")
+            requirements.append("增加辨析练习")
+            
+        elif learner_type == LearnerType.ADVANCED:
+            requirements.append("简洁总结核心要点")
+            requirements.append("增加拓展应用和综合题")
+            requirements.append("鼓励学生举一反三")
+        
+        # 根据错误模式
+        if dominant_error:
+            error_requirements = {
+                "concept_misunderstanding": "注意概念辨析，强调易混淆点",
+                "calculation_error": "计算步骤要详细展示，提醒检查",
+                "procedure_error": "分步演示，提供步骤清单",
+                "prerequisite_gap": "先复习相关前置知识",
+                "careless_error": "提醒细心，增加检查环节",
+                "incomplete_answer": "强调答题完整性，提供模板",
+            }
+            if dominant_error in error_requirements:
+                requirements.append(error_requirements[dominant_error])
+        
+        # 根据学习速度
+        if metrics.learning_velocity < 0.5:
+            requirements.append("学习节奏稍慢，多给一些时间理解")
+        elif metrics.learning_velocity > 0.8:
+            requirements.append("学习速度较快，可以适当增加内容")
+        
+        return requirements
+    
+    def record_error_from_assessment(
+        self,
+        student_id: int,
+        course_id: str,
+        kp_id: str,
+        question_type: str,
+        is_correct: bool,
+        student_answer: Optional[str] = None,
+    ) -> None:
+        """根据评估结果自动识别并记录错误模式
+
+        Args:
+            student_id: 学生ID
+            course_id: 课程ID
+            kp_id: 知识点ID
+            question_type: 题目类型
+            is_correct: 是否正确
+            student_answer: 学生答案（用于分析）
+        """
+        if is_correct:
+            return
+        
+        # 根据题目类型和知识点推断错误模式
+        error_type = self._infer_error_pattern(question_type, kp_id, student_answer)
+        
+        if error_type:
+            self.add_error_pattern(
+                student_id,
+                course_id,
+                error_type,
+                student_answer,
+            )
+    
+    def _infer_error_pattern(
+        self,
+        question_type: str,
+        kp_id: str,
+        student_answer: Optional[str],
+    ) -> Optional[ErrorPatternType]:
+        """推断错误模式类型
+
+        Args:
+            question_type: 题目类型
+            kp_id: 知识点ID
+            student_answer: 学生答案
+
+        Returns:
+            推断的错误模式类型
+        """
+        from app.repositories.course_repository import knowledge_point_repository
+        
+        kp = knowledge_point_repository.get_by_id(kp_id)
+        kp_name = kp.name if kp else ""
+        
+        # 基于知识点类型推断
+        if kp and kp.type == "概念":
+            return ErrorPatternType.CONCEPT_MISUNDERSTANDING
+        elif kp and kp.type == "公式":
+            # 公式类可能是记忆问题或计算问题
+            if student_answer and any(c.isdigit() for c in student_answer):
+                return ErrorPatternType.CALCULATION_ERROR
+            return ErrorPatternType.CONCEPT_MISUNDERSTANDING
+        elif kp and kp.type == "技能":
+            # 技能类通常是步骤问题
+            if "步骤" in kp_name or "画" in kp_name or "求" in kp_name:
+                return ErrorPatternType.PROCEDURE_ERROR
+            return ErrorPatternType.CALCULATION_ERROR
+        
+        # 基于题目类型推断
+        if question_type == "选择题":
+            return ErrorPatternType.CONCEPT_MISUNDERSTANDING
+        elif question_type == "填空题":
+            return ErrorPatternType.CALCULATION_ERROR
+        elif question_type == "计算题":
+            return ErrorPatternType.CALCULATION_ERROR
+        elif question_type == "作图题":
+            return ErrorPatternType.PROCEDURE_ERROR
+        
+        return ErrorPatternType.CONCEPT_MISUNDERSTANDING
+    
+    def record_learning_activity(
+        self,
+        student_id: int,
+        course_id: str,
+        kp_id: str,
+        score: float,
+        passed: bool,
+    ) -> None:
+        """记录学习活动，用于更新学习指标
+
+        Args:
+            student_id: 学生ID
+            course_id: 课程ID
+            kp_id: 知识点ID
+            score: 本次得分 (0.0 - 1.0)
+            passed: 是否通过
+        """
+        profile = self.get_or_create_profile(student_id, course_id)
+        
+        # 更新学习统计
+        if not hasattr(profile.metrics, 'total_sessions'):
+            profile.metrics.total_sessions = 0
+        profile.metrics.total_sessions += 1
+        
+        if not hasattr(profile.metrics, 'total_score_sum'):
+            profile.metrics.total_score_sum = 0.0
+        profile.metrics.total_score_sum += score
+        
+        if passed:
+            if not hasattr(profile.metrics, 'passed_sessions'):
+                profile.metrics.passed_sessions = 0
+            profile.metrics.passed_sessions += 1
+        
+        # 更新平均分
+        if profile.metrics.total_sessions > 0:
+            profile.metrics.average_score = (
+                profile.metrics.total_score_sum / profile.metrics.total_sessions
+            )
+        
+        # 更新最后活动时间
+        profile.last_activity_at = datetime.now()
+        
+        # 保存更新
+        learner_profile_repository.update(profile)
 
 
 # Global service instance

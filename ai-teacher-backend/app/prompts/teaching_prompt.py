@@ -167,12 +167,18 @@ def generate_teaching_prompt(
     teaching_requirements: str,
     learner_type: str = "intermediate",
     current_phase: int = 1,
+    learning_round: int = 1,
+    history_summary: str = "",
 ) -> str:
     """
     生成完整的教学Prompt
     
     根据知识点类型自动选择教学模式，并生成对应的教学内容。
     重点：只输出当前阶段的教学内容，等待学生互动后再进入下一阶段。
+    
+    Args:
+        learning_round: 当前学习轮次。第1轮=首次学习，第2轮=重新学习（之前未通过评估），以此类推。
+        history_summary: 历史学习总结（用于回顾之前的学习情况）。
     """
     # 根据知识点类型选择教学模式
     mode_type = get_teaching_mode_for_kp(knowledge_point_type)
@@ -217,6 +223,16 @@ def generate_teaching_prompt(
     
     # 根据阶段序号和总阶段数决定 next_action
     next_action = "next_phase" if current_phase < total_phases else "start_assessment"
+    
+    # 准备历史学习记录部分
+    history_section = ""
+    if history_summary:
+        history_section = f"""【历史学习记录】
+{history_summary}
+"""
+    
+    # 准备学习轮次描述
+    round_desc = "（首次学习）" if learning_round == 1 else "（重新学习，之前评估未通过，需要针对性复习）"
 
     return f"""【教学任务】
 请为学生讲解知识点：{knowledge_point_name}
@@ -231,9 +247,10 @@ def generate_teaching_prompt(
 【学生情况】
 - 学生姓名：{student_name}
 - 学习者类型：{learner_type}
-- 学习次数：第{attempt_count}次
+- 历史学习次数：第{attempt_count}次
+- 当前学习轮次：第{learning_round}轮{round_desc}
 {attempt_info}
-
+{history_section}
 {mode_section}
 
 【当前教学进度】
@@ -443,3 +460,209 @@ SKILL_TEACHING_PROMPT = """【技能讲解专项要求】
 4. 练习巩固
    - 讲解后立即让学生尝试
    - 从简单到复杂"""
+
+
+def generate_personalized_teaching_prompt(
+    knowledge_point_name: str,
+    knowledge_point_id: str,
+    knowledge_point_type: str,
+    description: str,
+    key_points: str,
+    dependencies: str,
+    student_name: str,
+    # 学习者画像数据
+    learner_type: str = "intermediate",
+    learner_type_description: str = "有基础者：前置知识充足，但未学习过当前知识点",
+    prerequisite_mastery: float = 0.0,
+    current_kp_mastery: float = 0.0,
+    learning_velocity: float = 0.5,
+    average_score: float = 0.0,
+    dominant_error_pattern: Optional[str] = None,
+    teaching_requirements: Optional[list[str]] = None,
+    # 教学策略数据
+    primary_strategy: str = "知识讲解+引导发现",
+    example_count: int = 2,
+    practice_count: int = 3,
+    hint_level: int = 2,
+    pacing: str = "normal",
+    focus_areas: Optional[list[str]] = None,
+    # 其他参数
+    attempt_count: int = 1,
+    attempt_info: str = "",
+    current_phase: int = 1,
+) -> str:
+    """
+    生成个性化教学Prompt（集成学习者画像数据）
+    
+    Args:
+        knowledge_point_name: 知识点名称
+        knowledge_point_id: 知识点ID
+        knowledge_point_type: 知识点类型
+        description: 描述
+        key_points: 核心要点
+        dependencies: 前置知识
+        student_name: 学生姓名
+        learner_type: 学习者类型 (novice/intermediate/reviewer/advanced)
+        learner_type_description: 学习者类型描述
+        prerequisite_mastery: 前置知识掌握度 (0.0-1.0)
+        current_kp_mastery: 当前知识点掌握度 (0.0-1.0)
+        learning_velocity: 学习速度 (0.0-1.0)
+        average_score: 平均得分 (0.0-1.0)
+        dominant_error_pattern: 主要错误模式
+        teaching_requirements: 教学要求列表
+        primary_strategy: 主要教学策略
+        example_count: 示例数量
+        practice_count: 练习数量
+        hint_level: 提示级别 (1-3)
+        pacing: 教学节奏 (slow/normal/fast)
+        focus_areas: 重点领域
+        attempt_count: 学习次数
+        attempt_info: 尝试信息
+        current_phase: 当前阶段
+        
+    Returns:
+        生成的教学Prompt
+    """
+    # 根据知识点类型选择教学模式
+    mode_type = get_teaching_mode_for_kp(knowledge_point_type)
+    mode_config = TEACHING_MODE_CONFIGS.get(mode_type)
+    
+    # 获取教学模式说明
+    mode_section = get_mode_prompt_section(mode_type)
+    
+    # 获取当前阶段配置
+    current_phase_config = None
+    total_phases = 4
+    if mode_config:
+        total_phases = len(mode_config.phases)
+        for p in mode_config.phases:
+            if p.order == current_phase:
+                current_phase_config = p
+                break
+    
+    phase_section = ""
+    if current_phase_config:
+        phase_section = get_phase_prompt_section(current_phase_config)
+    
+    # 格式化教学要求
+    if teaching_requirements:
+        requirements_text = "\n".join([f"- {r}" for r in teaching_requirements])
+    else:
+        requirements_text = "按照标准教学流程进行"
+    
+    # 格式化重点领域
+    if focus_areas:
+        focus_text = "、".join(focus_areas)
+    else:
+        focus_text = "理解核心概念"
+    
+    # 学习速度描述
+    velocity_text = "正常"
+    if learning_velocity < 0.5:
+        velocity_text = "较慢"
+    elif learning_velocity > 0.8:
+        velocity_text = "较快"
+    
+    # 节奏描述
+    pacing_text = {
+        "slow": "慢节奏，给学生充分时间理解",
+        "normal": "正常节奏",
+        "fast": "快节奏，高效讲解",
+    }.get(pacing, "正常节奏")
+    
+    # 提示级别描述
+    hint_text = {
+        1: "少量提示，鼓励学生自主思考",
+        2: "适度提示，在关键点给予引导",
+        3: "详细提示，充分支持和帮助",
+    }.get(hint_level, "适度提示")
+    
+    # 错误模式描述
+    error_pattern_text = ""
+    if dominant_error_pattern:
+        error_descriptions = {
+            "concept_misunderstanding": "概念理解错误",
+            "calculation_error": "计算错误",
+            "procedure_error": "步骤/程序错误",
+            "careless_error": "粗心大意",
+            "incomplete_answer": "答题不完整",
+            "prerequisite_gap": "前置知识缺失",
+        }
+        error_pattern_text = error_descriptions.get(
+            dominant_error_pattern, dominant_error_pattern
+        )
+    
+    # 阶段输出指引
+    phase_output_guide = get_phase_output_guide(current_phase, current_phase_config, total_phases)
+    
+    # 模式特殊要求
+    mode_requirements = get_mode_specific_requirements(mode_type)
+    
+    return f"""【教学任务】
+请为学生讲解知识点：{knowledge_point_name}
+
+【知识点信息】
+- 编号：{knowledge_point_id}
+- 类型：{knowledge_point_type}
+- 描述：{description}
+- 核心要点：{key_points}
+- 前置知识：{dependencies}
+
+【学生画像】
+- 学生姓名：{student_name}
+- 学习者类型：{learner_type}
+- 类型描述：{learner_type_description}
+- 前置知识掌握度：{prerequisite_mastery:.0%}
+- 当前知识点掌握度：{current_kp_mastery:.0%}
+- 学习速度：{velocity_text}
+- 平均得分：{average_score:.0%}
+- 主要错误模式：{error_pattern_text or '无'}
+- 学习次数：第{attempt_count}次
+{attempt_info}
+
+{mode_section}
+
+【当前教学进度】
+正在执行第 {current_phase}/{total_phases} 阶段
+
+{phase_section}
+
+【个性化教学策略】
+- 主要策略：{primary_strategy}
+- 示例数量：{example_count}个
+- 练习数量：{practice_count}道
+- 提示级别：{hint_text}
+- 教学节奏：{pacing_text}
+- 重点领域：{focus_text}
+
+【教学要求】
+{requirements_text}
+
+【重要规则 - 分阶段教学】
+1. 你现在只执行第{current_phase}阶段的教学内容
+2. 【关键】每个阶段必须包含一个提问，让学生回答
+3. 有提问时，next_action 必须设为 "wait_for_student"，等待学生回答
+4. 学生回答后，系统会自动进入下一阶段
+5. 不要一次性输出所有阶段的内容
+
+{phase_output_guide}
+
+【返回格式 - 边讲边写模式】
+请严格按照以下JSONL格式输出，每行一个独立的JSON对象：
+
+{{"type":"segment","message":"教学内容...","whiteboard":{{"title":"标题"}}}}
+{{"type":"segment","message":"教学内容...","whiteboard":{{"points":["要点1","要点2"]}}}}
+{{"type":"segment","message":"提问内容...","whiteboard":{{}},"is_question":true}}
+{{"type":"complete","next_action":"wait_for_student"}}
+
+【输出规则】
+1. 必须使用"边讲边写"模式：每句话搭配相应的白板内容
+2. whiteboard字段可以包含：title, points, formulas, examples, notes
+3. 每个segment只包含当前段话相关的白板内容，不要重复之前的内容
+4. 公式使用纯LaTeX格式，例如：y = kx + b
+5. 【必须】每个阶段结尾要有提问，next_action 设为 "wait_for_student"
+6. 每行必须是合法的JSON
+
+{mode_requirements}
+
+请开始输出第{current_phase}阶段的内容："""

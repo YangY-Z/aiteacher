@@ -130,7 +130,7 @@ export const learningApi = {
   // 流式获取教学内容（增量事件）
   streamTeachingContent: async (sessionId: string, callbacks: StreamCallbacks) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`/api/v1/learning/session/${sessionId}/teach/stream`, {
+    const response = await fetch(`/api/v1/learning/session/${sessionId}/stream`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -236,7 +236,7 @@ export const learningApi = {
   // 流式发送消息（增量事件）
   streamSendMessage: async (sessionId: string, message: string, callbacks: StreamCallbacks) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`/api/v1/learning/session/${sessionId}/chat/stream`, {
+    const response = await fetch(`/api/v1/learning/session/${sessionId}/stream`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

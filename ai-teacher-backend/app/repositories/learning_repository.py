@@ -287,6 +287,7 @@ class LearningSessionRepository(BaseRepository[LearningSession, str]):
         if not entity.id:
             entity.id = f"SESSION_{uuid.uuid4().hex[:8].upper()}"
         db._learning_sessions[entity.id] = entity
+        db.save_learning_sessions_to_file()
         return entity
 
     def update(self, entity: LearningSession) -> LearningSession:
@@ -299,6 +300,7 @@ class LearningSessionRepository(BaseRepository[LearningSession, str]):
             The updated learning session.
         """
         db._learning_sessions[entity.id] = entity
+        db.save_learning_sessions_to_file()
         return entity
 
     def delete(self, id: str) -> bool:
@@ -312,6 +314,7 @@ class LearningSessionRepository(BaseRepository[LearningSession, str]):
         """
         if id in db._learning_sessions:
             del db._learning_sessions[id]
+            db.save_learning_sessions_to_file()
             return True
         return False
 

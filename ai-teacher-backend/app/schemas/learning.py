@@ -29,6 +29,7 @@ class ChatRequest(BaseModel):
 
     message: str = Field(..., description="学生消息")
     input_type: str = Field("text", description="输入类型: text/voice")
+    is_first_input: bool = Field(False, description="是否是首次输入（欢迎语后的确认）")
 
 
 class ChatResponse(BaseModel):

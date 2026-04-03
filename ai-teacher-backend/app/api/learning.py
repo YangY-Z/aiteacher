@@ -1,6 +1,8 @@
 """Learning API routes."""
 
 import json
+import logging
+import uuid
 from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -25,6 +27,7 @@ from app.services.backtrack_service import backtrack_service
 from app.repositories.learning_repository import learning_session_repository
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/start", response_model=APIResponse[SessionResponse])
@@ -128,33 +131,69 @@ async def get_teaching_content(
     )
 
 
-@router.post("/session/{session_id}/teach/stream")
-async def get_teaching_content_stream(
+@router.post("/session/{session_id}/stream")
+async def unified_stream(
     session_id: str,
-    student_id: Annotated[int, Depends(get_current_student_id)]
+    request: Optional[ChatRequest] = None,
+    start_new: bool = False,  # 是否开始新的学习轮次
+    student_id: Annotated[int, Depends(get_current_student_id)] = None
 ) -> EventSourceResponse:
-    """Get teaching content for current knowledge point as a stream.
+    """Unified streaming endpoint for teaching and chat.
+
+    - If is_first_input=True: Teaching mode (start teaching)
+    - If request has message and not first input: Chat mode (subsequent rounds)
+    - If start_new=True: Start a new learning round (clear history, increment round)
 
     Args:
         session_id: Session ID.
+        request: Optional chat request with message.
+        start_new: Whether to start a new learning round.
         student_id: Authenticated student ID.
 
     Returns:
-        SSE stream with teaching content.
+        SSE stream with teaching content or chat response.
     """
+    trace_id = f"stream-{uuid.uuid4().hex[:12]}"
+    message = request.message if request else ""
+    is_first_input = request.is_first_input if request else False
+
+    logger.info(f"[{trace_id}] ========== 流式请求开始 ==========")
+    logger.info(f"[{trace_id}] session_id={session_id}, student_id={student_id}, has_message={bool(message)}, is_first_input={is_first_input}, start_new={start_new}")
+
     session = learning_service.get_session(session_id)
 
     if session.student_id != student_id:
+        logger.warning(f"[{trace_id}] 权限校验失败")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="无权访问此会话",
         )
 
     student = student_service.get_by_id(student_id)
+    logger.info(f"[{trace_id}] 学生: {student.name}")
+
+    # 如果请求开始新的学习轮次，重置会话状态
+    if start_new:
+        session.start_new_round()
+        learning_session_repository.update(session)
+        logger.info(f"[{trace_id}] 开始新的学习轮次: round={session.learning_round}")
 
     async def event_generator():
-        async for event in learning_service.stream_teaching_content(session, student.name):
-            yield event
+        event_count = 0
+        try:
+            async for event in learning_service.stream_unified_response(
+                session=session,
+                student_name=student.name,
+                message=message,
+                trace_id=trace_id,
+                is_first_input=is_first_input,
+            ):
+                event_count += 1
+                yield event
+            logger.info(f"[{trace_id}] ========== 流式请求完成, 共{event_count}个事件 ==========")
+        except Exception as e:
+            logger.error(f"[{trace_id}] 流式生成失败: {e}", exc_info=True)
+            yield {"event": "error", "data": json.dumps({"error": str(e)}, ensure_ascii=False)}
 
     return EventSourceResponse(event_generator())
 
@@ -194,37 +233,6 @@ async def send_message(
             next_action=response.get("next_action", "wait_for_student"),
         ),
     )
-
-
-@router.post("/session/{session_id}/chat/stream")
-async def send_message_stream(
-    session_id: str,
-    request: ChatRequest,
-    student_id: Annotated[int, Depends(get_current_student_id)]
-) -> EventSourceResponse:
-    """Send a message in the learning session and get streaming response.
-
-    Args:
-        session_id: Session ID.
-        request: Chat request.
-        student_id: Authenticated student ID.
-
-    Returns:
-        SSE stream with AI response.
-    """
-    session = learning_service.get_session(session_id)
-
-    if session.student_id != student_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权访问此会话",
-        )
-
-    async def event_generator():
-        async for event in learning_service.stream_chat_response(session, request.message):
-            yield event
-
-    return EventSourceResponse(event_generator())
 
 
 @router.get(

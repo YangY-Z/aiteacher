@@ -45,6 +45,24 @@ class LLMService:
             self._provider = LLMProviderFactory.create_provider()
         return self._provider
 
+    def _add_thinking_mode(self, kwargs: dict[str, Any]) -> None:
+        """Add provider-specific thinking mode to kwargs if enabled.
+
+        Args:
+            kwargs: Keyword arguments dict to modify in-place.
+        """
+        provider = settings.llm_provider.lower()
+        
+        # Zhipu AI thinking mode
+        if provider == "zhipu" and settings.zhipu_enable_thinking:
+            if "thinking" not in kwargs:
+                kwargs["thinking"] = {"type": "enabled"}
+        
+        # Alibaba Cloud Bailian thinking mode
+        elif provider == "bailian" and settings.bailian_enable_thinking:
+            if "enable_thinking" not in kwargs:
+                kwargs["enable_thinking"] = True
+
     def chat(
         self,
         system_prompt: str,
@@ -73,9 +91,8 @@ class LLMService:
             ChatMessage(role="user", content=user_message),
         ]
 
-        # Add Zhipu-specific thinking mode if enabled
-        if settings.zhipu_enable_thinking and "thinking" not in kwargs:
-            kwargs["thinking"] = {"type": "enabled"}
+        # Add provider-specific thinking mode if enabled
+        self._add_thinking_mode(kwargs)
 
         try:
             response = self.provider.chat_completion(
@@ -124,9 +141,8 @@ class LLMService:
             content = msg.get("content", "")
             messages.append(ChatMessage(role=role, content=content))
 
-        # Add Zhipu-specific thinking mode if enabled
-        if settings.zhipu_enable_thinking and "thinking" not in kwargs:
-            kwargs["thinking"] = {"type": "enabled"}
+        # Add provider-specific thinking mode if enabled
+        self._add_thinking_mode(kwargs)
 
         try:
             response = self.provider.chat_completion(
@@ -206,6 +222,7 @@ class LLMService:
         user_message: str,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        trace_id: str = "",
         **kwargs: Any,
     ) -> Generator[str, None, None]:
         """Stream a chat message from the LLM.
@@ -215,6 +232,7 @@ class LLMService:
             user_message: User message to send.
             temperature: Sampling temperature.
             max_tokens: Maximum tokens to generate.
+            trace_id: 链路追踪ID.
             **kwargs: Additional provider-specific parameters.
 
         Yields:
@@ -228,19 +246,28 @@ class LLMService:
             ChatMessage(role="user", content=user_message),
         ]
 
-        # Add Zhipu-specific thinking mode if enabled
-        if settings.zhipu_enable_thinking and "thinking" not in kwargs:
-            kwargs["thinking"] = {"type": "enabled"}
+        # Add provider-specific thinking mode if enabled
+        self._add_thinking_mode(kwargs)
 
+        logger.info(f"[{trace_id}] === 步骤4: 调用LLM流式API ===")
+        logger.info(f"[{trace_id}] LLM配置: provider={settings.llm_provider}, model={self.provider.default_model}")
+        logger.debug(f"[{trace_id}] 用户消息长度: {len(user_message)}字符")
+
+        chunk_count = 0
         try:
-            yield from self.provider.stream_chat_completion(
+            for chunk in self.provider.stream_chat_completion(
                 messages=messages,
                 temperature=temperature or settings.llm_temperature,
                 max_tokens=max_tokens or settings.llm_max_tokens,
                 **kwargs,
-            )
+            ):
+                chunk_count += 1
+                yield chunk
+            
+            logger.info(f"[{trace_id}] === 步骤5: LLM流式响应完成, 共{chunk_count}个chunk ===")
         except Exception as e:
-            logger.exception(f"LLM stream chat failed: {e}")
+            logger.error(f"[{trace_id}] LLM流式调用失败: {e}")
+            logger.exception(f"[{trace_id}] 详细错误信息")
             if isinstance(e, LLMServiceError):
                 raise
             raise LLMServiceError(

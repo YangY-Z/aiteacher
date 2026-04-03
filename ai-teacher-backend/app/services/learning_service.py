@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+from datetime import datetime
 from typing import Any, Optional, AsyncGenerator
 import uuid
 
@@ -101,15 +102,21 @@ class LearningService:
         kp_type = kp.type if kp else "概念"
         teaching_mode = get_teaching_mode_for_kp(kp_type)
 
-        # Create session
+        # Create session with first round
+        from app.models.learning import LearningRound
+        first_round = LearningRound(
+            round_number=1,
+            start_time=datetime.now(),
+            teaching_mode=teaching_mode.value if hasattr(teaching_mode, 'value') else teaching_mode,
+        )
+        
         session = LearningSession(
             id=f"SESSION_{uuid.uuid4().hex[:8].upper()}",
             student_id=student_id,
             course_id=course_id,
             kp_id=kp_id,
-            teaching_mode=teaching_mode.value,
-            current_phase=1,
-            phase_status="in_progress",
+            rounds=[first_round],
+            current_round_index=0,
         )
 
         return learning_session_repository.create(session)
@@ -612,23 +619,32 @@ class LearningService:
         self,
         session: LearningSession,
         student_name: str,
+        trace_id: str = "",
+        learning_round: int = 1,
+        history_summary: str = "",
     ) -> AsyncGenerator[dict[str, Any], None]:
         """Stream teaching content for the current knowledge point using JSONL format.
 
         Args:
             session: Learning session.
             student_name: Student name for personalization.
+            trace_id: 链路追踪ID.
+            learning_round: 当前学习轮次（第几次学习该知识点）。
+            history_summary: 历史学习总结（用于回顾）。
 
         Yields:
             SSE events with incremental content.
         """
         if not session.kp_id:
+            logger.error(f"[{trace_id}] 会话没有当前知识点")
             yield {"event": "error", "data": json.dumps({"error": "会话没有当前知识点"}, ensure_ascii=False)}
             return
 
+        logger.info(f"[{trace_id}] === 步骤1: 获取知识点信息 ===")
         # Get knowledge point info
         kp_info = course_service.get_knowledge_point_info(session.kp_id)
         record = self.get_or_create_record(session.student_id, session.kp_id)
+        logger.info(f"[{trace_id}] 知识点: name={kp_info.get('name')}, type={kp_info.get('type')}, attempt_count={record.attempt_count}, learning_round={learning_round}")
 
         # Build attempt info
         attempt_info = ""
@@ -676,12 +692,18 @@ class LearningService:
             teaching_requirements=teaching_requirements,
             learner_type=learner_type,
             current_phase=current_phase,
+            learning_round=learning_round,
+            history_summary=history_summary,
         )
+
+        logger.info(f"[{trace_id}] === 步骤3: 生成教学Prompt完成, 长度={len(prompt)}字符 ===")
 
         # Stream LLM response and parse JSONL
         buffer = ""
+        event_count = 0
         
-        for chunk in llm_service.stream_chat(SYSTEM_PROMPT, prompt):
+        logger.info(f"[{trace_id}] === 步骤4: 开始流式调用LLM ===")
+        for chunk in llm_service.stream_chat(SYSTEM_PROMPT, prompt, trace_id=trace_id):
             buffer += chunk
             
             # Try to parse complete JSON lines
@@ -704,6 +726,7 @@ class LearningService:
                     
                     data = json.loads(line_fixed)
                     event_type = data.get("type", "")
+                    event_count += 1
                     
                     if event_type == "segment":
                         # 边讲边写模式：同时发送消息和白板内容
@@ -766,11 +789,14 @@ class LearningService:
                     
                     elif event_type == "complete":
                         # 完成事件
+                        logger.info(f"[{trace_id}] 收到complete事件: next_action={data.get('next_action')}")
                         yield {"event": "complete", "data": json.dumps({"next_action": data.get("next_action", "wait_for_student")}, ensure_ascii=False)}
                 
                 except json.JSONDecodeError:
                     # Skip invalid JSON lines
                     continue
+        
+        logger.info(f"[{trace_id}] === 步骤5: LLM流式处理完成, 共生成{event_count}个事件 ===")
         
         # Process any remaining content in buffer
         if buffer.strip():
@@ -782,24 +808,34 @@ class LearningService:
                     event_type = data.get("type", "")
                     
                     if event_type == "complete":
+                        event_count += 1
+                        logger.info(f"[{trace_id}] 最终complete事件: next_action={data.get('next_action')}")
                         yield {"event": "complete", "data": json.dumps({"next_action": data.get("next_action", "wait_for_student")}, ensure_ascii=False)}
             except json.JSONDecodeError:
                 pass
+        
+        logger.info(f"[{trace_id}] === 教学流式响应结束, 总计{event_count}个事件 ===")
 
     async def stream_chat_response(
         self,
         session: LearningSession,
         message: str,
+        trace_id: str = "",
     ) -> AsyncGenerator[dict[str, Any], None]:
         """Stream chat response for student message using JSONL format.
 
         Args:
             session: Learning session.
             message: Student message.
+            trace_id: 链路追踪ID.
 
         Yields:
             SSE events with incremental response.
         """
+        logger.info(f"[{trace_id}] === 处理学生消息 ===")
+        logger.info(f"[{trace_id}] 学生消息: {message[:50]}...")
+        logger.info(f"[{trace_id}] 当前对话历史: {len(session.messages)}条")
+        
         # 快捷意图检测
         if "跳过" in message or "已经会了" in message or "开始测试" in message:
             yield {"event": "complete", "data": json.dumps({"next_action": "start_assessment"}, ensure_ascii=False)}
@@ -810,6 +846,9 @@ class LearningService:
             yield {"event": "error", "data": json.dumps({"error": "会话没有当前知识点"}, ensure_ascii=False)}
             return
 
+        # 保存学生消息到对话历史
+        session.add_message("student", message)
+        
         kp_info = course_service.get_knowledge_point_info(session.kp_id)
 
         # Build prompt
@@ -821,12 +860,18 @@ class LearningService:
             student_message=message,
         )
 
+        # 获取对话历史（最近10轮）
+        conversation_history = session.get_conversation_history(max_turns=10)
+        logger.info(f"[{trace_id}] 传递对话历史: {len(conversation_history)}条消息")
+        
         # Stream LLM response and parse JSONL
         buffer = ""
         has_feedback = False
+        ai_response_content = ""  # 收集AI完整回复
         
-        for chunk in llm_service.stream_chat(SYSTEM_PROMPT, prompt):
+        for chunk in llm_service.stream_chat(SYSTEM_PROMPT, prompt, trace_id=trace_id):
             buffer += chunk
+            ai_response_content += chunk
             
             # Try to parse complete JSON lines
             while "\n" in buffer:
@@ -906,6 +951,192 @@ class LearningService:
                     "total_phases": total_phases,
                     "next_action": "start_assessment"
                 }, ensure_ascii=False)}
+        
+        # 保存AI回复到对话历史（提取主要内容）
+        if has_feedback and ai_response_content:
+            # 尝试从JSONL中提取msg_feedback内容
+            try:
+                for line in ai_response_content.split('\n'):
+                    if line.strip() and not line.startswith('```'):
+                        try:
+                            data = json.loads(line)
+                            if data.get("type") == "msg_feedback":
+                                session.add_message("ai", data.get("content", ""))
+                                break
+                        except:
+                            pass
+            except:
+                pass
+            
+            # 更新session（保存对话历史）
+            learning_session_repository.update(session)
+            logger.info(f"[{trace_id}] 对话历史已保存, 当前共{len(session.messages)}条消息")
+
+    async def stream_unified_response(
+        self,
+        session: LearningSession,
+        student_name: str,
+        message: str = "",
+        trace_id: str = "",
+        start_new_round: bool = False,
+        is_first_input: bool = False,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Unified streaming response method.
+        
+        Determines whether to use teaching mode or chat mode:
+        - is_first_input=True: Teaching mode, student input is ignored (not saved)
+        - is_first_input=False and has message: Chat mode, saves both student and AI messages
+        - start_new_round=True: Start a new learning round with history summary
+
+        Args:
+            session: Learning session.
+            student_name: Student name for personalization.
+            message: Student message (optional for first round).
+            trace_id: Trace ID for logging.
+            start_new_round: Whether to start a new learning round.
+            is_first_input: Whether this is the first input after welcome message.
+
+        Yields:
+            SSE events with teaching content or chat response.
+        """
+        from app.models.learning import RoundStatus
+        
+        # 如果需要开始新轮次
+        if start_new_round:
+            self.prepare_new_round(session, trace_id)
+        
+        # 判断当前模式：
+        # is_first_input=True → 教学模式（首次输入只是确认开始）
+        # 否则 → 检查当前轮次是否有消息，有则对话模式
+        current_round_messages = session.current_round.messages if session.current_round else []
+        is_teaching_mode = is_first_input or (len(current_round_messages) == 0 and not message)
+        learning_round = session.learning_round
+        
+        # 获取历史总结（用于提示模型）
+        history_summary_str = session.get_history_summary_str()
+        
+        logger.info(f"[{trace_id}] === 统一流式响应 ===")
+        logger.info(f"[{trace_id}] is_teaching_mode={is_teaching_mode}, learning_round={learning_round}, current_round_messages={len(current_round_messages)}, message={'有' if message else '无'}")
+        
+        if is_teaching_mode:
+            # 教学模式：第一轮或新学习轮次
+            # 学生的输入只作为触发信号，不保存到对话历史
+            logger.info(f"[{trace_id}] 进入教学模式（第{learning_round}轮学习）")
+            
+            ai_content_parts = []
+            async for event in self.stream_teaching_content(
+                session, 
+                student_name, 
+                trace_id,
+                learning_round=learning_round,
+                history_summary=history_summary_str,
+            ):
+                # 收集 AI 输出
+                if event.get("event") in ["segment", "msg_intro", "msg_def", "msg_example", "msg_summary", "msg_question"]:
+                    try:
+                        data = json.loads(event.get("data", "{}"))
+                        content = data.get("message") or data.get("content", "")
+                        if content:
+                            ai_content_parts.append(content)
+                    except:
+                        pass
+                yield event
+            
+            # 保存 AI 输出到对话历史
+            if ai_content_parts:
+                ai_content = "\n".join(ai_content_parts)
+                session.add_message("ai", ai_content)
+                learning_session_repository.update(session)
+                logger.info(f"[{trace_id}] 教学内容已保存到对话历史")
+        else:
+            # 对话模式：同一轮学习内的师生互动
+            logger.info(f"[{trace_id}] 进入对话模式（第{learning_round}轮学习内的对话）")
+            async for event in self.stream_chat_response(session, message, trace_id):
+                yield event
+
+    def generate_round_summary(
+        self,
+        round_data: "LearningRound",
+        trace_id: str = "",
+    ) -> "RoundSummary":
+        """生成轮次总结
+        
+        Args:
+            round_data: 学习轮次数据
+            trace_id: 链路追踪ID
+            
+        Returns:
+            轮次总结
+        """
+        from app.models.learning import RoundSummary, RoundStatus
+        
+        # 如果是评估完成的，使用评估结果
+        if round_data.assessment_result:
+            ar = round_data.assessment_result
+            return RoundSummary(
+                result="passed" if ar.passed else "failed",
+                score=ar.score,
+                main_issues=ar.error_types[:3] if ar.error_types else ["需要加强练习"],
+                error_types=ar.error_types,
+                mastery_level="掌握" if ar.passed and ar.score >= 80 else ("理解" if ar.passed else "入门"),
+                key_insights=f"正确率{int(ar.correct_count/ar.total_count*100)}%",
+                teaching_phases_completed=round_data.current_phase,
+                total_phases=round_data.total_phases,
+            )
+        
+        # 如果是中途退出的，基于对话内容生成
+        messages_text = "\n".join([f"{m['role']}: {m['content'][:100]}" for m in round_data.messages[-10:]])
+        
+        # 简单估算（实际可以调用LLM生成更详细的总结）
+        phases_done = round_data.current_phase
+        total = round_data.total_phases
+        progress = phases_done / total if total > 0 else 0
+        
+        return RoundSummary(
+            result="abandoned",
+            score=0.0,
+            main_issues=["学习中途中断"],
+            error_types=[],
+            mastery_level="入门" if progress < 0.5 else "理解",
+            key_insights=f"完成{phases_done}/{total}阶段",
+            teaching_phases_completed=phases_done,
+            total_phases=total,
+        )
+
+    def ensure_previous_round_summary(self, session: "LearningSession", trace_id: str = "") -> None:
+        """确保上一轮有总结（懒加载）
+        
+        如果上一轮没有总结，则生成一个。
+        """
+        from app.models.learning import RoundStatus
+        
+        if len(session.rounds) < 2:
+            return  # 没有上一轮
+        
+        previous_round = session.rounds[-2]  # 倒数第二轮
+        if previous_round.summary is None and previous_round.status != RoundStatus.IN_PROGRESS:
+            logger.info(f"[{trace_id}] 为第{previous_round.round_number}轮生成懒加载总结")
+            previous_round.summary = self.generate_round_summary(previous_round, trace_id)
+            learning_session_repository.update(session)
+
+    def prepare_new_round(self, session: "LearningSession", trace_id: str = "") -> "LearningRound":
+        """准备新一轮学习
+        
+        1. 确保上一轮有总结
+        2. 开始新一轮
+        
+        Returns:
+            新的学习轮次
+        """
+        # 先为上一轮生成总结（如果需要）
+        self.ensure_previous_round_summary(session, trace_id)
+        
+        # 开始新一轮
+        new_round = session.start_new_round()
+        learning_session_repository.update(session)
+        
+        logger.info(f"[{trace_id}] 开始第{new_round.round_number}轮学习")
+        return new_round
 
 
 # Global service instance

@@ -1,0 +1,1 @@
+./ai-teacher-backend/rules.md  在编写python代码时，你应该始终遵循这个规则。

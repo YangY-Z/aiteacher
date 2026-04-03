@@ -1,12 +1,16 @@
 """Backtrack service for learning path remediation."""
 
+import logging
 from typing import Any, Optional
 
 from app.models.learning import LearningRecord
 from app.repositories.learning_repository import learning_record_repository
 from app.repositories.course_repository import knowledge_point_repository, knowledge_point_dependency_repository
 from app.services.llm_service import llm_service
+from app.services.learner_profile_service import learner_profile_service
 from app.prompts.backtrack_prompt import BACKTRACK_DECISION_PROMPT
+
+logger = logging.getLogger(__name__)
 
 
 class BacktrackService:
@@ -51,6 +55,74 @@ class BacktrackService:
                 "teaching_adjustment": "使用不同的讲解方式，增加练习",
             }
 
+        # ========== 集成学习者画像服务 ==========
+        # 获取薄弱知识点列表（按掌握度排序）
+        try:
+            weak_kps = learner_profile_service.get_weak_knowledge_points(
+                student_id=student_id,
+                course_id=current_kp.course_id,
+                threshold=0.6,
+            )
+            
+            # 筛选出当前知识点的前置依赖中的薄弱点
+            weak_prereqs = [
+                wkp for wkp in weak_kps
+                if wkp["kp_id"] in prereq_ids
+            ]
+            
+            logger.info(f"薄弱前置知识点: {len(weak_prereqs)}个")
+            
+            if weak_prereqs:
+                # 选择最薄弱的前置知识点
+                weakest = weak_prereqs[0]  # 已经按掌握度排序
+                
+                return {
+                    "decision": "backtrack",
+                    "reason": f"学生对前置知识点「{weakest['kp_name']}」掌握不牢（掌握度{weakest['mastery']:.0%}）",
+                    "error_root_cause": self._analyze_error_root_with_patterns(
+                        error_type, weakest["kp_name"], weakest.get("error_patterns", [])
+                    ),
+                    "backtrack_target": {
+                        "knowledge_point_id": weakest["kp_id"],
+                        "knowledge_point_name": weakest["kp_name"],
+                    },
+                    "teaching_adjustment": f"重点讲解「{weakest['kp_name']}」的核心概念，强调与「{current_kp.name}」的联系",
+                }
+                
+        except Exception as e:
+            logger.warning(f"获取薄弱知识点失败，使用默认逻辑: {e}")
+            # 降级：使用原有逻辑
+            return self._fallback_analyze(
+                student_id, current_kp_id, current_kp, prereq_ids, error_type
+            )
+
+        # Otherwise, continue with remediation
+        return {
+            "decision": "continue",
+            "reason": "前置知识点掌握程度尚可，建议针对当前知识点进行针对性讲解",
+            "teaching_adjustment": f"针对「{error_type}」类型的错误进行重点讲解",
+        }
+    
+    def _fallback_analyze(
+        self,
+        student_id: int,
+        current_kp_id: str,
+        current_kp,
+        prereq_ids: list[str],
+        error_type: str,
+    ) -> dict[str, Any]:
+        """降级分析逻辑（当学习者画像服务不可用时）
+
+        Args:
+            student_id: 学生ID
+            current_kp_id: 当前知识点ID
+            current_kp: 当前知识点对象
+            prereq_ids: 前置知识点ID列表
+            error_type: 错误类型
+
+        Returns:
+            回溯决策
+        """
         # Get student performance on prerequisites
         prereq_performance = []
         for prereq_id in prereq_ids:
@@ -93,7 +165,6 @@ class BacktrackService:
                 "teaching_adjustment": f"重点讲解{weakest['kp_name']}的核心概念，强调与{current_kp.name}的联系",
             }
 
-        # Otherwise, continue with remediation
         return {
             "decision": "continue",
             "reason": "前置知识点掌握程度尚可，建议针对当前知识点进行针对性讲解",
@@ -118,6 +189,50 @@ class BacktrackService:
         }
 
         return error_mapping.get(error_type, f"学生对{prereq_name}的掌握存在不足")
+    
+    def _analyze_error_root_with_patterns(
+        self,
+        error_type: str,
+        prereq_name: str,
+        error_patterns: list[dict],
+    ) -> str:
+        """结合错误模式分析根本原因
+
+        Args:
+            error_type: 错误类型
+            prereq_name: 薄弱知识点名称
+            error_patterns: 错误模式列表
+
+        Returns:
+            根本原因分析
+        """
+        base_cause = self._analyze_error_root(error_type, prereq_name)
+        
+        if not error_patterns:
+            return base_cause
+        
+        # 添加具体错误模式信息
+        pattern_desc = []
+        for pattern in error_patterns[:2]:  # 最多取2个
+            pattern_type = pattern.get("type", "")
+            frequency = pattern.get("frequency", 0)
+            
+            pattern_names = {
+                "concept_misunderstanding": "概念理解错误",
+                "calculation_error": "计算错误",
+                "procedure_error": "步骤错误",
+                "careless_error": "粗心大意",
+                "incomplete_answer": "答题不完整",
+                "prerequisite_gap": "前置知识缺失",
+            }
+            
+            name = pattern_names.get(pattern_type, pattern_type)
+            pattern_desc.append(f"{name}({frequency}次)")
+        
+        if pattern_desc:
+            return f"{base_cause}。常见错误模式：{', '.join(pattern_desc)}"
+        
+        return base_cause
 
     def generate_remedial_content(
         self,

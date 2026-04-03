@@ -111,6 +111,7 @@ class InMemoryDatabase:
         self._initialize_seed_data()
         self._load_students_from_file()
         self.load_learner_profiles_from_file()
+        self.load_learning_sessions_from_file()
 
     def _get_data_file_path(self) -> Path:
         """Get the absolute path to the data file.
@@ -584,6 +585,65 @@ class InMemoryDatabase:
         if student_id:
             logs = [l for l in logs if l.get("student_id") == student_id]
         return logs
+
+    # Learning Session persistence
+    def _get_session_data_file_path(self) -> Path:
+        """Get the path to the learning sessions data file."""
+        project_root = Path(__file__).parent.parent.parent
+        return project_root / "data" / "learning_sessions.json"
+
+    def save_learning_sessions_to_file(self) -> None:
+        """Save learning sessions to JSON file."""
+        file_path = self._get_session_data_file_path()
+        
+        try:
+            # Ensure directory exists
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            sessions_data = []
+            for session in self._learning_sessions.values():
+                sessions_data.append(session.to_dict())
+            
+            data = {
+                "sessions": sessions_data,
+                "updated_at": datetime.now().isoformat(),
+            }
+            
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            
+            logger.debug(f"Saved {len(sessions_data)} learning sessions to {file_path}")
+            
+        except Exception as e:
+            logger.error(f"Failed to save learning sessions to file: {e}")
+
+    def load_learning_sessions_from_file(self) -> None:
+        """Load learning sessions from JSON file."""
+        file_path = self._get_session_data_file_path()
+        
+        if not file_path.exists():
+            logger.debug(f"Learning sessions file not found: {file_path}")
+            return
+        
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if not content:
+                    logger.debug(f"Learning sessions file is empty: {file_path}")
+                    return
+                data = json.loads(content)
+            
+            sessions_data = data.get("sessions", [])
+            for session_dict in sessions_data:
+                session = LearningSession.from_dict(session_dict)
+                self._learning_sessions[session.id] = session
+            
+            logger.info(f"Loaded {len(sessions_data)} learning sessions from {file_path}")
+            
+        except json.JSONDecodeError as e:
+            logger.warning(f"Invalid JSON in learning sessions file: {e}")
+        except Exception as e:
+            logger.error(f"Failed to load learning sessions from file: {e}")
 
 
 # Global database instance

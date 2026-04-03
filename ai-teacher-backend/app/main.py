@@ -1,6 +1,8 @@
 """FastAPI main application entry point."""
 
 import json
+import logging
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -13,10 +15,45 @@ from app.core.config import settings
 from app.core.exceptions import AppException
 from app.utils.data_loader import load_assessment_data
 
+# 配置日志
+def setup_logging():
+    """配置应用日志"""
+    log_format = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
+    date_format = "%Y-%m-%d %H:%M:%S"
+    
+    # 设置根日志级别
+    logging.basicConfig(
+        level=logging.INFO,
+        format=log_format,
+        datefmt=date_format,
+        handlers=[
+            logging.StreamHandler(sys.stdout),  # 输出到控制台
+        ]
+    )
+    
+    # 设置第三方库日志级别（减少噪音）
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    
+    # 设置应用日志级别
+    logging.getLogger("app").setLevel(logging.DEBUG if settings.debug else logging.INFO)
+
+# 初始化日志
+setup_logging()
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown events."""
+    logger.info("=" * 50)
+    logger.info("AI虚拟教师系统启动中...")
+    logger.info(f"环境: {settings.environment}")
+    logger.info(f"LLM Provider: {settings.llm_provider}")
+    logger.info(f"Debug模式: {settings.debug}")
+    logger.info("=" * 50)
+    
     # Note: Course data is already initialized in memory_db.__post_init__
     # Only load assessment questions here
 
@@ -27,13 +64,14 @@ async def lifespan(app: FastAPI):
             with open(assessment_path, "r", encoding="utf-8") as f:
                 assessment_data = json.load(f)
             load_assessment_data(assessment_data)
+            logger.info(f"评估题库加载成功: {assessment_path}")
         except (json.JSONDecodeError, Exception) as e:
-            print(f"Warning: Failed to load assessment data: {e}")
+            logger.warning(f"加载评估题库失败: {e}")
 
     yield
 
     # Shutdown: Clean up resources if needed
-    pass
+    logger.info("AI虚拟教师系统关闭...")
 
 
 def create_app() -> FastAPI:

@@ -77,7 +77,17 @@ class AssessmentQuestion:
             return correct == answer
 
         # For multiple choice, compare the selected option
-        return str(student_answer).strip().upper() == str(self.correct_answer).strip().upper()
+        # Extract option letter from student answer (supports both "A" and "A. xxx" formats)
+        import re
+        student_answer_str = str(student_answer).strip().upper()
+        correct_answer_str = str(self.correct_answer).strip().upper()
+        
+        # Try to extract option letter from student answer (e.g., "A. y = 2x + 1" -> "A")
+        match = re.match(r'^([A-D])[\.\、\s]', student_answer_str)
+        if match:
+            student_answer_str = match.group(1)
+        
+        return student_answer_str == correct_answer_str
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""

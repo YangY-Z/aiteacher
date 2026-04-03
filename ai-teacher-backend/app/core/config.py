@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = "AI Virtual Teacher"
     app_version: str = "0.1.0"
-    debug: bool = False
+    debug: bool = True
     environment: str = "development"
 
     # Data directory for loading JSON files
@@ -48,6 +48,11 @@ class Settings(BaseSettings):
 
     # GLM-5 specific: enable thinking mode
     zhipu_enable_thinking: bool = False
+
+    # Alibaba Cloud Bailian (阿里云百炼) Configuration
+    bailian_api_key: Optional[str] = None  # DASHSCOPE_API_KEY
+    bailian_model: str = "qwen-plus"  # qwen-plus, qwen-turbo, qwen3.5-35b-a3b
+    bailian_enable_thinking: bool = False  # Enable thinking mode for supported models
 
     # CORS - allow all origins in development
     cors_origins: list[str] = ["*"]

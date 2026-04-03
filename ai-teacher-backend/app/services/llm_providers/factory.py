@@ -7,6 +7,7 @@ from typing import Optional
 from app.core.config import settings
 from app.services.llm_providers.base import BaseLLMProvider
 from app.services.llm_providers.zhipu import ZhipuProvider
+from app.services.llm_providers.bailian import BailianProvider
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ class LLMProviderType(str, Enum):
     """Supported LLM provider types."""
 
     ZHIPU = "zhipu"
+    BAILIAN = "bailian"
     # Future providers can be added here:
     # OPENAI = "openai"
     # ANTHROPIC = "anthropic"
@@ -96,6 +98,14 @@ class LLMProviderFactory:
                 api_key=kwargs.get("api_key", fresh_settings.zhipu_api_key),
                 default_model=kwargs.get("default_model", fresh_settings.zhipu_model),
                 timeout=kwargs.get("timeout", fresh_settings.llm_timeout),
+            )
+        
+        elif provider_type == LLMProviderType.BAILIAN:
+            return BailianProvider(
+                api_key=kwargs.get("api_key", fresh_settings.bailian_api_key),
+                default_model=kwargs.get("default_model", fresh_settings.bailian_model),
+                timeout=kwargs.get("timeout", fresh_settings.llm_timeout),
+                enable_thinking=kwargs.get("enable_thinking", fresh_settings.bailian_enable_thinking),
             )
 
         # Future providers can be added here:

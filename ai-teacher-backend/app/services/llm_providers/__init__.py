@@ -13,6 +13,7 @@ from app.services.llm_providers.factory import (
     get_llm_provider,
 )
 from app.services.llm_providers.zhipu import ZhipuProvider
+from app.services.llm_providers.bailian import BailianProvider
 
 __all__ = [
     "BaseLLMProvider",
@@ -24,4 +25,5 @@ __all__ = [
     "LLMProviderType",
     "get_llm_provider",
     "ZhipuProvider",
+    "BailianProvider",
 ]
