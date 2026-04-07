@@ -1,17 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store';
+import { learningApi, courseApi } from '../api';
+import type { ProgressResponse, KnowledgePointProgress, Course } from '../types';
+import KnowledgeGraph from '../components/KnowledgeGraph';
 import './LearningCenter.css';
-
-interface Module {
-  id: number;
-  name: string;
-  desc: string;
-  progress: number;
-  status: 'completed' | 'current' | 'locked';
-  icon: string;
-  time: string;
-}
 
 interface Badge {
   id: number;
@@ -20,127 +13,172 @@ interface Badge {
   earned: boolean;
 }
 
-interface KnowledgeNode {
-  id: string;
-  name: string;
-  status: 'completed' | 'current' | 'locked';
-  progress?: number;
-  x: number;
-  y: number;
-  size: number;
-}
-
-interface KnowledgeLink {
-  from: string;
-  to: string;
-}
-
-interface LearningCenterProps {
+const LearningCenter: React.FC<{
   recommendedKpId?: string | null;
   autoStart?: boolean;
   onLearningStarted?: () => void;
-}
-
-const modules: Module[] = [
-  { id: 1, name: '函数概念', desc: '理解变量、函数定义、表示法', progress: 100, status: 'completed', icon: '📘', time: '10 分钟' },
-  { id: 2, name: '一次函数定义', desc: '学习标准形式 y=kx+b，理解斜率和截距', progress: 20, status: 'current', icon: '📗', time: '2/10 分钟' },
-  { id: 3, name: '画图像', desc: '掌握描点法、两点法画图', progress: 0, status: 'locked', icon: '📈', time: '预计 12 分钟' },
-  { id: 4, name: '斜率深入', desc: '理解斜率正负、大小、平行关系', progress: 0, status: 'locked', icon: '📐', time: '预计 10 分钟' },
-  { id: 5, name: '截距应用', desc: '掌握 y 截距、x 截距的计算和应用', progress: 0, status: 'locked', icon: '📊', time: '预计 8 分钟' },
-  { id: 6, name: '解析式求解', desc: '根据条件求一次函数解析式', progress: 0, status: 'locked', icon: '✏️', time: '预计 10 分钟' },
-  { id: 7, name: '性质总结', desc: '单调性、奇偶性、图像特征', progress: 0, status: 'locked', icon: '📝', time: '预计 8 分钟' },
-  { id: 8, name: '实际应用', desc: '行程问题、成本问题等应用', progress: 0, status: 'locked', icon: '🌍', time: '预计 15 分钟' },
-  { id: 9, name: '综合练习', desc: '混合题型综合训练', progress: 0, status: 'locked', icon: '📋', time: '预计 15 分钟' },
-  { id: 10, name: '单元测试', desc: '本单元综合测试', progress: 0, status: 'locked', icon: '✅', time: '预计 10 分钟' },
-];
-
-const badges: Badge[] = [
-  { id: 1, name: '快速学习者', icon: '🏅', earned: true },
-  { id: 2, name: '首次满分', icon: '💯', earned: true },
-  { id: 3, name: '连续学习', icon: '🔥', earned: true },
-  { id: 4, name: '完美通关', icon: '👑', earned: false },
-  { id: 5, name: '坚持不懈', icon: '💪', earned: false },
-  { id: 6, name: '数学天才', icon: '🧠', earned: false },
-];
-
-const nodes: KnowledgeNode[] = [
-  { id: 'coord', name: '坐标系', status: 'completed', x: 500, y: 80, size: 35 },
-  { id: 'var', name: '变量概念', status: 'completed', x: 300, y: 180, size: 35 },
-  { id: 'func', name: '函数定义', status: 'completed', x: 500, y: 180, size: 35 },
-  { id: 'graph', name: '图像基础', status: 'completed', x: 700, y: 180, size: 35 },
-  { id: 'prep', name: '前置汇总', status: 'completed', x: 400, y: 280, size: 35 },
-  { id: 'linear', name: '一次函数', status: 'current', progress: 62, x: 500, y: 380, size: 45 },
-  { id: 'prop', name: '图像性质', status: 'locked', x: 300, y: 480, size: 35 },
-  { id: 'app', name: '应用问题', status: 'locked', x: 500, y: 480, size: 35 },
-  { id: 'practice', name: '综合练习', status: 'locked', x: 700, y: 480, size: 35 },
-  { id: 'final', name: '通关', status: 'locked', x: 500, y: 560, size: 40 },
-];
-
-const links: KnowledgeLink[] = [
-  { from: 'coord', to: 'var' },
-  { from: 'coord', to: 'func' },
-  { from: 'coord', to: 'graph' },
-  { from: 'var', to: 'prep' },
-  { from: 'func', to: 'prep' },
-  { from: 'graph', to: 'prep' },
-  { from: 'prep', to: 'linear' },
-  { from: 'linear', to: 'prop' },
-  { from: 'linear', to: 'app' },
-  { from: 'linear', to: 'practice' },
-  { from: 'prop', to: 'final' },
-  { from: 'app', to: 'final' },
-  { from: 'practice', to: 'final' },
-];
-
-type TabType = 'modules' | 'map';
-
-const LearningCenter: React.FC<LearningCenterProps> = ({ 
+}> = ({ 
   recommendedKpId, 
   autoStart, 
   onLearningStarted 
 }) => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<TabType>('modules');
+  const [progress, setProgress] = useState<ProgressResponse | null>(null);
+  const [course, setCourse] = useState<Course | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showAllLayers, setShowAllLayers] = useState(false);
+
+  // 默认课程ID（一次函数）
+  const DEFAULT_COURSE_ID = 'MATH_JUNIOR_01';
 
   // 当 autoStart 为 true 时，自动跳转到学习页面
   useEffect(() => {
     if (autoStart && recommendedKpId) {
-      // 通知父组件学习已开始
       onLearningStarted?.();
-      // 跳转到学习页面
       navigate(`/learn?kp_id=${recommendedKpId}`);
     }
   }, [autoStart, recommendedKpId, onLearningStarted, navigate]);
 
-  const completedCount = modules.filter(m => m.status === 'completed').length;
+  // 加载学习进度和课程信息
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // 检查是否已登录
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('未登录，请先登录');
+          return;
+        }
+        
+        // 获取课程信息
+        console.log('正在获取课程信息...', DEFAULT_COURSE_ID);
+        const courseRes = await courseApi.getById(DEFAULT_COURSE_ID);
+        console.log('课程响应:', courseRes);
+        
+        if (courseRes.success) {
+          setCourse(courseRes.data);
+        } else {
+          console.error('获取课程失败:', courseRes);
+          setError(`获取课程失败: ${courseRes.message || '未知错误'}`);
+          return;
+        }
+        
+        // 获取学习进度
+        console.log('正在获取学习进度...', DEFAULT_COURSE_ID);
+        const progressRes = await learningApi.getProgress(DEFAULT_COURSE_ID);
+        console.log('进度响应:', progressRes);
+        
+        if (progressRes.success) {
+          setProgress(progressRes.data);
+        } else {
+          console.error('获取进度失败:', progressRes);
+          setError(`获取进度失败: ${progressRes.message || '未知错误'}`);
+          return;
+        }
+      } catch (error) {
+        console.error('加载学习进度失败:', error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        setError(`加载失败: ${errorMsg}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // 徽章数据（暂时硬编码，后续可以从API获取）
+  const badges: Badge[] = [
+    { id: 1, name: '快速学习者', icon: '🏅', earned: (progress?.mastery_rate || 0) > 0.3 },
+    { id: 2, name: '首次满分', icon: '💯', earned: (progress?.mastered_count || 0) > 0 },
+    { id: 3, name: '连续学习', icon: '🔥', earned: (progress?.session_count || 0) >= 3 },
+    { id: 4, name: '完美通关', icon: '👑', earned: (progress?.mastery_rate || 0) === 1 },
+    { id: 5, name: '坚持不懈', icon: '💪', earned: (progress?.total_time || 0) > 60 },
+    { id: 6, name: '数学天才', icon: '🧠', earned: (progress?.mastered_count || 0) >= 10 },
+  ];
+
   const earnedBadgeCount = badges.filter(b => b.earned).length;
 
-  const handleSelectModule = (module: Module) => {
-    if (module.status === 'locked') {
-      alert('请先完成前置模块');
+  const handleSelectModule = (kp: KnowledgePointProgress) => {
+    if (kp.status === 'locked') {
+      alert('请先完成前置知识点');
+    } else {
+      navigate(`/learn?kp_id=${kp.id}`);
+    }
+  };
+
+  const handleContinueLearning = () => {
+    if (progress?.current_kp_id) {
+      navigate(`/learn?kp_id=${progress.current_kp_id}`);
     } else {
       navigate('/learn');
     }
   };
 
-  const handleContinueLearning = () => {
-    navigate('/learn');
+  // 格式化时间（分钟）
+  const formatTime = (minutes: number) => {
+    if (minutes < 60) return `${Math.round(minutes)} 分钟`;
+    const hours = Math.floor(minutes / 60);
+    const mins = Math.round(minutes % 60);
+    return `${hours} 小时 ${mins} 分钟`;
   };
 
-  const getNodeById = (id: string) => nodes.find(n => n.id === id);
+  if (loading) {
+    return (
+      <div className="learning-center">
+        <div className="center-container">
+          <div className="loading">加载中...</div>
+        </div>
+      </div>
+    );
+  }
 
-  const getLinkStatus = (link: KnowledgeLink) => {
-    const fromNode = getNodeById(link.from);
-    const toNode = getNodeById(link.to);
-    if (fromNode?.status === 'completed' && toNode?.status === 'completed') {
-      return 'completed';
-    }
-    if (fromNode?.status === 'completed' || fromNode?.status === 'current') {
-      return 'active';
-    }
-    return '';
-  };
+  if (!progress || !course) {
+    return (
+      <div className="learning-center">
+        <div className="center-container">
+          <div className="error">
+            <div>{error || '加载失败，请重试'}</div>
+            <div style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
+              <div>课程数据: {course ? '✓ 已加载' : '✗ 未加载'}</div>
+              <div>进度数据: {progress ? '✓ 已加载' : '✗ 未加载'}</div>
+              <div style={{ marginTop: '10px' }}>
+                <button onClick={() => window.location.reload()} style={{
+                  padding: '8px 16px',
+                  background: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  marginRight: '10px'
+                }}>
+                  重新加载
+                </button>
+                <button onClick={() => {
+                  localStorage.clear();
+                  window.location.href = '/login';
+                }} style={{
+                  padding: '8px 16px',
+                  background: '#f44336',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}>
+                  清除数据并重新登录
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="learning-center">
@@ -148,154 +186,99 @@ const LearningCenter: React.FC<LearningCenterProps> = ({
         {/* 头部 */}
         <div className="center-header">
           <h1>陪伴学习</h1>
-          <p>一次函数 · 已学习 12 分钟 · 预计剩余 86 分钟</p>
+          <p>
+            {course?.name || '加载中'} · 
+            已学习 {formatTime(progress?.total_time || 0)} · 
+            预计剩余 {formatTime(((progress?.total_count || 0) - (progress?.mastered_count || 0)) * 10)}
+          </p>
         </div>
 
         {/* 整体进度卡片 */}
         <div className="overview-card">
           <div className="overview-stats">
             <div className="stat-item">
-              <div className="stat-number">12%</div>
+              <div className="stat-number">{Math.round((progress?.mastery_rate || 0) * 100)}%</div>
               <div className="stat-label">已完成</div>
             </div>
             <div className="stat-item">
-              <div className="stat-number">{completedCount}/10</div>
-              <div className="stat-label">模块完成</div>
+              <div className="stat-number">{progress?.mastered_count || 0}/{progress?.total_count || 0}</div>
+              <div className="stat-label">知识点掌握</div>
             </div>
             <div className="stat-item">
               <div className="stat-number">🏅 {earnedBadgeCount}</div>
               <div className="stat-label">获得徽章</div>
             </div>
           </div>
+          <div className="progress-bar-overall">
+            <div 
+              className="progress-fill-overall"
+              style={{ width: `${(progress?.mastery_rate || 0) * 100}%` }}
+            ></div>
+          </div>
         </div>
 
-        {/* Tab 切换 */}
-        <div className="tab-switcher">
-          <button
-            className={`tab-btn ${activeTab === 'modules' ? 'active' : ''}`}
-            onClick={() => setActiveTab('modules')}
-          >
-            模块列表
-          </button>
-          <button
-            className={`tab-btn ${activeTab === 'map' ? 'active' : ''}`}
-            onClick={() => setActiveTab('map')}
-          >
-            知识地图
-          </button>
+        {/* 智能知识地图 */}
+        <div className="knowledge-map-section">
+          <div className="map-header">
+            <h2>🗺️ 知识地图</h2>
+            <div className="map-controls">
+              <button 
+                className={`control-btn ${!showAllLayers ? 'active' : ''}`}
+                onClick={() => setShowAllLayers(false)}
+              >
+                只显示已解锁
+              </button>
+              <button 
+                className={`control-btn ${showAllLayers ? 'active' : ''}`}
+                onClick={() => setShowAllLayers(true)}
+              >
+                显示全部
+              </button>
+            </div>
+          </div>
+
+          <div className="map-tip">
+            <span className="map-tip-icon">💡</span>
+            <span>知识点按层级分层排列，点击节点查看依赖关系，可缩放查看</span>
+          </div>
+
+          <KnowledgeGraph 
+            knowledgePoints={progress?.knowledge_points || []}
+            onNodeClick={handleSelectModule}
+            showAllLayers={showAllLayers}
+            levelDescriptions={course?.level_descriptions || {}}
+          />
+
+          {/* 图例 */}
+          <div className="legend">
+            <div className="legend-item">
+              <div className="legend-node completed"></div>
+              <span>已掌握</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-node current"></div>
+              <span>进行中</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-node locked"></div>
+              <span>未解锁</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-line completed"></div>
+              <span>已完成路径</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-line active"></div>
+              <span>学习路径</span>
+            </div>
+          </div>
         </div>
-
-        {/* 模块列表视图 */}
-        {activeTab === 'modules' && (
-          <div className="modules-section">
-            <div className="modules-grid">
-              {modules.map((module) => (
-                <div
-                  key={module.id}
-                  className={`module-card ${module.status}`}
-                  onClick={() => handleSelectModule(module)}
-                >
-                  <div className="module-header">
-                    <div className={`module-icon ${module.status}`}>{module.icon}</div>
-                    <div className="module-name">{module.name}</div>
-                    <span className={`module-status ${module.status}`}>
-                      {module.status === 'completed' ? '已完成' : module.status === 'current' ? '进行中' : '未开始'}
-                    </span>
-                  </div>
-                  <div className="module-desc">{module.desc}</div>
-                  <div className="module-progress-bar">
-                    <div
-                      className="module-progress-fill"
-                      style={{ width: `${module.progress}%` }}
-                    />
-                  </div>
-                  <div className="module-stats">
-                    <span>{module.progress}%</span>
-                    <span>{module.time}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 知识地图视图 */}
-        {activeTab === 'map' && (
-          <div className="map-section">
-            <div className="map-container">
-              <svg className="knowledge-map-svg" viewBox="0 0 1000 620">
-                {/* 连线 */}
-                {links.map((link, index) => {
-                  const from = getNodeById(link.from);
-                  const to = getNodeById(link.to);
-                  if (!from || !to) return null;
-                  
-                  return (
-                    <line
-                      key={index}
-                      className={`link-line ${getLinkStatus(link)}`}
-                      x1={from.x}
-                      y1={from.y}
-                      x2={to.x}
-                      y2={to.y}
-                    />
-                  );
-                })}
-
-                {/* 节点 */}
-                {nodes.map((node) => (
-                  <g key={node.id} className="node-group" transform={`translate(${node.x}, ${node.y})`}>
-                    <circle
-                      className={`node-circle ${node.status}`}
-                      r={node.size}
-                      style={node.id === 'final' ? { stroke: '#ffd700', strokeWidth: 3 } : undefined}
-                    />
-                    <text
-                      className="node-text"
-                      y={node.status === 'current' ? -5 : 5}
-                      style={node.status === 'current' ? { fill: 'white' } : undefined}
-                    >
-                      {node.id === 'final' ? '🎯 ' : ''}{node.name}
-                    </text>
-                    {node.status === 'completed' && (
-                      <text className="node-subtext" y={20}>✓ 已掌握</text>
-                    )}
-                    {node.status === 'current' && node.progress && (
-                      <text className="node-subtext" y={20} style={{ fill: 'rgba(255,255,255,0.9)' }}>
-                        {node.progress}% 掌握
-                      </text>
-                    )}
-                    {node.status === 'locked' && (
-                      <text className="node-subtext" y={20}>○ 未开始</text>
-                    )}
-                  </g>
-                ))}
-              </svg>
-
-              {/* 图例 */}
-              <div className="legend">
-                <div className="legend-item">
-                  <div className="legend-dot completed"></div>
-                  <span>已掌握</span>
-                </div>
-                <div className="legend-item">
-                  <div className="legend-dot current"></div>
-                  <span>进行中</span>
-                </div>
-                <div className="legend-item">
-                  <div className="legend-dot locked"></div>
-                  <span>未开始</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* 徽章墙 */}
         <div className="badges-section">
           <div className="section-header">
             <div className="section-title">徽章收藏</div>
-            <span className="section-subtitle">{earnedBadgeCount}/6</span>
+            <span className="section-subtitle">{earnedBadgeCount}/{badges.length}</span>
           </div>
           <div className="badge-grid">
             {badges.map((badge) => (
@@ -310,7 +293,7 @@ const LearningCenter: React.FC<LearningCenterProps> = ({
         {/* 操作按钮 */}
         <div className="action-buttons">
           <button className="btn btn-primary" onClick={handleContinueLearning}>
-            继续学习
+            {progress.current_kp_id ? '继续学习' : '开始学习'}
           </button>
         </div>
       </div>

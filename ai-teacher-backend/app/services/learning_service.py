@@ -18,6 +18,8 @@ from app.models.learning import (
     SessionResult,
     StudentProfile,
     AttemptRecord,
+    LearningRound,
+    RoundSummary,
 )
 from app.models.assessment import AssessmentQuestion, StudentAnswer
 from app.repositories.learning_repository import (
@@ -348,6 +350,7 @@ class LearningService:
 
         pass_threshold = kp.get_pass_threshold()
         correct_count = 0
+        question_results = []  # 存储每道题的详细结果
 
         # Check each answer
         for answer_data in answers:
@@ -361,6 +364,19 @@ class LearningService:
             is_correct = question.check_answer(student_answer)
             if is_correct:
                 correct_count += 1
+
+            # 构建题目结果详情
+            question_result = {
+                "question_id": question_id,
+                "content": question.content,
+                "type": question.type.value,
+                "options": question.options,
+                "student_answer": student_answer,
+                "correct_answer": question.correct_answer,
+                "is_correct": is_correct,
+                "explanation": question.explanation,
+            }
+            question_results.append(question_result)
 
             # Save answer
             student_answer_repository.create(
@@ -444,6 +460,7 @@ class LearningService:
             "next_kp_id": next_kp_id,
             "next_kp_name": next_kp_name,
             "backtrack_required": backtrack_required,
+            "question_results": question_results,  # 每道题的详细结果
         }
 
     def _analyze_error_type(self, answers: list[dict[str, Any]]) -> str:
@@ -590,15 +607,68 @@ class LearningService:
         Returns:
             Progress information.
         """
+        from app.repositories.course_repository import knowledge_point_dependency_repository
+        
         profile = student_profile_repository.get_by_student_and_course(
             student_id, course_id
         )
-        course = course_service.get_course(course_id)
         all_kps = course_service.get_course_knowledge_points(course_id)
 
         current_kp = None
         if profile and profile.current_kp_id:
             current_kp = knowledge_point_repository.get_by_id(profile.current_kp_id)
+
+        # 构建详细的知识点进度列表
+        knowledge_points_progress = []
+        for kp in all_kps:
+            # 判断知识点状态
+            status = "locked"  # 默认未解锁
+            progress = 0.0
+            
+            # 首先检查学生档案中的知识点状态
+            if profile:
+                if kp.id in profile.mastered_kp_ids:
+                    status = "completed"
+                    progress = 100
+                elif kp.id in profile.skipped_kp_ids:
+                    status = "skipped"
+                    progress = 0
+                elif kp.id == profile.current_kp_id:
+                    status = "current"
+                    progress = 50  # 当前正在学习
+                elif kp.id in profile.completed_kp_ids:
+                    status = "in_progress"
+                    progress = 80  # 已完成但未掌握
+                else:
+                    # 检查是否有学习记录
+                    record = learning_record_repository.get_by_student_and_kp(
+                        student_id, kp.id
+                    )
+                    if record:
+                        if record.status.value == "mastered":
+                            status = "completed"
+                            progress = 100
+                        elif record.status.value == "skipped":
+                            status = "skipped"
+                            progress = 0
+                        elif record.status.value in ["learning", "pending"]:
+                            status = "in_progress"
+                            if record.attempts:
+                                last_score = record.attempts[-1].score if record.attempts else 0
+                                progress = min(100, int(last_score * 100))
+            
+            # 获取知识点依赖关系
+            dependencies = knowledge_point_dependency_repository.get_dependencies(kp.id)
+            
+            knowledge_points_progress.append({
+                "id": kp.id,
+                "name": kp.name,
+                "type": kp.type.value if hasattr(kp.type, 'value') else str(kp.type),
+                "level": kp.level,
+                "status": status,
+                "progress": progress,
+                "dependencies": dependencies,
+            })
 
         return {
             "student_id": student_id,
@@ -613,6 +683,7 @@ class LearningService:
             "total_time": profile.total_time if profile else 0,
             "session_count": profile.session_count if profile else 0,
             "last_session_at": profile.last_session_at if profile else None,
+            "knowledge_points": knowledge_points_progress,  # 新增：详细知识点进度
         }
 
     async def stream_teaching_content(
@@ -816,161 +887,314 @@ class LearningService:
         
         logger.info(f"[{trace_id}] === 教学流式响应结束, 总计{event_count}个事件 ===")
 
+    def _should_skip_to_assessment(self, message: str) -> bool:
+        """检查是否应跳过对话直接进入评估。
+
+        Args:
+            message: 学生消息。
+
+        Returns:
+            是否跳过到评估阶段。
+        """
+        skip_keywords = ["跳过", "已经会了", "开始测试"]
+        return any(keyword in message for keyword in skip_keywords)
+
+    def _build_chat_prompt(
+        self, session: LearningSession, message: str
+    ) -> str:
+        """构建对话模式的提示词。
+
+        Args:
+            session: 学习会话。
+            message: 学生消息。
+
+        Returns:
+            格式化后的提示词。
+        """
+        kp_info = course_service.get_knowledge_point_info(session.kp_id)
+        kp_entity = knowledge_point_repository.get_by_id(kp_info["id"])
+        
+        # 获取当前阶段信息
+        current_phase = session.current_phase or 1
+        total_phases = self._get_total_phases(session)
+        
+        # 获取并格式化对话历史
+        conversation_history = session.get_conversation_history(max_turns=10)
+        history_text = self._format_conversation_history(conversation_history)
+        
+        return CHAT_RESPONSE_PROMPT.format(
+            knowledge_point_name=kp_info["name"],
+            knowledge_point_type=kp_info["type"],
+            key_points=", ".join(kp_entity.key_points) if kp_entity else "",
+            dependencies=", ".join(kp_info["dependency_names"]) if kp_info["dependency_names"] else "无",
+            student_message=message,
+            current_phase=current_phase,
+            total_phases=total_phases,
+            conversation_history=history_text,
+        )
+
+    def _format_conversation_history(self, history: list[dict[str, str]]) -> str:
+        """格式化对话历史为易读的文本。
+
+        Args:
+            history: 对话历史列表，每条消息包含 role 和 content。
+
+        Returns:
+            格式化后的对话历史文本。
+        """
+        if not history:
+            return "（无对话历史）"
+        
+        formatted_lines = []
+        for msg in history:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            
+            # 转换角色名称
+            if role == "assistant":
+                role_name = "老师"
+            elif role == "user":
+                role_name = "学生"
+            else:
+                role_name = role
+            
+            # 截断过长的内容
+            if len(content) > 200:
+                content = content[:200] + "..."
+            
+            formatted_lines.append(f"{role_name}：{content}")
+        
+        return "\n".join(formatted_lines)
+
+    def _parse_jsonl_event(self, line: str) -> Optional[dict[str, Any]]:
+        """解析单行 JSONL 事件。
+
+        Args:
+            line: JSONL 格式的行数据。
+
+        Returns:
+            解析后的事件字典，解析失败返回 None。
+        """
+        if not line.strip() or line.startswith("```"):
+            return None
+
+        try:
+            # 修复反斜杠转义问题
+            line_fixed = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', line)
+            return json.loads(line_fixed)
+        except json.JSONDecodeError:
+            return None
+
+    def _get_total_phases(self, session: LearningSession) -> int:
+        """获取当前教学模式的总阶段数。
+
+        Args:
+            session: 学习会话。
+
+        Returns:
+            总阶段数。
+        """
+        default_phases = 4
+        if not session.teaching_mode:
+            return default_phases
+
+        try:
+            from app.models.teaching_mode import TeachingModeType, TEACHING_MODE_CONFIGS
+            
+            mode_type = TeachingModeType(session.teaching_mode)
+            mode_config = TEACHING_MODE_CONFIGS.get(mode_type)
+            return len(mode_config.phases) if mode_config else default_phases
+        except ValueError:
+            return default_phases
+
+    def _save_ai_response(
+        self,
+        session: LearningSession,
+        ai_response_content: str,
+        trace_id: str
+    ) -> None:
+        """保存 AI 回复到对话历史。
+
+        Args:
+            session: 学习会话。
+            ai_response_content: AI 完整回复内容。
+            trace_id: 链路追踪 ID。
+        """
+        for line in ai_response_content.split('\n'):
+            if not line.strip() or line.startswith('```'):
+                continue
+            
+            data = self._parse_jsonl_event(line)
+            if data and data.get("type") == "msg_feedback":
+                session.add_message("ai", data.get("content", ""))
+                break
+        
+        learning_session_repository.update(session)
+        logger.info(f"[{trace_id}] 对话历史已保存, 当前共{len(session.messages)}条消息")
+
+    def _validate_chat_session(
+        self, session: LearningSession, message: str
+    ) -> Optional[dict[str, Any]]:
+        """验证会话状态并检查快捷意图。
+
+        Args:
+            session: 学习会话。
+            message: 学生消息。
+
+        Returns:
+            如果需要提前返回，返回对应的事件；否则返回 None。
+        """
+        # 快捷意图检测
+        if self._should_skip_to_assessment(message):
+            return {"event": "complete", "data": json.dumps({"next_action": "start_assessment"}, ensure_ascii=False)}
+
+        # 检查知识点
+        if not session.kp_id:
+            return {"event": "error", "data": json.dumps({"error": "会话没有当前知识点"}, ensure_ascii=False)}
+
+        return None
+
+    def _yield_chat_event(self, event_type: str, content: str = "", next_action: str = "") -> dict[str, Any]:
+        """生成聊天事件。
+
+        Args:
+            event_type: 事件类型。
+            content: 事件内容。
+            next_action: 下一步动作。
+
+        Returns:
+            SSE 事件字典。
+        """
+        if event_type in ["msg_feedback", "msg_encourage", "msg_supplement", "wb_formulas"]:
+            return {"event": event_type, "data": json.dumps({"content": content}, ensure_ascii=False)}
+        elif event_type == "complete":
+            return {"event": "complete", "data": json.dumps({"next_action": next_action}, ensure_ascii=False)}
+        return {}
+
+    async def _handle_phase_advancement(
+        self, session: LearningSession, trace_id: str
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """处理阶段推进和新阶段教学。
+
+        Args:
+            session: 学习会话。
+            trace_id: 链路追踪 ID。
+
+        Yields:
+            SSE 事件流。
+        """
+        # 推进阶段
+        new_phase = session.advance_phase()
+        learning_session_repository.update(session)
+        logger.info(f"[{trace_id}] 推进到第{new_phase}阶段")
+
+        # 发送阶段推进事件
+        total_phases = self._get_total_phases(session)
+        yield {
+            "event": "phase_advance",
+            "data": json.dumps({
+                "current_phase": new_phase,
+                "total_phases": total_phases,
+                "next_action": "teaching"
+            }, ensure_ascii=False)
+        }
+
+        # 自动开始新阶段的教学
+        student_name = "学生"  # TODO: 从session获取学生姓名
+        history_summary = session.get_history_summary_str()
+        async for event in self.stream_teaching_content(
+            session,
+            student_name,
+            trace_id,
+            learning_round=session.learning_round,
+            history_summary=history_summary,
+        ):
+            yield event
+
     async def stream_chat_response(
         self,
         session: LearningSession,
         message: str,
         trace_id: str = "",
     ) -> AsyncGenerator[dict[str, Any], None]:
-        """Stream chat response for student message using JSONL format.
+        """流式处理学生消息并返回 AI 响应。
 
         Args:
-            session: Learning session.
-            message: Student message.
-            trace_id: 链路追踪ID.
+            session: 学习会话。
+            message: 学生消息。
+            trace_id: 链路追踪 ID。
 
         Yields:
-            SSE events with incremental response.
+            SSE 事件流。
         """
         logger.info(f"[{trace_id}] === 处理学生消息 ===")
         logger.info(f"[{trace_id}] 学生消息: {message[:50]}...")
         logger.info(f"[{trace_id}] 当前对话历史: {len(session.messages)}条")
-        
-        # 快捷意图检测
-        if "跳过" in message or "已经会了" in message or "开始测试" in message:
-            yield {"event": "complete", "data": json.dumps({"next_action": "start_assessment"}, ensure_ascii=False)}
+        logger.info(f"[{trace_id}] 当前阶段: {session.current_phase}/{self._get_total_phases(session)}")
+
+        # 验证会话
+        early_event = self._validate_chat_session(session, message)
+        if early_event:
+            yield early_event
             return
 
-        # Get knowledge point info
-        if not session.kp_id:
-            yield {"event": "error", "data": json.dumps({"error": "会话没有当前知识点"}, ensure_ascii=False)}
-            return
-
-        # 保存学生消息到对话历史
+        # 保存学生消息
         session.add_message("student", message)
-        
-        kp_info = course_service.get_knowledge_point_info(session.kp_id)
 
-        # Build prompt
-        prompt = CHAT_RESPONSE_PROMPT.format(
-            knowledge_point_name=kp_info["name"],
-            knowledge_point_type=kp_info["type"],
-            key_points=", ".join(knowledge_point_repository.get_by_id(kp_info["id"]).key_points) if knowledge_point_repository.get_by_id(kp_info["id"]) else "",
-            dependencies=", ".join(kp_info["dependency_names"]) if kp_info["dependency_names"] else "无",
-            student_message=message,
-        )
+        # 构建提示词（对话历史已包含在 prompt 中）
+        prompt = self._build_chat_prompt(session, message)
 
-        # 获取对话历史（最近10轮）
-        conversation_history = session.get_conversation_history(max_turns=10)
-        logger.info(f"[{trace_id}] 传递对话历史: {len(conversation_history)}条消息")
-        
-        # Stream LLM response and parse JSONL
+        # 流式处理 LLM 响应
         buffer = ""
         has_feedback = False
-        ai_response_content = ""  # 收集AI完整回复
-        
-        for chunk in llm_service.stream_chat(SYSTEM_PROMPT, prompt, trace_id=trace_id):
+        ai_response_content = ""
+        final_next_action = "wait_for_student"
+
+        for chunk in llm_service.stream_chat(
+            SYSTEM_PROMPT,
+            prompt,
+            trace_id=trace_id
+        ):
             buffer += chunk
             ai_response_content += chunk
-            
-            # Try to parse complete JSON lines
+
+            # 逐行解析 JSONL
             while "\n" in buffer:
                 line, buffer = buffer.split("\n", 1)
-                line = line.strip()
-                
-                if not line:
+                data = self._parse_jsonl_event(line)
+
+                if not data:
                     continue
-                
-                try:
-                    # Skip markdown code blocks
-                    if line.startswith("```"):
-                        continue
-                    
-                    # 修复反斜杠转义问题
-                    line_fixed = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', line)
-                    
-                    data = json.loads(line_fixed)
-                    event_type = data.get("type", "")
-                    
-                    if event_type == "msg_feedback":
-                        has_feedback = True
-                        yield {"event": "msg_feedback", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
-                    elif event_type == "msg_encourage":
-                        yield {"event": "msg_encourage", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
-                    elif event_type == "msg_supplement":
-                        yield {"event": "msg_supplement", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
-                    elif event_type == "wb_formulas":
-                        yield {"event": "wb_formulas", "data": json.dumps({"content": data.get("content", "")}, ensure_ascii=False)}
-                    elif event_type == "complete":
-                        yield {"event": "complete", "data": json.dumps({"next_action": data.get("next_action", "wait_for_student")}, ensure_ascii=False)}
-                
-                except json.JSONDecodeError:
-                    continue
-        
-        # Process any remaining content
+
+                event_type = data.get("type", "")
+                content = data.get("content", "")
+                next_action = data.get("next_action", "wait_for_student")
+
+                if event_type == "msg_feedback":
+                    has_feedback = True
+
+                # 生成并输出事件
+                event = self._yield_chat_event(event_type, content, next_action)
+                if event:
+                    if event_type == "complete":
+                        final_next_action = next_action
+                    yield event
+
+        # 处理剩余缓冲区
         if buffer.strip():
-            try:
-                clean_buffer = buffer.strip()
-                if not clean_buffer.startswith("```"):
-                    data = json.loads(clean_buffer)
-                    if data.get("type") == "complete":
-                        yield {"event": "complete", "data": json.dumps({"next_action": data.get("next_action", "wait_for_student")}, ensure_ascii=False)}
-            except json.JSONDecodeError:
-                pass
-        
-        # 学生回答后，自动推进到下一阶段
-        if has_feedback:
-            # 获取教学模式配置
-            from app.models.teaching_mode import TeachingModeType, TEACHING_MODE_CONFIGS
-            
-            total_phases = 4
-            if session.teaching_mode:
-                try:
-                    mode_type = TeachingModeType(session.teaching_mode)
-                    mode_config = TEACHING_MODE_CONFIGS.get(mode_type)
-                    if mode_config:
-                        total_phases = len(mode_config.phases)
-                except ValueError:
-                    pass
-            
-            # 推进阶段
-            current_phase = session.current_phase or 1
-            if current_phase < total_phases:
-                # 还有下一阶段
-                session.advance_phase()
-                learning_session_repository.update(session)
-                yield {"event": "phase_advance", "data": json.dumps({
-                    "current_phase": session.current_phase,
-                    "total_phases": total_phases,
-                    "next_action": "next_phase"
-                }, ensure_ascii=False)}
-            else:
-                # 已是最后阶段，进入评估
-                yield {"event": "phase_advance", "data": json.dumps({
-                    "current_phase": current_phase,
-                    "total_phases": total_phases,
-                    "next_action": "start_assessment"
-                }, ensure_ascii=False)}
-        
-        # 保存AI回复到对话历史（提取主要内容）
+            data = self._parse_jsonl_event(buffer.strip())
+            if data and data.get("type") == "complete":
+                final_next_action = data.get("next_action", "wait_for_student")
+                yield self._yield_chat_event("complete", next_action=final_next_action)
+
+        # 保存 AI 回复
         if has_feedback and ai_response_content:
-            # 尝试从JSONL中提取msg_feedback内容
-            try:
-                for line in ai_response_content.split('\n'):
-                    if line.strip() and not line.startswith('```'):
-                        try:
-                            data = json.loads(line)
-                            if data.get("type") == "msg_feedback":
-                                session.add_message("ai", data.get("content", ""))
-                                break
-                        except:
-                            pass
-            except:
-                pass
-            
-            # 更新session（保存对话历史）
-            learning_session_repository.update(session)
-            logger.info(f"[{trace_id}] 对话历史已保存, 当前共{len(session.messages)}条消息")
+            self._save_ai_response(session, ai_response_content, trace_id)
+
+        # 根据 next_action 决定后续动作
+        if final_next_action == "next_phase":
+            async for event in self._handle_phase_advancement(session, trace_id):
+                yield event
 
     async def stream_unified_response(
         self,

@@ -28,7 +28,15 @@ api.interceptors.request.use(
 
 // 响应拦截器：处理错误
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // 自动解包响应数据，让调用者可以直接访问 response.success
+    // 原始结构: { data: { success: true, data: {...} }, status: 200 }
+    // 解包后: response 就是 { success: true, data: {...} }
+    if (response.data && typeof response.data === 'object') {
+      return response.data;
+    }
+    return response;
+  },
   (error: AxiosError<ApiResponse<unknown>>) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');

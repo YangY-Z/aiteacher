@@ -1,0 +1,280 @@
+/* 知识图谱容器 */
+.knowledge-graph-wrapper {
+  width: 100%;
+  position: relative;
+}
+
+.knowledge-graph-svg {
+  width: 100%;
+  height: 700px;
+  background: #FAFAFA;
+  border-radius: 12px;
+}
+
+/* 层级框 */
+.level-box {
+  fill: #F8F9FA;
+  stroke: #E1E4E8;
+  stroke-width: 2;
+  transition: all 0.3s;
+}
+
+.level-box:hover {
+  fill: #F0F2F5;
+  stroke: #D1D5DA;
+}
+
+/* 层级标签 */
+.level-label {
+  font-size: 14px;
+  font-weight: 700;
+  fill: #86868B;
+  pointer-events: none;
+  letter-spacing: 1px;
+}
+
+/* 层级描述 */
+.level-description {
+  font-size: 13px;
+  font-weight: 600;
+  fill: #1D1D1F;
+  pointer-events: none;
+  letter-spacing: 0.5px;
+}
+
+/* 层级连接线 */
+.level-connector {
+  stroke: #D1D5DA;
+  stroke-width: 3;
+  stroke-dasharray: 8, 8;
+  opacity: 0.6;
+}
+
+/* 依赖连线样式 */
+.dependency-link {
+  stroke: #007AFF;
+  stroke-width: 2.5;
+  fill: none;
+  transition: opacity 0.3s;
+  stroke-dasharray: 5, 3;
+  animation: flowDash 1s linear infinite;
+}
+
+.dependency-link.completed {
+  stroke: #4CAF50;
+  stroke-width: 3;
+  stroke-dasharray: none;
+}
+
+.dependency-link.active {
+  stroke: #007AFF;
+  stroke-width: 2.5;
+  stroke-dasharray: 8, 4;
+  animation: dash 1s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+@keyframes flowDash {
+  to {
+    stroke-dashoffset: -8;
+  }
+}
+
+/* 节点组 */
+.node-group {
+  cursor: pointer;
+}
+
+/* 节点矩形 */
+.node-rect {
+  fill: white;
+  stroke: #E0E0E0;
+  stroke-width: 2;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.1));
+  transition: all 0.3s;
+}
+
+.node-group:hover .node-rect {
+  stroke-width: 3;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+}
+
+.node-rect.completed {
+  fill: #E8F5E9;
+  stroke: #4CAF50;
+}
+
+.node-rect.current,
+.node-rect.in_progress {
+  fill: #E3F2FD;
+  stroke: #007AFF;
+  filter: drop-shadow(0 4px 12px rgba(0, 122, 255, 0.3));
+}
+
+.node-rect.locked {
+  fill: #F5F5F7;
+  stroke: #D0D0D0;
+  opacity: 0.6;
+}
+
+/* 节点文字 */
+.node-name {
+  font-size: 13px;
+  font-weight: 600;
+  fill: #1D1D1F;
+  pointer-events: none;
+}
+
+.node-status {
+  font-size: 11px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.node-status.completed {
+  fill: #2E7D32;
+}
+
+.node-status.current,
+.node-status.in_progress {
+  fill: #007AFF;
+}
+
+.node-status.locked {
+  fill: #86868B;
+}
+
+/* 空状态 */
+.knowledge-graph-empty {
+  width: 100%;
+  height: 700px;
+  background: #FAFAFA;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #86868b;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* 悬停提示框 */
+.graph-tooltip {
+  position: fixed;
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  min-width: 220px;
+  max-width: 300px;
+  z-index: 10000;
+  pointer-events: none;
+  animation: tooltipFadeIn 0.2s ease;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.tooltip-header h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.tooltip-status {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.tooltip-status.completed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.tooltip-status.current,
+.tooltip-status.in_progress {
+  background: #e3f2fd;
+  color: #007aff;
+}
+
+.tooltip-status.locked {
+  background: #f5f5f7;
+  color: #86868b;
+}
+
+.tooltip-body {
+  margin-bottom: 12px;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.tooltip-label {
+  color: #86868b;
+}
+
+.tooltip-value {
+  color: #1d1d1f;
+  font-weight: 500;
+}
+
+.tooltip-action {
+  text-align: center;
+  padding: 8px;
+  background: #e3f2fd;
+  color: #007aff;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .knowledge-graph-container {
+    height: 500px;
+  }
+  
+  .graph-tooltip {
+    min-width: 180px;
+    max-width: 250px;
+  }
+}

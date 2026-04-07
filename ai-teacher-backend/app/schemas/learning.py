@@ -61,6 +61,21 @@ class AssessmentResponse(BaseModel):
     next_kp_id: Optional[str] = Field(None, description="下一个知识点ID")
     next_kp_name: Optional[str] = Field(None, description="下一个知识点名称")
     backtrack_required: bool = Field(False, description="是否需要回溯")
+    question_results: Optional[list[dict[str, Any]]] = Field(
+        None, description="每道题的详细结果"
+    )
+
+
+class KnowledgePointProgress(BaseModel):
+    """Response model for knowledge point progress."""
+
+    id: str = Field(..., description="知识点ID")
+    name: str = Field(..., description="知识点名称")
+    type: str = Field(..., description="知识点类型")
+    level: int = Field(..., description="知识点层级")
+    status: str = Field(..., description="状态: locked/in_progress/current/completed/skipped")
+    progress: float = Field(0, description="进度(0-100)")
+    dependencies: list[str] = Field(default_factory=list, description="依赖的知识点ID列表")
 
 
 class ProgressResponse(BaseModel):
@@ -78,6 +93,9 @@ class ProgressResponse(BaseModel):
     total_time: int = Field(0, description="总学习时长(秒)")
     session_count: int = Field(0, description="会话次数")
     last_session_at: Optional[datetime] = Field(None, description="最后学习时间")
+    knowledge_points: list[KnowledgePointProgress] = Field(
+        default_factory=list, description="知识点进度详情列表"
+    )
 
 
 class SkipRequest(BaseModel):

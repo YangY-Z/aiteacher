@@ -583,11 +583,30 @@ class LearningSession:
         self.current_round_index = len(self.rounds) - 1
         return new_round
 
-    def get_history_summaries(self, max_rounds: int = 3) -> list[RoundSummary]:
-        """获取最近N轮的总结（用于Prompt）"""
+    def get_history_summaries(self, max_rounds: int = 3, min_time_gap_hours: float = 1.0) -> list[RoundSummary]:
+        """获取最近N轮的总结（用于Prompt）
+        
+        Args:
+            max_rounds: 最多返回几轮总结
+            min_time_gap_hours: 最小时间间隔（小时），距离现在小于此值的轮次不返回
+        
+        Returns:
+            符合条件的轮次总结列表
+        """
         summaries = []
+        now = datetime.now()
+        
         for r in reversed(self.rounds[:-1]):  # 排除当前轮
             if r.summary:
+                # 检查时间间隔：只有距离现在足够久才包含回顾
+                if r.summary.generated_at:
+                    time_gap = now - r.summary.generated_at
+                    time_gap_hours = time_gap.total_seconds() / 3600
+                    
+                    # 如果时间间隔小于阈值，跳过（刚学完不需要回顾）
+                    if time_gap_hours < min_time_gap_hours:
+                        continue
+                
                 summaries.append(r.summary)
             if len(summaries) >= max_rounds:
                 break

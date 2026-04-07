@@ -43,6 +43,15 @@ def load_course_data(data_dir: str = "/Users/zhaoyang/iFlow/aiteacher") -> None:
         description="初一数学一次函数单元",
         total_knowledge_points=32,
         estimated_hours=12.0,
+        level_descriptions={
+            0: "基础概念层",
+            1: "核心概念层",
+            2: "函数基础层",
+            3: "正比例与一次函数层",
+            4: "图象与性质层",
+            5: "变换层",
+            6: "综合应用层",
+        }
     )
     course_repository.create(course)
 

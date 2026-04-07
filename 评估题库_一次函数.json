@@ -764,7 +764,7 @@
           "id": "K21_Q1",
           "type": "填空题",
           "content": "一次函数y = 5x - 2的斜率是___。",
-          "correct_answer": ["5"],
+          "correct_answer": [5],
           "explanation": "一次函数y = kx + b中，k叫做斜率，表示直线的倾斜程度。y = 5x - 2中，k = 5，所以斜率是5。",
           "difficulty": "基础"
         },

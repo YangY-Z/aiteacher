@@ -106,6 +106,7 @@ class CourseResponse(BaseModel):
     estimated_hours: Optional[float] = None
     status: str
     knowledge_points: list[KnowledgePointResponse] = Field(default_factory=list)
+    level_descriptions: dict[int, str] = Field(default_factory=dict)
     created_at: datetime
 
     class Config:
@@ -139,6 +140,7 @@ class CourseResponse(BaseModel):
             estimated_hours=course.estimated_hours,
             status=course.status.value if hasattr(course.status, "value") else str(course.status),
             knowledge_points=kp_responses,
+            level_descriptions=course.level_descriptions or {},
             created_at=course.created_at,
         )
 

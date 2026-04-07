@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: 0; }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        pre {
+            background: #f8f8f8;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 学习中心API测试工具</h1>
+    
+    <!-- 步骤1：登录 -->
+    <div class="test-section">
+        <h2>步骤1：用户登录</h2>
+        <div>
+            <input type="text" id="phone" placeholder="手机号" value="17866812222">
+            <input type="password" id="password" placeholder="密码" value="123456">
+            <button onclick="testLogin()">登录并获取Token</button>
+        </div>
+        <pre id="login-result">等待测试...</pre>
+    </div>
+
+    <!-- 步骤2：获取课程信息 -->
+    <div class="test-section">
+        <h2>步骤2：获取课程信息</h2>
+        <button onclick="testCourseApi()" id="test-course-btn">测试课程API</button>
+        <pre id="course-result">等待测试...</pre>
+    </div>
+
+    <!-- 步骤3：获取学习进度 -->
+    <div class="test-section">
+        <h2>步骤3：获取学习进度</h2>
+        <button onclick="testProgressApi()" id="test-progress-btn">测试进度API</button>
+        <pre id="progress-result">等待测试...</pre>
+    </div>
+
+    <!-- 步骤4：总结 -->
+    <div class="test-section">
+        <h2>测试总结</h2>
+        <pre id="summary">等待所有测试完成...</pre>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8008/api/v1';
+        let token = null;
+        let courseData = null;
+        let progressData = null;
+
+        // 步骤1：登录
+        async function testLogin() {
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('login-result');
+            
+            resultDiv.innerHTML = '<span class="info">正在登录...</span>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    token = data.data.access_token;
+                    resultDiv.innerHTML = `<span class="success">✓ 登录成功！</span>
+                    
+Token: ${token.substring(0, 30)}...
+学生ID: ${data.data.student_id}
+学生姓名: ${data.data.student_name}
+
+完整响应:
+${JSON.stringify(data, null, 2)}`;
+                    
+                    // 启用后续测试按钮
+                    document.getElementById('test-course-btn').disabled = false;
+                    document.getElementById('test-progress-btn').disabled = false;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">✗ 登录失败</span>
+                    
+${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">✗ 请求失败</span>
+                
+错误: ${error.message}
+
+可能原因:
+1. 后端未启动 (端口8008)
+2. 网络连接问题
+3. CORS配置问题`;
+            }
+        }
+
+        // 步骤2：获取课程信息
+        async function testCourseApi() {
+            const resultDiv = document.getElementById('course-result');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<span class="error">请先登录获取token</span>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<span class="info">正在获取课程信息...</span>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/courses/MATH_JUNIOR_01`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                courseData = data;
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `<span class="success">✓ 课程API正常</span>
+                    
+课程名称: ${data.data.name}
+知识点总数: ${data.data.total_knowledge_points}
+
+完整响应:
+${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">✗ 获取课程失败</span>
+                    
+${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">✗ 请求失败</span>
+                
+错误: ${error.message}`;
+            }
+        }
+
+        // 步骤3：获取学习进度
+        async function testProgressApi() {
+            const resultDiv = document.getElementById('progress-result');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<span class="error">请先登录获取token</span>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<span class="info">正在获取学习进度...</span>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/learning/progress/MATH_JUNIOR_01`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                progressData = data;
+                
+                if (data.success) {
+                    const kpCount = data.data.knowledge_points ? data.data.knowledge_points.length : 0;
+                    resultDiv.innerHTML = `<span class="success">✓ 进度API正常</span>
+                    
+学生ID: ${data.data.student_id}
+当前知识点: ${data.data.current_kp_name}
+已掌握: ${data.data.mastered_count}/${data.data.total_count}
+掌握率: ${(data.data.mastery_rate * 100).toFixed(1)}%
+知识点详情数量: ${kpCount}
+
+前3个知识点:
+${JSON.stringify(data.data.knowledge_points.slice(0, 3), null, 2)}`;
+                    
+                    updateSummary();
+                } else {
+                    resultDiv.innerHTML = `<span class="error">✗ 获取进度失败</span>
+                    
+${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">✗ 请求失败</span>
+                
+错误: ${error.message}`;
+            }
+        }
+
+        // 更新总结
+        function updateSummary() {
+            const summaryDiv = document.getElementById('summary');
+            
+            if (!token || !courseData || !progressData) {
+                summaryDiv.innerHTML = '等待所有测试完成...';
+                return;
+            }
+            
+            let issues = [];
+            if (!courseData.success) issues.push('课程API失败');
+            if (!progressData.success) issues.push('进度API失败');
+            if (!progressData.data.knowledge_points || progressData.data.knowledge_points.length === 0) {
+                issues.push('知识点列表为空');
+            }
+            
+            if (issues.length === 0) {
+                summaryDiv.innerHTML = `<span class="success">✓ 所有API测试通过！
+
+问题诊断:
+- 登录状态: ✓ 正常
+- 课程API: ✓ 正常
+- 进度API: ✓ 正常
+- 知识点数据: ✓ 正常 (${progressData.data.knowledge_points.length}个)
+
+如果前端仍然显示"加载失败"，请检查:
+1. 浏览器localStorage中是否有有效token
+2. 前端代码中的错误处理逻辑
+3. 浏览器控制台是否有其他错误
+
+建议操作:
+1. 清除localStorage: localStorage.clear()
+2. 刷新页面
+3. 重新登录
+</span>`;
+            } else {
+                summaryDiv.innerHTML = `<span class="error">发现问题:
+${issues.join('\n')}
+
+请检查后端日志和相关配置。</span>`;
+            }
+        }
+
+        // 初始状态
+        document.getElementById('test-course-btn').disabled = true;
+        document.getElementById('test-progress-btn').disabled = true;
+    </script>
+</body>
+</html>

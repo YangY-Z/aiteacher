@@ -326,6 +326,7 @@ async def submit_assessment(
             next_kp_id=result.get("next_kp_id"),
             next_kp_name=result.get("next_kp_name"),
             backtrack_required=result.get("backtrack_required", False),
+            question_results=result.get("question_results"),
         ),
     )
 

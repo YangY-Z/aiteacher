@@ -17,17 +17,34 @@ const LoginPage: React.FC = () => {
     setLoading(true);
     try {
       const response = await authApi.login(values);
-      const { access_token, student_id, student_name } = response.data.data;
+      console.log('登录响应:', response);
       
-      // 获取用户信息
+      const { access_token, student_id, student_name } = response.data;
+      
+      // 保存 token
       localStorage.setItem('token', access_token);
-      const profileRes = await authApi.getProfile();
-      const user = profileRes.data.data;
       
+      // 构建用户信息对象
+      const user = {
+        id: student_id,
+        name: student_name,
+        phone: values.phone,
+        grade: '', // 登录时不返回年级，可以后续获取
+        avatar_url: null,
+        status: 'active',
+        created_at: new Date().toISOString(),
+      };
+      
+      // 保存用户信息
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      // 更新状态
       setAuth(access_token, user);
+      
       message.success(`欢迎回来，${student_name}！`);
       navigate('/center');
     } catch (error: unknown) {
+      console.error('登录错误:', error);
       const err = error as { response?: { data?: { message?: string } } };
       message.error(err.response?.data?.message || '登录失败，请检查手机号和密码');
     } finally {

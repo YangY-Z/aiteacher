@@ -75,6 +75,7 @@ export interface Course {
   estimated_hours: number | null;
   status: string;
   knowledge_points: KnowledgePoint[];
+  level_descriptions?: Record<number, string>; // 层级描述，key 为层级编号
   created_at: string;
 }
 
@@ -157,6 +158,18 @@ export interface ProgressResponse {
   total_time: number;
   session_count: number;
   last_session_at: string | null;
+  knowledge_points: KnowledgePointProgress[];  // 新增：详细知识点进度
+}
+
+// 知识点进度详情
+export interface KnowledgePointProgress {
+  id: string;
+  name: string;
+  type: string;
+  level: number;
+  status: 'locked' | 'in_progress' | 'current' | 'completed' | 'skipped';
+  progress: number;  // 0-100
+  dependencies: string[];
 }
 
 // 回溯

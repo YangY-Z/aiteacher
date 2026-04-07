@@ -116,6 +116,7 @@ class Course:
     estimated_hours: Optional[float] = None
     status: CourseStatus = CourseStatus.ACTIVE
     sort_order: int = 0
+    level_descriptions: dict[int, str] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 

@@ -69,6 +69,7 @@ class LLMService:
         user_message: str,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        trace_id: str = "",
         **kwargs: Any,
     ) -> str:
         """Send a chat message to the LLM.
@@ -78,6 +79,7 @@ class LLMService:
             user_message: User message to send.
             temperature: Sampling temperature.
             max_tokens: Maximum tokens to generate.
+            trace_id: 链路追踪ID.
             **kwargs: Additional provider-specific parameters (e.g., thinking=True).
 
         Returns:
@@ -94,6 +96,11 @@ class LLMService:
         # Add provider-specific thinking mode if enabled
         self._add_thinking_mode(kwargs)
 
+        logger.info(f"[{trace_id}] === 调用LLM API ===")
+        logger.info(f"[{trace_id}] === 发送给模型 ===")
+        logger.info(f"[{trace_id}] System Prompt:\n{system_prompt}")
+        logger.info(f"[{trace_id}] User Message:\n{user_message}")
+
         try:
             response = self.provider.chat_completion(
                 messages=messages,
@@ -101,6 +108,8 @@ class LLMService:
                 max_tokens=max_tokens or settings.llm_max_tokens,
                 **kwargs,
             )
+            logger.info(f"[{trace_id}] === 模型输出 ===")
+            logger.info(f"[{trace_id}] {response.content}")
             return response.content
         except Exception as e:
             logger.exception(f"LLM chat failed: {e}")
@@ -117,6 +126,7 @@ class LLMService:
         conversation_history: list[dict[str, str]],
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        trace_id: str = "",
         **kwargs: Any,
     ) -> str:
         """Send a chat message with conversation history.
@@ -126,6 +136,7 @@ class LLMService:
             conversation_history: List of message dicts with 'role' and 'content'.
             temperature: Sampling temperature.
             max_tokens: Maximum tokens to generate.
+            trace_id: 链路追踪ID.
             **kwargs: Additional provider-specific parameters.
 
         Returns:
@@ -144,6 +155,11 @@ class LLMService:
         # Add provider-specific thinking mode if enabled
         self._add_thinking_mode(kwargs)
 
+        logger.info(f"[{trace_id}] === 调用LLM API (with history) ===")
+        logger.info(f"[{trace_id}] === 发送给模型 ===")
+        logger.info(f"[{trace_id}] System Prompt:\n{system_prompt}")
+        logger.info(f"[{trace_id}] Conversation History ({len(conversation_history)} messages):\n{json.dumps(conversation_history, ensure_ascii=False, indent=2)}")
+
         try:
             response = self.provider.chat_completion(
                 messages=messages,
@@ -151,6 +167,8 @@ class LLMService:
                 max_tokens=max_tokens or settings.llm_max_tokens,
                 **kwargs,
             )
+            logger.info(f"[{trace_id}] === 模型输出 ===")
+            logger.info(f"[{trace_id}] {response.content}")
             return response.content
         except Exception as e:
             logger.exception(f"LLM chat with history failed: {e}")
@@ -220,6 +238,7 @@ class LLMService:
         self,
         system_prompt: str,
         user_message: str,
+        history: Optional[list[dict[str, str]]] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         trace_id: str = "",
@@ -230,6 +249,7 @@ class LLMService:
         Args:
             system_prompt: System prompt for the conversation.
             user_message: User message to send.
+            history: Conversation history (list of {"role": "user/assistant", "content": "..."}).
             temperature: Sampling temperature.
             max_tokens: Maximum tokens to generate.
             trace_id: 链路追踪ID.
@@ -241,19 +261,38 @@ class LLMService:
         Raises:
             LLMServiceError: If the API call fails.
         """
-        messages = [
-            ChatMessage(role="system", content=system_prompt),
-            ChatMessage(role="user", content=user_message),
-        ]
+        messages = [ChatMessage(role="system", content=system_prompt)]
+        
+        # 添加历史对话
+        if history:
+            for msg in history:
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+                # 标准化角色名称
+                if role == "assistant":
+                    messages.append(ChatMessage(role="assistant", content=content))
+                else:
+                    messages.append(ChatMessage(role="user", content=content))
+        
+        # 添加当前用户消息
+        messages.append(ChatMessage(role="user", content=user_message))
 
         # Add provider-specific thinking mode if enabled
         self._add_thinking_mode(kwargs)
 
         logger.info(f"[{trace_id}] === 步骤4: 调用LLM流式API ===")
         logger.info(f"[{trace_id}] LLM配置: provider={settings.llm_provider}, model={self.provider.default_model}")
+        logger.info(f"[{trace_id}] === 发送给模型 ===")
+        logger.info(f"[{trace_id}] System Prompt:\n{system_prompt}")
+        if history:
+            logger.info(f"[{trace_id}] 对话历史: {len(history)}条消息")
+            for i, msg in enumerate(history):
+                logger.debug(f"[{trace_id}] 历史[{i}] {msg.get('role')}: {msg.get('content')[:50]}...")
+        logger.info(f"[{trace_id}] User Message:\n{user_message}")
         logger.debug(f"[{trace_id}] 用户消息长度: {len(user_message)}字符")
 
         chunk_count = 0
+        full_response = ""  # 收集完整响应
         try:
             for chunk in self.provider.stream_chat_completion(
                 messages=messages,
@@ -262,9 +301,12 @@ class LLMService:
                 **kwargs,
             ):
                 chunk_count += 1
+                full_response += chunk
                 yield chunk
             
             logger.info(f"[{trace_id}] === 步骤5: LLM流式响应完成, 共{chunk_count}个chunk ===")
+            logger.info(f"[{trace_id}] === 模型输出 ===")
+            logger.info(f"[{trace_id}] {full_response}")
         except Exception as e:
             logger.error(f"[{trace_id}] LLM流式调用失败: {e}")
             logger.exception(f"[{trace_id}] 详细错误信息")

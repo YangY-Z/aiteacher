@@ -16,6 +16,19 @@ interface Question {
   content: string;
   options?: string[];
   difficulty?: string;
+  correct_answer?: string | string[];
+  explanation?: string;
+}
+
+interface QuestionResult {
+  question_id: string;
+  content: string;
+  type: string;
+  options?: string[];
+  student_answer: string;
+  correct_answer: string | string[];
+  is_correct: boolean;
+  explanation?: string;
 }
 
 interface Message {
@@ -25,6 +38,7 @@ interface Message {
   timestamp: Date;
   phase?: LearningPhase;
   question?: Question;
+  questionResults?: QuestionResult[];  // 评估结果
 }
 
 interface LearningState {
@@ -164,10 +178,13 @@ const MinimalLearning: React.FC = () => {
   
   const chatRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  
+
   // 消息队列和显示控制
   const messageQueueRef = useRef<Array<{content: string, phase: LearningPhase}>>([]);
   const isDisplayingRef = useRef(false);
+
+  // 防止评估接口重复调用
+  const isLoadingAssessmentRef = useRef(false);
 
   const getAuthHeaders = useCallback(() => ({
     'Content-Type': 'application/json',
@@ -226,22 +243,26 @@ const MinimalLearning: React.FC = () => {
   // 开始评估
   const startAssessment = async () => {
     if (!state.sessionId) return;
-    
+
+    // 使用 ref 防止重复调用
+    if (isLoadingAssessmentRef.current) return;
+    isLoadingAssessmentRef.current = true;
+
     try {
       setState(prev => ({ ...prev, isStreaming: true }));
-      
+
       const res = await fetch(`/api/v1/learning/session/${state.sessionId}/assessment`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
-      
+
       if (!res.ok) throw new Error(`获取评估题目失败: ${res.status}`);
-      
+
       const data = await res.json();
-      
+
       if (data.success && data.data?.questions?.length > 0) {
         const questions = data.data.questions;
-        
+
         setState(prev => ({
           ...prev,
           assessmentQuestions: questions,
@@ -249,8 +270,8 @@ const MinimalLearning: React.FC = () => {
           selectedAnswers: {},
           isStreaming: false,
         }));
-        
-        // 显示评估开始消息（不在消息中显示具体题目，题目在评估面板中显示）
+
+        // 显示评估开始消息
         addMessageNow('ai', `很好！让我们来做 ${questions.length} 道题检验一下学习效果：`, 'assessment');
       } else {
         addMessageNow('ai', '暂无评估题目，本节学习完成！', 'feedback');
@@ -260,6 +281,8 @@ const MinimalLearning: React.FC = () => {
       console.error('获取评估题目失败:', error);
       message.error('获取评估题目失败');
       setState(prev => ({ ...prev, isStreaming: false }));
+    } finally {
+      isLoadingAssessmentRef.current = false;
     }
   };
 
@@ -282,47 +305,132 @@ const MinimalLearning: React.FC = () => {
   // 提交评估答案
   const submitAssessment = async () => {
     if (!state.sessionId || state.assessmentQuestions.length === 0) return;
-    
+
     try {
       setState(prev => ({ ...prev, isStreaming: true }));
-      
+
       const answers = Object.entries(state.selectedAnswers).map(([questionId, answer]) => ({
         question_id: questionId,
         answer,
       }));
-      
+
       const res = await fetch(`/api/v1/learning/session/${state.sessionId}/assessment`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ answers }),
       });
-      
+
       if (!res.ok) throw new Error(`提交评估失败: ${res.status}`);
-      
+
       const data = await res.json();
-      
+
       if (data.success) {
         const result = data.data;
-        addMessageNow('ai', `评估完成！正确率：${result.correct_count}/${result.total_count} (${result.score}分)`, 'feedback');
-        
-        if (result.passed) {
-          addMessageNow('ai', '恭喜你通过本次学习！可以进入下一个知识点的学习了。', 'feedback');
-        } else {
-          addMessageNow('ai', '还需要再努力一下，让我们重新学习这个知识点吧。', 'feedback');
-        }
-        
+        const questionResults = result.question_results || [];
+
+        // 构建评估结果消息
+        const resultMsgId = `result-${Date.now()}`;
+        let resultContent = `📊 **评估结果**\n\n正确率：${result.correct_count}/${result.total_questions}（${Math.round(result.score * 100)}分）\n\n`;
+        resultContent += result.passed ? '🎉 恭喜你通过本次学习！' : '💪 还需要再努力一下，让我们继续加油！';
+
+        // 添加评估结果消息（包含题目详情）
         setState(prev => ({
           ...prev,
-          phase: 'explain',
+          messages: [...prev.messages, {
+            id: resultMsgId,
+            role: 'ai',
+            content: resultContent,
+            timestamp: new Date(),
+            phase: 'feedback',
+            questionResults: questionResults,
+          }],
           assessmentQuestions: [],
+          selectedAnswers: {},
           isStreaming: false,
         }));
+
+        // 根据评估结果决定下一步
+        if (result.passed && result.next_kp_name) {
+          // 通过且有下一个知识点，自动开始新知识点学习
+          setTimeout(() => {
+            startNewKnowledgePoint(result.next_kp_name!);
+          }, 1500);
+        } else if (!result.passed) {
+          // 未通过，继续当前知识点讲解
+          setState(prev => ({ ...prev, phase: 'explain' }));
+          setTimeout(() => {
+            continueLearning();
+          }, 1500);
+        }
       }
     } catch (error) {
       console.error('提交评估失败:', error);
       message.error('提交评估失败');
       setState(prev => ({ ...prev, isStreaming: false }));
     }
+  };
+
+  // 开始新知识点学习
+  const startNewKnowledgePoint = async (kpName: string) => {
+    if (!state.sessionId) return;
+
+    // 更新当前主题
+    setState(prev => ({ ...prev, currentTopic: kpName, phase: 'explain' }));
+
+    // 添加新知识点开始消息
+    addMessageNow('ai', `🎉 现在我们开始学习新的知识点：「${kpName}」`, 'explain');
+
+    // 直接开始新知识点的教学
+    setTimeout(async () => {
+      setState(prev => ({ ...prev, isStreaming: true }));
+
+      try {
+        const res = await fetch(`/api/v1/learning/session/${state.sessionId}/stream?start_new=true`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ message: '', is_first_input: true }),
+        });
+
+        if (!res.ok) throw new Error(`请求失败: ${res.status}`);
+
+        await processStreamResponse(res);
+      } catch (error) {
+        console.error('开始新知识点失败:', error);
+        message.error('开始新知识点失败');
+      } finally {
+        setState(prev => ({ ...prev, isStreaming: false }));
+      }
+    }, 500);
+  };
+
+  // 继续当前知识点学习
+  const continueLearning = async () => {
+    if (!state.sessionId) return;
+
+    // 添加继续学习消息
+    addMessageNow('ai', '💪 让我们再复习一下这个知识点吧', 'explain');
+
+    // 直接开始复习教学
+    setTimeout(async () => {
+      setState(prev => ({ ...prev, isStreaming: true, isFirstInput: true }));
+
+      try {
+        const res = await fetch(`/api/v1/learning/session/${state.sessionId}/stream?start_new=true`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ message: '', is_first_input: true }),
+        });
+
+        if (!res.ok) throw new Error(`请求失败: ${res.status}`);
+
+        await processStreamResponse(res);
+      } catch (error) {
+        console.error('继续学习失败:', error);
+        message.error('继续学习失败');
+      } finally {
+        setState(prev => ({ ...prev, isStreaming: false }));
+      }
+    }, 500);
   };
 
   // 流式获取讲解内容
@@ -476,6 +584,30 @@ const MinimalLearning: React.FC = () => {
             
             // 根据事件类型处理
             switch (currentEventType) {
+              // 教学模式事件
+              case 'segment':
+                if (json.message) {
+                  queueMessage(json.message, 'explain');
+                }
+                if (json.whiteboard) {
+                  if (json.whiteboard.title) setWhiteboardTitle(json.whiteboard.title);
+                  if (json.whiteboard.points) {
+                    json.whiteboard.points.forEach((p: string) => addWhiteboardPoint(p));
+                  }
+                }
+                break;
+              
+              case 'msg_intro':
+              case 'msg_def':
+              case 'msg_example':
+              case 'msg_summary':
+              case 'msg_question':
+                if (json.content) {
+                  queueMessage(json.content, 'explain');
+                }
+                break;
+              
+              // 对话模式事件
               case 'msg_feedback':
               case 'msg_supplement':
               case 'msg_encourage':
@@ -485,8 +617,9 @@ const MinimalLearning: React.FC = () => {
                 break;
               
               case 'wb_formulas':
+                // 白板公式事件：显示在白板上而不是消息列表
                 if (json.content) {
-                  queueMessage(json.content, 'feedback');
+                  addWhiteboardPoint(json.content);
                 }
                 break;
               
@@ -604,7 +737,47 @@ const MinimalLearning: React.FC = () => {
               <div className="message-avatar">
                 {msg.role === 'ai' ? '👨‍🏫' : '👨‍🎓'}
               </div>
-              <div className="message-content">{renderContentWithFormula(msg.content)}</div>
+              <div className="message-content">
+                {renderContentWithFormula(msg.content)}
+                {/* 展示评估结果详情 */}
+                {msg.questionResults && msg.questionResults.length > 0 && (
+                  <div className="assessment-results">
+                    {msg.questionResults.map((qr, idx) => (
+                      <div key={qr.question_id} className={`result-item ${qr.is_correct ? 'correct' : 'incorrect'}`}>
+                        <div className="result-header">
+                          <span className="result-index">第 {idx + 1} 题</span>
+                          <span className={`result-status ${qr.is_correct ? 'correct' : 'incorrect'}`}>
+                            {qr.is_correct ? '✓ 正确' : '✗ 错误'}
+                          </span>
+                        </div>
+                        <div className="result-question">{renderContentWithFormula(qr.content)}</div>
+                        <div className="result-answer">
+                          <div className="answer-row">
+                            <span className="answer-label">你的答案：</span>
+                            <span className={qr.is_correct ? 'answer-correct' : 'answer-wrong'}>
+                              {qr.student_answer}
+                            </span>
+                          </div>
+                          {!qr.is_correct && (
+                            <div className="answer-row">
+                              <span className="answer-label">正确答案：</span>
+                              <span className="answer-correct">
+                                {Array.isArray(qr.correct_answer) ? qr.correct_answer.join('、') : qr.correct_answer}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        {qr.explanation && (
+                          <div className="result-explanation">
+                            <span className="explanation-label">💡 解题思路：</span>
+                            <div className="explanation-content">{renderContentWithFormula(qr.explanation)}</div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           ))}
           
@@ -623,38 +796,51 @@ const MinimalLearning: React.FC = () => {
           {/* 评估题目显示 */}
           {state.phase === 'assessment' && state.assessmentQuestions.length > 0 && (
             <div className="assessment-panel">
-              {state.assessmentQuestions.map((q, idx) => (
-                <div key={q.id} className="assessment-question">
-                  <div className="question-header">第 {idx + 1} 题</div>
-                  <div className="question-content">{renderContentWithFormula(q.content)}</div>
-                  
-                  {/* 选择题：显示选项按钮 */}
-                  {q.options && q.options.length > 0 ? (
-                    <div className="question-options">
-                      {q.options.map((opt, optIdx) => (
-                        <button
-                          key={optIdx}
-                          className={`option-btn ${state.selectedAnswers[q.id] === opt ? 'selected' : ''}`}
-                          onClick={() => selectAnswer(q.id, opt)}
-                        >
-                          {String.fromCharCode(65 + optIdx)}. {opt}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    /* 填空题：显示输入框 */
-                    <div className="question-input">
-                      <input
-                        type="text"
-                        className="answer-input"
-                        placeholder="请输入答案"
-                        value={state.selectedAnswers[q.id] || ''}
-                        onChange={(e) => inputAnswer(q.id, e.target.value)}
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
+              {state.assessmentQuestions.map((q, idx) => {
+                // 判断题处理：如果没有选项，自动生成"正确"和"错误"两个选项
+                const displayOptions = q.type === '判断题' && (!q.options || q.options.length === 0)
+                  ? ['正确', '错误']
+                  : q.options;
+                
+                return (
+                  <div key={q.id} className="assessment-question">
+                    <div className="question-header">第 {idx + 1} 题</div>
+                    <div className="question-content">{renderContentWithFormula(q.content)}</div>
+                    
+                    {/* 选择题/判断题：显示选项按钮 */}
+                    {displayOptions && displayOptions.length > 0 ? (
+                      <div className="question-options">
+                        {displayOptions.map((opt, optIdx) => {
+                          // 检查选项是否已经包含字母前缀（如 "A. xxx" 或 "A、xxx"）
+                          const hasPrefix = /^[A-D][\.、\s]/.test(opt);
+                          const displayText = hasPrefix ? opt : `${String.fromCharCode(65 + optIdx)}. ${opt}`;
+                          
+                          return (
+                            <button
+                              key={optIdx}
+                              className={`option-btn ${state.selectedAnswers[q.id] === opt ? 'selected' : ''}`}
+                              onClick={() => selectAnswer(q.id, opt)}
+                            >
+                              {displayText}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      /* 填空题：显示输入框 */
+                      <div className="question-input">
+                        <input
+                          type="text"
+                          className="answer-input"
+                          placeholder="请输入答案"
+                          value={state.selectedAnswers[q.id] || ''}
+                          onChange={(e) => inputAnswer(q.id, e.target.value)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               <button
                 className="submit-assessment-btn"
                 onClick={submitAssessment}
