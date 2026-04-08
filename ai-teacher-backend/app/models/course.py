@@ -144,9 +144,11 @@ class Chapter:
 
     id: str  # Format: CH_{SUBJECT}_{GRADE}_{EDITION}_{NUM}
     name: str
-    grade: str  # 年级
+    grade: str  # Deprecated: 年级名称，保留用于兼容
     edition: Edition  # 教材版本
-    subject: Subject  # 科目
+    subject: Subject  # Deprecated: 科目枚举，保留用于兼容
+    grade_id: Optional[str] = None  # 新增：年级ID外键
+    subject_id: Optional[str] = None  # 新增：科目ID外键
     description: Optional[str] = None
     sort_order: int = 0
     total_knowledge_points: int = 0
