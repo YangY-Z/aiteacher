@@ -14,6 +14,13 @@ class StudentStatus(str, Enum):
     BANNED = "banned"
 
 
+class UserRole(str, Enum):
+    """User role types."""
+
+    STUDENT = "student"
+    ADMIN = "admin"
+
+
 class Grade(str, Enum):
     """Student grade levels."""
 
@@ -39,6 +46,7 @@ class Student:
     phone: Optional[str] = None
     avatar_url: Optional[str] = None
     status: StudentStatus = StudentStatus.ACTIVE
+    role: UserRole = UserRole.STUDENT
     last_login_at: Optional[datetime] = None
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
@@ -51,3 +59,7 @@ class Student:
     def is_active(self) -> bool:
         """Check if student account is active."""
         return self.status == StudentStatus.ACTIVE
+
+    def is_admin(self) -> bool:
+        """Check if user is admin."""
+        return self.role == UserRole.ADMIN

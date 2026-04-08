@@ -1,7 +1,13 @@
 """Domain models module."""
 
-from app.models.student import Student
-from app.models.course import Course, KnowledgePoint, KnowledgePointDependency
+from app.models.student import Student, UserRole
+from app.models.course import (
+    Course,
+    KnowledgePoint,
+    KnowledgePointDependency,
+    Edition,
+    Chapter,
+)
 from app.models.learning import (
     StudentProfile,
     LearningRecord,

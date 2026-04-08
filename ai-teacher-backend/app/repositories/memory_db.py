@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from app.models.student import Student, StudentStatus, Grade
+from app.models.student import Student, StudentStatus, Grade, UserRole
 
 logger = logging.getLogger(__name__)
 from app.models.course import (
@@ -26,6 +26,8 @@ from app.models.course import (
     MasteryCriteria,
     TeachingConfig,
     DependencyType,
+    Edition,
+    Chapter,
 )
 from app.models.learning import (
     StudentProfile,
@@ -60,6 +62,9 @@ class InMemoryDatabase:
 
     # Course storage
     _courses: dict[str, Course] = field(default_factory=dict)
+
+    # Chapter storage
+    _chapters: dict[str, Chapter] = field(default_factory=dict)
 
     # Knowledge point storage
     _knowledge_points: dict[str, KnowledgePoint] = field(default_factory=dict)
@@ -145,6 +150,7 @@ class InMemoryDatabase:
                     phone=student_dict.get("phone"),
                     avatar_url=student_dict.get("avatar_url"),
                     status=StudentStatus(student_dict.get("status", "active")),
+                    role=UserRole(student_dict.get("role", "student")),
                     last_login_at=self._parse_datetime(student_dict.get("last_login_at")),
                     created_at=self._parse_datetime(student_dict.get("created_at")),
                     updated_at=self._parse_datetime(student_dict.get("updated_at")),
@@ -216,6 +222,7 @@ class InMemoryDatabase:
                     "phone": student.phone,
                     "avatar_url": student.avatar_url,
                     "status": student.status.value,
+                    "role": student.role.value,
                     "last_login_at": student.last_login_at.isoformat() if student.last_login_at else None,
                     "created_at": student.created_at.isoformat() if student.created_at else None,
                     "updated_at": student.updated_at.isoformat() if student.updated_at else None,
@@ -264,6 +271,32 @@ class InMemoryDatabase:
         """Initialize the database with seed data."""
         # Initialize the "一次函数" course with 32 knowledge points
         self._init_linear_function_course()
+        
+        # Create default admin account
+        self._create_default_admin()
+    
+    def _create_default_admin(self) -> None:
+        """Create default admin account if not exists."""
+        from app.core.security import hash_password
+        
+        # Check if admin already exists
+        admin_exists = any(
+            student.role == UserRole.ADMIN
+            for student in self._students.values()
+        )
+        
+        if not admin_exists:
+            admin = Student(
+                id=999,
+                name="系统管理员",
+                phone="admin",
+                grade=Grade.GRADE_7,  # Admin doesn't need grade
+                password_hash=hash_password("admin@2026"),
+                role=UserRole.ADMIN,
+                status=StudentStatus.ACTIVE,
+            )
+            self._students[admin.id] = admin
+            logger.info("Created default admin account (phone: admin, password: admin@2026)")
 
     def _init_linear_function_course(self) -> None:
         """Initialize the linear function course with knowledge points."""
@@ -271,9 +304,9 @@ class InMemoryDatabase:
         course = Course(
             id="MATH_JUNIOR_01",
             name="一次函数",
-            grade="初一",
+            grade="初二",
             subject=Subject.MATH,
-            description="初一数学一次函数单元，包含32个知识点",
+            description="初二数学一次函数单元，包含32个知识点",
             total_knowledge_points=32,
             estimated_hours=12.0,
             status=CourseStatus.ACTIVE,
@@ -288,6 +321,29 @@ class InMemoryDatabase:
             }
         )
         self._courses[course.id] = course
+        
+        # Create chapter for this course
+        chapter = Chapter(
+            id="CH_MATH_8_REN_01",
+            name="一次函数",
+            grade="初二",
+            edition=Edition.RENJIAO,
+            subject=Subject.MATH,
+            description="初二数学一次函数单元，包含32个知识点",
+            total_knowledge_points=32,
+            estimated_hours=12.0,
+            status=CourseStatus.ACTIVE,
+            level_descriptions={
+                0: "基础概念层",
+                1: "核心概念层",
+                2: "函数基础层",
+                3: "正比例与一次函数层",
+                4: "图象与性质层",
+                5: "变换层",
+                6: "综合应用层",
+            }
+        )
+        self._chapters[chapter.id] = chapter
 
         # Define all knowledge points
         kp_data = [
@@ -339,6 +395,7 @@ class InMemoryDatabase:
             kp = KnowledgePoint(
                 id=kp_id,
                 course_id=course.id,
+                chapter_id=chapter.id,  # Link to chapter
                 name=name,
                 type=kp_type,
                 description=description,
@@ -462,6 +519,17 @@ class InMemoryDatabase:
         )
 
     # Student operations
+    def get_student(self, student_id: int) -> Optional[Student]:
+        """Get a student by ID.
+
+        Args:
+            student_id: Student ID.
+
+        Returns:
+            Student object or None if not found.
+        """
+        return self._students.get(student_id)
+
     def get_next_student_id(self) -> int:
         """Get the next student ID."""
         self._student_id_counter += 1

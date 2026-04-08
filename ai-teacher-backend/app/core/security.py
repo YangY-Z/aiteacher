@@ -134,3 +134,74 @@ async def get_current_student_id(
         )
 
     return int(student_id)
+
+
+async def get_current_user(
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)]
+) -> "Student":
+    """Get the current authenticated user (Student or Admin).
+
+    Args:
+        credentials: HTTP Bearer credentials containing the JWT token.
+
+    Returns:
+        The authenticated Student object.
+
+    Raises:
+        HTTPException: If token is invalid or user not found.
+    """
+    from app.repositories.memory_db import db
+
+    token = credentials.credentials
+    payload = decode_access_token(token)
+
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="无效的认证令牌",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    student_id: Optional[int] = payload.get("sub")
+    if student_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="无效的认证令牌",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Get user from database
+    user = db.get_student(int(student_id))
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="用户不存在",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return user
+
+
+async def require_admin(
+    current_user: "Student" = Depends(get_current_user),
+) -> "Student":
+    """Verify admin role and return the admin user.
+
+    Args:
+        current_user: The current authenticated user.
+
+    Returns:
+        The admin user object.
+
+    Raises:
+        HTTPException: If user is not an admin.
+    """
+    from app.models.student import UserRole
+
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="需要管理员权限",
+        )
+
+    return current_user

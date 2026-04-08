@@ -14,6 +14,20 @@ class Subject(str, Enum):
     ENGLISH = "英语"
     PHYSICS = "物理"
     CHEMISTRY = "化学"
+    BIOLOGY = "生物"
+    HISTORY = "历史"
+    GEOGRAPHY = "地理"
+
+
+class Edition(str, Enum):
+    """Textbook edition types."""
+
+    RENJIAO = "人教版"
+    BEISHIDA = "北师大版"
+    SUJIAO = "苏教版"
+    LUJIAO = "鲁教版"
+    HUASHIDA = "华师大版"
+    RENJIAO_NEW = "人教版新教材"
 
 
 class KnowledgePointType(str, Enum):
@@ -122,14 +136,36 @@ class Course:
 
 
 @dataclass
+class Chapter:
+    """Chapter domain model.
+
+    Represents a chapter within a grade/edition/subject hierarchy.
+    """
+
+    id: str  # Format: CH_{SUBJECT}_{GRADE}_{EDITION}_{NUM}
+    name: str
+    grade: str  # 年级
+    edition: Edition  # 教材版本
+    subject: Subject  # 科目
+    description: Optional[str] = None
+    sort_order: int = 0
+    total_knowledge_points: int = 0
+    estimated_hours: Optional[float] = None
+    level_descriptions: dict[int, str] = field(default_factory=dict)
+    status: CourseStatus = CourseStatus.ACTIVE
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
 class KnowledgePoint:
     """Knowledge point domain model.
 
-    Represents a single knowledge point within a course.
+    Represents a single knowledge point within a course/chapter.
     """
 
     id: str
-    course_id: str
+    course_id: str  # Deprecated: kept for backward compatibility
     name: str
     type: KnowledgePointType
     description: Optional[str] = None
@@ -139,6 +175,7 @@ class KnowledgePoint:
     mastery_criteria: Optional[MasteryCriteria] = None
     teaching_config: Optional[TeachingConfig] = None
     content_template: Optional[str] = None
+    chapter_id: Optional[str] = None  # New: belongs to a chapter
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 
