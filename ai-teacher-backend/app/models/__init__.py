@@ -63,6 +63,8 @@ from app.models.adaptive_remedy import (
     RemedialContent,
     AdaptiveRemedyPlan,
 )
+from app.models.grade import Grade, GradeSubject, GradeLevel, Status
+from app.models.subject import Subject, SubjectCategory
 
 __all__ = [
     "Student",

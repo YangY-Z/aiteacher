@@ -1,0 +1,326 @@
+{
+  "grades": [
+    {
+      "id": "G_C1",
+      "name": "初一",
+      "code": "C1",
+      "level": "middle",
+      "subjects": [
+        {
+          "id": "GS_G_C1_S_MATH",
+          "grade_id": "G_C1",
+          "subject_id": "S_MATH",
+          "sort_order": 1,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.224419",
+          "updated_at": "2026-04-08T16:51:09.224420"
+        },
+        {
+          "id": "GS_G_C1_S_CHINESE",
+          "grade_id": "G_C1",
+          "subject_id": "S_CHINESE",
+          "sort_order": 2,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.224787",
+          "updated_at": "2026-04-08T16:51:09.224788"
+        },
+        {
+          "id": "GS_G_C1_S_ENGLISH",
+          "grade_id": "G_C1",
+          "subject_id": "S_ENGLISH",
+          "sort_order": 3,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.224971",
+          "updated_at": "2026-04-08T16:51:09.224972"
+        }
+      ],
+      "sort_order": 1,
+      "description": "初中一年级",
+      "status": "active",
+      "created_at": "2026-04-08T16:48:44.834833",
+      "updated_at": "2026-04-08T16:51:09.224973"
+    },
+    {
+      "id": "G_C2",
+      "name": "初二",
+      "code": "C2",
+      "level": "middle",
+      "subjects": [
+        {
+          "id": "GS_G_C2_S_MATH",
+          "grade_id": "G_C2",
+          "subject_id": "S_MATH",
+          "sort_order": 1,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.225152",
+          "updated_at": "2026-04-08T16:51:09.225153"
+        },
+        {
+          "id": "GS_G_C2_S_CHINESE",
+          "grade_id": "G_C2",
+          "subject_id": "S_CHINESE",
+          "sort_order": 2,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.225330",
+          "updated_at": "2026-04-08T16:51:09.225331"
+        },
+        {
+          "id": "GS_G_C2_S_ENGLISH",
+          "grade_id": "G_C2",
+          "subject_id": "S_ENGLISH",
+          "sort_order": 3,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.225516",
+          "updated_at": "2026-04-08T16:51:09.225516"
+        },
+        {
+          "id": "GS_G_C2_S_PHYSICS",
+          "grade_id": "G_C2",
+          "subject_id": "S_PHYSICS",
+          "sort_order": 4,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.225705",
+          "updated_at": "2026-04-08T16:51:09.225706"
+        }
+      ],
+      "sort_order": 2,
+      "description": "初中二年级",
+      "status": "active",
+      "created_at": "2026-04-08T16:48:44.834842",
+      "updated_at": "2026-04-08T16:51:09.225706"
+    },
+    {
+      "id": "G_C3",
+      "name": "初三",
+      "code": "C3",
+      "level": "middle",
+      "subjects": [
+        {
+          "id": "GS_G_C3_S_MATH",
+          "grade_id": "G_C3",
+          "subject_id": "S_MATH",
+          "sort_order": 1,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.225942",
+          "updated_at": "2026-04-08T16:51:09.225944"
+        },
+        {
+          "id": "GS_G_C3_S_CHINESE",
+          "grade_id": "G_C3",
+          "subject_id": "S_CHINESE",
+          "sort_order": 2,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.226249",
+          "updated_at": "2026-04-08T16:51:09.226250"
+        },
+        {
+          "id": "GS_G_C3_S_ENGLISH",
+          "grade_id": "G_C3",
+          "subject_id": "S_ENGLISH",
+          "sort_order": 3,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.226532",
+          "updated_at": "2026-04-08T16:51:09.226533"
+        },
+        {
+          "id": "GS_G_C3_S_PHYSICS",
+          "grade_id": "G_C3",
+          "subject_id": "S_PHYSICS",
+          "sort_order": 4,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.226792",
+          "updated_at": "2026-04-08T16:51:09.226792"
+        },
+        {
+          "id": "GS_G_C3_S_CHEMISTRY",
+          "grade_id": "G_C3",
+          "subject_id": "S_CHEMISTRY",
+          "sort_order": 5,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.227065",
+          "updated_at": "2026-04-08T16:51:09.227065"
+        }
+      ],
+      "sort_order": 3,
+      "description": "初中三年级",
+      "status": "active",
+      "created_at": "2026-04-08T16:48:44.834844",
+      "updated_at": "2026-04-08T16:51:09.227066"
+    },
+    {
+      "id": "G_S1",
+      "name": "高一",
+      "code": "S1",
+      "level": "high",
+      "subjects": [
+        {
+          "id": "GS_G_S1_S_MATH",
+          "grade_id": "G_S1",
+          "subject_id": "S_MATH",
+          "sort_order": 1,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.227331",
+          "updated_at": "2026-04-08T16:51:09.227332"
+        },
+        {
+          "id": "GS_G_S1_S_CHINESE",
+          "grade_id": "G_S1",
+          "subject_id": "S_CHINESE",
+          "sort_order": 2,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.227612",
+          "updated_at": "2026-04-08T16:51:09.227612"
+        },
+        {
+          "id": "GS_G_S1_S_ENGLISH",
+          "grade_id": "G_S1",
+          "subject_id": "S_ENGLISH",
+          "sort_order": 3,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.227877",
+          "updated_at": "2026-04-08T16:51:09.227877"
+        },
+        {
+          "id": "GS_G_S1_S_PHYSICS",
+          "grade_id": "G_S1",
+          "subject_id": "S_PHYSICS",
+          "sort_order": 4,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.228149",
+          "updated_at": "2026-04-08T16:51:09.228150"
+        },
+        {
+          "id": "GS_G_S1_S_CHEMISTRY",
+          "grade_id": "G_S1",
+          "subject_id": "S_CHEMISTRY",
+          "sort_order": 5,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.229193",
+          "updated_at": "2026-04-08T16:51:09.229193"
+        }
+      ],
+      "sort_order": 4,
+      "description": "高中一年级",
+      "status": "active",
+      "created_at": "2026-04-08T16:48:44.834846",
+      "updated_at": "2026-04-08T16:51:09.229194"
+    },
+    {
+      "id": "G_S2",
+      "name": "高二",
+      "code": "S2",
+      "level": "high",
+      "subjects": [
+        {
+          "id": "GS_G_S2_S_MATH",
+          "grade_id": "G_S2",
+          "subject_id": "S_MATH",
+          "sort_order": 1,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.229504",
+          "updated_at": "2026-04-08T16:51:09.229504"
+        },
+        {
+          "id": "GS_G_S2_S_CHINESE",
+          "grade_id": "G_S2",
+          "subject_id": "S_CHINESE",
+          "sort_order": 2,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.229805",
+          "updated_at": "2026-04-08T16:51:09.229805"
+        },
+        {
+          "id": "GS_G_S2_S_ENGLISH",
+          "grade_id": "G_S2",
+          "subject_id": "S_ENGLISH",
+          "sort_order": 3,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.230139",
+          "updated_at": "2026-04-08T16:51:09.230139"
+        },
+        {
+          "id": "GS_G_S2_S_PHYSICS",
+          "grade_id": "G_S2",
+          "subject_id": "S_PHYSICS",
+          "sort_order": 4,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.230476",
+          "updated_at": "2026-04-08T16:51:09.230476"
+        },
+        {
+          "id": "GS_G_S2_S_CHEMISTRY",
+          "grade_id": "G_S2",
+          "subject_id": "S_CHEMISTRY",
+          "sort_order": 5,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.230823",
+          "updated_at": "2026-04-08T16:51:09.230824"
+        }
+      ],
+      "sort_order": 5,
+      "description": "高中二年级",
+      "status": "active",
+      "created_at": "2026-04-08T16:48:44.834847",
+      "updated_at": "2026-04-08T16:51:09.230824"
+    },
+    {
+      "id": "G_S3",
+      "name": "高三",
+      "code": "S3",
+      "level": "high",
+      "subjects": [
+        {
+          "id": "GS_G_S3_S_MATH",
+          "grade_id": "G_S3",
+          "subject_id": "S_MATH",
+          "sort_order": 1,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.231187",
+          "updated_at": "2026-04-08T16:51:09.231187"
+        },
+        {
+          "id": "GS_G_S3_S_CHINESE",
+          "grade_id": "G_S3",
+          "subject_id": "S_CHINESE",
+          "sort_order": 2,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.231557",
+          "updated_at": "2026-04-08T16:51:09.231558"
+        },
+        {
+          "id": "GS_G_S3_S_ENGLISH",
+          "grade_id": "G_S3",
+          "subject_id": "S_ENGLISH",
+          "sort_order": 3,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.231931",
+          "updated_at": "2026-04-08T16:51:09.231932"
+        },
+        {
+          "id": "GS_G_S3_S_PHYSICS",
+          "grade_id": "G_S3",
+          "subject_id": "S_PHYSICS",
+          "sort_order": 4,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.232315",
+          "updated_at": "2026-04-08T16:51:09.232315"
+        },
+        {
+          "id": "GS_G_S3_S_CHEMISTRY",
+          "grade_id": "G_S3",
+          "subject_id": "S_CHEMISTRY",
+          "sort_order": 5,
+          "status": "active",
+          "created_at": "2026-04-08T16:51:09.232840",
+          "updated_at": "2026-04-08T16:51:09.232841"
+        }
+      ],
+      "sort_order": 6,
+      "description": "高中三年级",
+      "status": "active",
+      "created_at": "2026-04-08T16:48:44.834848",
+      "updated_at": "2026-04-08T16:51:09.232842"
+    }
+  ],
+  "updated_at": "2026-04-08T16:51:09.232940"
+}

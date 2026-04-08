@@ -1,0 +1,70 @@
+{
+  "subjects": [
+    {
+      "id": "S_MATH",
+      "name": "数学",
+      "code": "MATH",
+      "category": "science",
+      "icon": null,
+      "color": null,
+      "sort_order": 1,
+      "description": "数学科目",
+      "status": "active",
+      "created_at": "2026-04-08T16:48:44.836304",
+      "updated_at": "2026-04-08T16:48:44.836306"
+    },
+    {
+      "id": "S_CHINESE",
+      "name": "语文",
+      "code": "CHINESE",
+      "category": "language",
+      "icon": null,
+      "color": null,
+      "sort_order": 2,
+      "description": "语文科目",
+      "status": "active",
+      "created_at": "2026-04-08T16:48:44.836310",
+      "updated_at": "2026-04-08T16:48:44.836311"
+    },
+    {
+      "id": "S_ENGLISH",
+      "name": "英语",
+      "code": "ENGLISH",
+      "category": "language",
+      "icon": null,
+      "color": null,
+      "sort_order": 3,
+      "description": "英语科目",
+      "status": "active",
+      "created_at": "2026-04-08T16:48:44.836312",
+      "updated_at": "2026-04-08T16:48:44.836313"
+    },
+    {
+      "id": "S_PHYSICS",
+      "name": "物理",
+      "code": "PHYSICS",
+      "category": "science",
+      "icon": null,
+      "color": null,
+      "sort_order": 4,
+      "description": "物理科目",
+      "status": "active",
+      "created_at": "2026-04-08T16:48:44.836314",
+      "updated_at": "2026-04-08T16:48:44.836314"
+    },
+    {
+      "id": "S_CHEMISTRY",
+      "name": "化学",
+      "code": "CHEMISTRY",
+      "category": "science",
+      "icon": null,
+      "color": null,
+      "sort_order": 5,
+      "description": "化学科目",
+      "status": "active",
+      "created_at": "2026-04-08T16:48:44.836315",
+      "updated_at": "2026-04-08T16:48:44.836316"
+    }
+  ],
+  "updated_at": "2026-04-08T16:48:44.836353"
+}
