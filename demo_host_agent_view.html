@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宿主Agent + 图片工具 - 架构演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .architecture-diagram {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .architecture-diagram h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .flow-chart {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .flow-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 200px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: transform 0.3s ease;
+        }
+        
+        .flow-box:hover {
+            transform: translateY(-5px);
+        }
+        
+        .flow-box h3 {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+        }
+        
+        .flow-box ul {
+            list-style: none;
+            font-size: 0.95em;
+            opacity: 0.95;
+        }
+        
+        .flow-box ul li {
+            margin: 5px 0;
+        }
+        
+        .arrow {
+            font-size: 2em;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .demo-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .demo-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .scenario {
+            margin-bottom: 30px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .scenario-header {
+            background: #f5f5f5;
+            padding: 15px 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .scenario-header h3 {
+            color: #2c3e50;
+            font-size: 1.3em;
+        }
+        
+        .scenario-header .input {
+            background: #fff3e0;
+            padding: 8px 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            display: inline-block;
+            color: #e65100;
+            font-weight: 500;
+        }
+        
+        .scenario-body {
+            padding: 20px;
+        }
+        
+        .narration {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .narration h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .narration p {
+            color: #333;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        
+        .svg-container {
+            background: #f8f9fa;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .svg-container svg {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .metadata {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .metadata-item {
+            background: #f5f5f5;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+        
+        .metadata-item strong {
+            color: #667eea;
+        }
+        
+        .advantages {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .advantages h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .advantage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .advantage-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .advantage-card h3 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        
+        .advantage-card ul {
+            list-style: none;
+            font-size: 0.95em;
+        }
+        
+        .advantage-card ul li {
+            margin: 8px 0;
+            opacity: 0.95;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            margin-right: 8px;
+        }
+        
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            padding: 20px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 宿主Agent + 图片工具 架构演示</h1>
+            <p>基于"教学决策+专业工具"的模块化AI教师系统</p>
+        </div>
+        
+        <!-- 架构图 -->
+        <div class="architecture-diagram">
+            <h2>🏗️ 系统架构</h2>
+            <div class="flow-chart">
+                <div class="flow-box">
+                    <h3>学生输入</h3>
+                    <ul>
+                        <li>"什么是...?"</li>
+                        <li>"怎么证明?"</li>
+                        <li>"我不明白"</li>
+                    </ul>
+                </div>
+                <div class="arrow">→</div>
+                <div class="flow-box">
+                    <h3>宿主Agent</h3>
+                    <ul>
+                        <li>理解意图</li>
+                        <li>规划内容</li>
+                        <li>生成引导语</li>
+                    </ul>
+                </div>
+                <div class="arrow">→</div>
+                <div class="flow-box">
+                    <h3>图片工具</h3>
+                    <ul>
+                        <li>SVG图解生成</li>
+                        <li>证明过程可视化</li>
+                        <li>对比图/步骤图</li>
+                    </ul>
+                </div>
+                <div class="arrow">→</div>
+                <div class="flow-box">
+                    <h3>教学响应</h3>
+                    <ul>
+                        <li>引导语 + 图解</li>
+                        <li>下一步建议</li>
+                        <li>状态追踪</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Demo演示 -->
+        <div class="demo-section">
+            <h2>🎬 实际演示</h2>
+            
+            <!-- 场景1 -->
+            <div class="scenario">
+                <div class="scenario-header">
+                    <h3>场景1：学习新概念</h3>
+                    <div class="input">学生提问："什么是三角形内角和定理？"</div>
+                </div>
+                <div class="scenario-body">
+                    <div class="narration">
+                        <h4>📖 宿主Agent生成的引导语：</h4>
+                        <p>今天我们来学习一个重要的几何定理：三角形内角和定理。
+
+无论什么形状的三角形,它的三个内角加起来总是等于180度。
+
+这听起来很神奇，对吧？让我们通过几个例子来看看：
+
+看图中展示了三种不同的三角形：
+- 锐角三角形：所有角都小于90度
+- 直角三角形：有一个角等于90度
+- 钝角三角形：有一个角大于90度
+
+虽然它们形状不同，但内角和都是180度！
+
+接下来，你想看证明过程，还是做几道练习题？📚</p>
+                    </div>
+                    
+                    <div class="svg-container">
+                        <object type="image/svg+xml" data="demo_output_1.svg">SVG图解1</object>
+                    </div>
+                    
+                    <div class="metadata">
+                        <div class="metadata-item">
+                            <strong>使用工具：</strong> image_tool
+                        </div>
+                        <div class="metadata-item">
+                            <strong>内容类型：</strong> proof_diagram
+                        </div>
+                        <div class="metadata-item">
+                            <strong>意图识别：</strong> new_concept (置信度: 0.6)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 场景2 -->
+            <div class="scenario">
+                <div class="scenario-header">
+                    <h3>场景2：请求证明</h3>
+                    <div class="input">学生追问："能证明一下这个定理吗？"</div>
+                </div>
+                <div class="scenario-body">
+                    <div class="narration">
+                        <h4>📖 宿主Agent生成的引导语：</h4>
+                        <p>好的，让我为你展示三角形内角和定理的证明过程。
+
+我们用平行线的方法来证明：
+
+首先，看左边的三角形，我们画一条过顶点C且平行于底边AB的直线。
+
+然后，利用平行线的性质，我们可以发现：
+- 角A和角1是内错角，所以相等
+- 角B和角2是内错角，所以也相等
+
+最后，角1、角C、角2正好组成一个平角，也就是180度。
+
+所以，角A + 角B + 角C = 180度！
+
+你看懂了吗？如果有任何疑问，随时问我。😊</p>
+                    </div>
+                    
+                    <div class="svg-container">
+                        <object type="image/svg+xml" data="demo_output_2.svg">SVG图解2</object>
+                    </div>
+                    
+                    <div class="metadata">
+                        <div class="metadata-item">
+                            <strong>使用工具：</strong> image_tool
+                        </div>
+                        <div class="metadata-item">
+                            <strong>内容类型：</strong> proof_diagram
+                        </div>
+                        <div class="metadata-item">
+                            <strong>意图识别：</strong> proof_request (置信度: 0.8)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 场景3 -->
+            <div class="scenario">
+                <div class="scenario-header">
+                    <h3>场景3：学生困惑</h3>
+                    <div class="input">学生表示："我还是不太明白..."</div>
+                </div>
+                <div class="scenario-body">
+                    <div class="narration">
+                        <h4>📖 宿主Agent生成的引导语（换角度解释）：</h4>
+                        <p>我理解你还有些困惑。让我换一种方式来解释。
+
+看看这张对比图，左边是常见的误解，右边是正确的理解。
+
+关键点是：三角形的内角和永远是180度，但每个角的大小可以变化。
+
+想象你在撕纸：
+1. 把三角形的三个角撕下来
+2. 把它们拼在一起
+3. 正好组成一条直线（180度）
+
+试试看，用纸剪一个三角形，真的撕开拼一拼，你会发现这个定理是正确的！
+
+现在清楚了吗？🎯</p>
+                    </div>
+                    
+                    <div class="svg-container">
+                        <object type="image/svg+xml" data="demo_output_3.svg">SVG图解3</object>
+                    </div>
+                    
+                    <div class="metadata">
+                        <div class="metadata-item">
+                            <strong>使用工具：</strong> image_tool
+                        </div>
+                        <div class="metadata-item">
+                            <strong>内容类型：</strong> comparison (对比图)
+                        </div>
+                        <div class="metadata-item">
+                            <strong>意图识别：</strong> confusion (置信度: 0.9)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 架构优势 -->
+        <div class="advantages">
+            <h2>✨ 架构优势</h2>
+            <div class="advantage-grid">
+                <div class="advantage-card">
+                    <h3>职责清晰</h3>
+                    <ul>
+                        <li>宿主Agent专注教学决策</li>
+                        <li>图片工具专注内容生成</li>
+                        <li>规则引擎处理常见场景</li>
+                    </ul>
+                </div>
+                
+                <div class="advantage-card">
+                    <h3>可维护性强</h3>
+                    <ul>
+                        <li>工具独立迭代升级</li>
+                        <li>规则可快速调整</li>
+                        <li>模块化设计易测试</li>
+                    </ul>
+                </div>
+                
+                <div class="advantage-card">
+                    <h3>成本可控</h3>
+                    <ul>
+                        <li>SVG生成成本低</li>
+                        <li>规则引擎减少LLM调用</li>
+                        <li>可复用已生成内容</li>
+                    </ul>
+                </div>
+                
+                <div class="advantage-card">
+                    <h3>质量保证</h3>
+                    <ul>
+                        <li>SVG精确可控</li>
+                        <li>引导语场景定制</li>
+                        <li>支持人工审核介入</li>
+                    </ul>
+                </div>
+                
+                <div class="advantage-card">
+                    <h3>可扩展性好</h3>
+                    <ul>
+                        <li>易于添加新工具</li>
+                        <li>支持视频、3D扩展</li>
+                        <li>学生状态追踪完善</li>
+                    </ul>
+                </div>
+                
+                <div class="advantage-card">
+                    <h3>响应及时</h3>
+                    <ul>
+                        <li>图片生成秒级完成</li>
+                        <li>异步生成视频内容</li>
+                        <li>预生成高频知识点</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>💡 这个Demo验证了"宿主Agent + 专业工具"架构的可行性</p>
+            <p>技术栈：Python + SVG | 可扩展至：视频生成、3D模型、交互组件</p>
+        </div>
+    </div>
+</body>
+</html>

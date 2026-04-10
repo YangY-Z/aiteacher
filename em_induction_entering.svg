@@ -1,0 +1,234 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <!-- 渐变定义 -->
+        <linearGradient id="magnet_n" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#E53935"/>
+            <stop offset="100%" style="stop-color:#EF5350"/>
+        </linearGradient>
+        <linearGradient id="magnet_s" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#1E88E5"/>
+            <stop offset="100%" style="stop-color:#42A5F5"/>
+        </linearGradient>
+        <linearGradient id="coil_grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#FFA726"/>
+            <stop offset="100%" style="stop-color:#FB8C00"/>
+        </linearGradient>
+        
+        <!-- 箭头标记 -->
+        <marker id="arrow_red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+            <polygon points="0 0, 10 3, 0 6" fill="#E53935"/>
+        </marker>
+        <marker id="arrow_blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+            <polygon points="0 0, 10 3, 0 6" fill="#1E88E5"/>
+        </marker>
+        <marker id="arrow_green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+            <polygon points="0 0, 10 3, 0 6" fill="#43A047"/>
+        </marker>
+        
+        <!-- 发光效果 -->
+        <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        
+        <!-- 磁场线动画 -->
+        <style>
+            @keyframes flow {
+                0% { stroke-dashoffset: 20; }
+                100% { stroke-dashoffset: 0; }
+            }
+            .field-line {
+                stroke-dasharray: 5,5;
+                animation: flow 1s linear infinite;
+            }
+        </style>
+    </defs>
+    
+    <!-- 背景 -->
+    <rect width="900" height="600" fill="#FAFAFA"/>
+    
+    <!-- 标题 -->
+    <text x="450.0" y="50" text-anchor="middle" fill="#333" font-size="28" font-weight="bold">
+        电磁感应 - 磁铁进入线圈
+    </text>
+    
+    <!-- 磁场线 -->
+    
+    <path d="M 220 200 
+             Q 180 160 140 180
+             Q 100 200 140 220
+             Q 180 240 220 200" 
+          fill="none" stroke="#E53935" stroke-width="2" class="field-line" opacity="0.6"/>
+
+    <path d="M 340 200 
+             Q 380 160 420 180
+             Q 460 200 420 220
+             Q 380 240 340 200" 
+          fill="none" stroke="#1E88E5" stroke-width="2" class="field_line" opacity="0.6"/>
+
+    <path d="M 220 230 
+             Q 180 190 140 210
+             Q 100 230 140 250
+             Q 180 270 220 230" 
+          fill="none" stroke="#E53935" stroke-width="2" class="field-line" opacity="0.6"/>
+
+    <path d="M 340 230 
+             Q 380 190 420 210
+             Q 460 230 420 250
+             Q 380 270 340 230" 
+          fill="none" stroke="#1E88E5" stroke-width="2" class="field_line" opacity="0.6"/>
+
+    <path d="M 220 260 
+             Q 180 220 140 240
+             Q 100 260 140 280
+             Q 180 300 220 260" 
+          fill="none" stroke="#E53935" stroke-width="2" class="field-line" opacity="0.6"/>
+
+    <path d="M 340 260 
+             Q 380 220 420 240
+             Q 460 260 420 280
+             Q 380 300 340 260" 
+          fill="none" stroke="#1E88E5" stroke-width="2" class="field_line" opacity="0.6"/>
+
+    <path d="M 220 290 
+             Q 180 250 140 270
+             Q 100 290 140 310
+             Q 180 330 220 290" 
+          fill="none" stroke="#E53935" stroke-width="2" class="field-line" opacity="0.6"/>
+
+    <path d="M 340 290 
+             Q 380 250 420 270
+             Q 460 290 420 310
+             Q 380 330 340 290" 
+          fill="none" stroke="#1E88E5" stroke-width="2" class="field_line" opacity="0.6"/>
+
+    <path d="M 220 320 
+             Q 180 280 140 300
+             Q 100 320 140 340
+             Q 180 360 220 320" 
+          fill="none" stroke="#E53935" stroke-width="2" class="field-line" opacity="0.6"/>
+
+    <path d="M 340 320 
+             Q 380 280 420 300
+             Q 460 320 420 340
+             Q 380 360 340 320" 
+          fill="none" stroke="#1E88E5" stroke-width="2" class="field_line" opacity="0.6"/>
+    
+    <!-- 线圈 -->
+    
+    <ellipse cx="550" cy="220.0" rx="40" ry="15" 
+             fill="none" stroke="url(#coil_grad)" stroke-width="4" opacity="0.8"/>
+
+    <ellipse cx="550" cy="253.33333333333334" rx="40" ry="15" 
+             fill="none" stroke="url(#coil_grad)" stroke-width="4" opacity="0.8"/>
+
+    <ellipse cx="550" cy="286.6666666666667" rx="40" ry="15" 
+             fill="none" stroke="url(#coil_grad)" stroke-width="4" opacity="0.8"/>
+
+    <ellipse cx="550" cy="320.0" rx="40" ry="15" 
+             fill="none" stroke="url(#coil_grad)" stroke-width="4" opacity="0.8"/>
+
+    <ellipse cx="550" cy="353.33333333333337" rx="40" ry="15" 
+             fill="none" stroke="url(#coil_grad)" stroke-width="4" opacity="0.8"/>
+
+    <ellipse cx="550" cy="386.66666666666663" rx="40" ry="15" 
+             fill="none" stroke="url(#coil_grad)" stroke-width="4" opacity="0.8"/>
+
+    <!-- 连接线 -->
+    <line x1="510" y1="220" x2="510" y2="440" 
+          stroke="#FB8C00" stroke-width="3"/>
+    <line x1="590" y1="220" x2="590" y2="440" 
+          stroke="#FB8C00" stroke-width="3"/>
+
+    <!-- 检流计 -->
+    <circle cx="550" cy="470" r="25" fill="white" stroke="#333" stroke-width="2"/>
+    <text x="550" y="475" text-anchor="middle" fill="#333" font-size="12" font-weight="bold">G</text>
+    <line x1="510" y1="440" x2="530" y2="470" 
+          stroke="#FB8C00" stroke-width="3"/>
+    <line x1="590" y1="440" x2="570" y2="470" 
+          stroke="#FB8C00" stroke-width="3"/>
+    
+    <!-- 磁铁 -->
+    
+    <!-- 磁铁 -->
+    <g transform="translate(200, 250)">
+        <!-- N极 -->
+        <rect x="0" y="0" width="60" height="80" rx="5" fill="url(#magnet_n)" filter="url(#glow)">
+            <animate attributeName="x" from="0" to="0" dur="2s" repeatCount="indefinite"/>
+        </rect>
+        <text x="30" y="50" text-anchor="middle" fill="white" font-size="28" font-weight="bold">N</text>
+        
+        <!-- S极 -->
+        <rect x="60" y="0" width="60" height="80" rx="5" fill="url(#magnet_s)" filter="url(#glow)"/>
+        <text x="90" y="50" text-anchor="middle" fill="white" font-size="28" font-weight="bold">S</text>
+        
+        <!-- 磁铁标识 -->
+        <text x="60" y="100" text-anchor="middle" fill="#666" font-size="14">条形磁铁</text>
+    </g>
+    
+    <!-- 电流指示器 -->
+    
+    <!-- 电流方向指示 -->
+    <g transform="translate(550, 150)">
+        <circle cx="0" cy="0" r="30" fill="none" stroke="#43A047" stroke-width="3">
+            <animate attributeName="stroke-opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite"/>
+        </circle>
+        <text x="0" y="-45" text-anchor="middle" fill="#43A047" font-size="14" font-weight="bold">
+            感应电流
+        </text>
+        <text x="0" y="5" text-anchor="middle" fill="#43A047" font-size="20" font-weight="bold">
+            →
+        </text>
+        <text x="0" y="50" text-anchor="middle" fill="#666" font-size="12">
+            顺时针方向
+        </text>
+    </g>
+    
+    <!-- 公式框 -->
+    
+    <!-- 法拉第电磁感应定律 -->
+    <g transform="translate(50, 480)">
+        <rect x="0" y="0" width="280" height="100" rx="10" fill="white" stroke="#667eea" stroke-width="2"/>
+        <text x="140" y="30" text-anchor="middle" fill="#667eea" font-size="16" font-weight="bold">
+            法拉第电磁感应定律
+        </text>
+        <text x="140" y="60" text-anchor="middle" fill="#333" font-size="18" font-weight="bold">
+            ε = -dΦ/dt
+        </text>
+        <text x="140" y="85" text-anchor="middle" fill="#666" font-size="12">
+            感应电动势 = 磁通量变化率
+        </text>
+    </g>
+    
+    <!-- 楞次定律 -->
+    <g transform="translate(360, 480)">
+        <rect x="0" y="0" width="280" height="100" rx="10" fill="white" stroke="#E91E63" stroke-width="2"/>
+        <text x="140" y="30" text-anchor="middle" fill="#E91E63" font-size="16" font-weight="bold">
+            楞次定律
+        </text>
+        <text x="140" y="60" text-anchor="middle" fill="#333" font-size="14">
+            感应电流方向总是阻碍
+        </text>
+        <text x="140" y="80" text-anchor="middle" fill="#333" font-size="14">
+            引起感应电流的磁通量变化
+        </text>
+    </g>
+    
+    <!-- 图例 -->
+    <g transform="translate(680, 450)">
+        <rect x="0" y="0" width="200" height="120" rx="10" fill="white" stroke="#DDD" stroke-width="2"/>
+        <text x="100" y="25" text-anchor="middle" fill="#333" font-size="14" font-weight="bold">图例说明</text>
+        
+        <rect x="20" y="40" width="30" height="15" fill="url(#magnet_n)"/>
+        <text x="60" y="52" fill="#666" font-size="12">N极（北极）</text>
+        
+        <rect x="20" y="65" width="30" height="15" fill="url(#magnet_s)"/>
+        <text x="60" y="77" fill="#666" font-size="12">S极（南极）</text>
+        
+        <circle cx="35" cy="100" r="8" fill="none" stroke="#43A047" stroke-width="2"/>
+        <text x="60" y="104" fill="#666" font-size="12">感应电流</text>
+    </g>
+</svg>

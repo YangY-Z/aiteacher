@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光合作用可视化 - 多方案展示</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 20px;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: white;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .tab-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .content-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+        
+        .content-card.active {
+            display: block;
+        }
+        
+        .content-card h2 {
+            color: #2c3e50;
+            font-size: 2em;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .content-card p {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+        
+        .svg-container {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            overflow: auto;
+        }
+        
+        .svg-container svg {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .mermaid {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        
+        .equation-box {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 30px 0;
+            border-left: 5px solid #ff9800;
+        }
+        
+        .equation-box h3 {
+            color: #e65100;
+            margin-bottom: 15px;
+        }
+        
+        .key-points {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .key-point {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .key-point h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .legend {
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        
+        .legend h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .legend-item {
+            display: inline-block;
+            margin: 10px 20px;
+            text-align: center;
+        }
+        
+        .legend-item .color-box {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+        
+        .interactive-note {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+            margin: 20px 0;
+        }
+        
+        .interactive-note strong {
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌿 光合作用可视化</h1>
+            <p>多种展示方案对比 - 从简单流程图到详细结构图</p>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('svg-detail')">详细结构图</button>
+            <button class="tab-btn" onclick="showTab('mermaid-flow')">流程图</button>
+            <button class="tab-btn" onclick="showTab('svg-simple')">简化示意图</button>
+            <button class="tab-btn" onclick="showTab('comparison')">对比说明</button>
+        </div>
+        
+        <!-- 方案1：详细结构图 -->
+        <div id="svg-detail" class="content-card active">
+            <h2>🔬 方案1：叶片结构 + 物质流动（SVG）</h2>
+            <p>展示了叶片的横截面结构、叶绿体位置、气孔以及物质的输入输出过程。</p>
+            
+            <div class="svg-container">
+                <svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg">
+                    <!-- 背景 -->
+                    <defs>
+                        <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#87ceeb"/>
+                            <stop offset="100%" style="stop-color:#e3f2fd"/>
+                        </linearGradient>
+                        <linearGradient id="leafGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#81c784"/>
+                            <stop offset="100%" style="stop-color:#4caf50"/>
+                        </linearGradient>
+                        <linearGradient id="waterGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#2196f3"/>
+                            <stop offset="100%" style="stop-color:#64b5f6"/>
+                        </linearGradient>
+                    </defs>
+                    
+                    <!-- 标题 -->
+                    <text x="500" y="40" text-anchor="middle" font-size="28" font-weight="bold" fill="#2c3e50">
+                        光合作用 - 叶片结构示意图
+                    </text>
+                    
+                    <!-- 天空和太阳 -->
+                    <rect x="0" y="50" width="100%" height="150" fill="url(#skyGrad)" opacity="0.3"/>
+                    <circle cx="150" cy="100" r="40" fill="#ffeb3b" opacity="0.8">
+                        <animate attributeName="r" values="40;45;40" dur="3s" repeatCount="indefinite"/>
+                    </circle>
+                    <text x="150" y="105" text-anchor="middle" font-size="18">☀️</text>
+                    <text x="150" y="140" text-anchor="middle" font-size="14" fill="#e65100" font-weight="bold">太阳光</text>
+                    
+                    <!-- 输入：CO2 -->
+                    <g id="co2-input">
+                        <circle cx="850" cy="200" r="30" fill="#e0e0e0" stroke="#9e9e9e" stroke-width="2"/>
+                        <text x="850" y="205" text-anchor="middle" font-size="14" fill="#616161">CO₂</text>
+                        <text x="850" y="250" text-anchor="middle" font-size="12" fill="#757575">二氧化碳</text>
+                        
+                        <!-- CO2流动箭头 -->
+                        <path d="M 820 220 Q 780 280 750 320" stroke="#9e9e9e" stroke-width="2" fill="none" stroke-dasharray="5,5">
+                            <animate attributeName="stroke-dashoffset" from="0" to="10" dur="1s" repeatCount="indefinite"/>
+                        </path>
+                        <polygon points="750,320 755,310 745,315" fill="#9e9e9e"/>
+                    </g>
+                    
+                    <!-- 输入：H2O -->
+                    <g id="water-input">
+                        <circle cx="80" cy="450" r="30" fill="#2196f3" stroke="#1976d2" stroke-width="2"/>
+                        <text x="80" y="455" text-anchor="middle" font-size="14" fill="white">H₂O</text>
+                        <text x="80" y="500" text-anchor="middle" font-size="12" fill="#1976d2">水</text>
+                        
+                        <!-- H2O流动箭头 -->
+                        <path d="M 110 450 Q 180 420 250 400" stroke="#2196f3" stroke-width="2" fill="none" stroke-dasharray="5,5">
+                            <animate attributeName="stroke-dashoffset" from="0" to="10" dur="1s" repeatCount="indefinite"/>
+                        </path>
+                        <polygon points="250,400 240,395 245,405" fill="#2196f3"/>
+                    </g>
+                    
+                    <!-- 光能流动 -->
+                    <g id="light-energy">
+                        <path d="M 190 100 Q 350 150 350 280" stroke="#ff9800" stroke-width="3" fill="none" stroke-dasharray="8,4">
+                            <animate attributeName="stroke-dashoffset" from="0" to="12" dur="1.5s" repeatCount="indefinite"/>
+                        </path>
+                        <polygon points="350,280 345,270 355,275" fill="#ff9800"/>
+                        <text x="280" y="180" font-size="14" fill="#e65100" font-weight="bold">光能</text>
+                    </g>
+                    
+                    <!-- 叶片主体 -->
+                    <g id="leaf-structure" transform="translate(250, 280)">
+                        <!-- 叶片外形 -->
+                        <ellipse cx="250" cy="120" rx="230" ry="100" fill="url(#leafGrad)" opacity="0.7" stroke="#2e7d32" stroke-width="3"/>
+                        
+                        <!-- 上表皮 -->
+                        <path d="M 30 60 Q 250 30 470 60" stroke="#1b5e20" fill="none" stroke-width="3"/>
+                        <text x="250" y="20" text-anchor="middle" font-size="14" fill="#1b5e20" font-weight="bold">上表皮</text>
+                        
+                        <!-- 栅栏组织 -->
+                        <g id="palisade">
+                            <rect x="60" y="70" width="35" height="70" rx="5" fill="#a5d6a7" stroke="#388e3c" stroke-width="1.5"/>
+                            <rect x="120" y="70" width="35" height="70" rx="5" fill="#a5d6a7" stroke="#388e3c" stroke-width="1.5"/>
+                            <rect x="180" y="70" width="35" height="70" rx="5" fill="#a5d6a7" stroke="#388e3c" stroke-width="1.5"/>
+                            <rect x="240" y="70" width="35" height="70" rx="5" fill="#a5d6a7" stroke="#388e3c" stroke-width="1.5"/>
+                            <rect x="300" y="70" width="35" height="70" rx="5" fill="#a5d6a7" stroke="#388e3c" stroke-width="1.5"/>
+                            <rect x="360" y="70" width="35" height="70" rx="5" fill="#a5d6a7" stroke="#388e3c" stroke-width="1.5"/>
+                            <text x="250" y="155" text-anchor="middle" font-size="12" fill="#2e7d32">栅栏组织</text>
+                        </g>
+                        
+                        <!-- 海绵组织 -->
+                        <g id="spongy">
+                            <circle cx="80" cy="175" r="20" fill="#c8e6c9" stroke="#388e3c" stroke-width="1.5"/>
+                            <circle cx="140" cy="185" r="20" fill="#c8e6c9" stroke="#388e3c" stroke-width="1.5"/>
+                            <circle cx="200" cy="175" r="20" fill="#c8e6c9" stroke="#388e3c" stroke-width="1.5"/>
+                            <circle cx="260" cy="185" r="20" fill="#c8e6c9" stroke="#388e3c" stroke-width="1.5"/>
+                            <circle cx="320" cy="175" r="20" fill="#c8e6c9" stroke="#388e3c" stroke-width="1.5"/>
+                            <circle cx="380" cy="185" r="20" fill="#c8e6c9" stroke="#388e3c" stroke-width="1.5"/>
+                            <text x="250" y="220" text-anchor="middle" font-size="12" fill="#2e7d32">海绵组织</text>
+                        </g>
+                        
+                        <!-- 叶绿体（关键！） -->
+                        <g id="chloroplasts">
+                            <ellipse cx="77" cy="105" rx="12" ry="7" fill="#4caf50" stroke="#1b5e20" stroke-width="2">
+                                <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite"/>
+                            </ellipse>
+                            <ellipse cx="137" cy="110" rx="12" ry="7" fill="#4caf50" stroke="#1b5e20" stroke-width="2">
+                                <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite"/>
+                            </ellipse>
+                            <ellipse cx="197" cy="105" rx="12" ry="7" fill="#4caf50" stroke="#1b5e20" stroke-width="2">
+                                <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite"/>
+                            </ellipse>
+                            <ellipse cx="257" cy="110" rx="12" ry="7" fill="#4caf50" stroke="#1b5e20" stroke-width="2">
+                                <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite"/>
+                            </ellipse>
+                            <ellipse cx="317" cy="105" rx="12" ry="7" fill="#4caf50" stroke="#1b5e20" stroke-width="2">
+                                <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite"/>
+                            </ellipse>
+                            <ellipse cx="377" cy="110" rx="12" ry="7" fill="#4caf50" stroke="#1b5e20" stroke-width="2">
+                                <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite"/>
+                            </ellipse>
+                        </g>
+                        
+                        <!-- 气孔 -->
+                        <g id="stomata" transform="translate(400, 200)">
+                            <ellipse cx="0" cy="0" rx="18" ry="7" fill="#fff3e0" stroke="#e65100" stroke-width="2"/>
+                            <circle cx="-7" cy="0" r="5" fill="#ffcc80"/>
+                            <circle cx="7" cy="0" r="5" fill="#ffcc80"/>
+                            <text x="0" y="25" text-anchor="middle" font-size="11" fill="#e65100" font-weight="bold">气孔</text>
+                            <text x="0" y="38" text-anchor="middle" font-size="9" fill="#757575">(CO₂入口)</text>
+                        </g>
+                        
+                        <!-- 下表皮 -->
+                        <path d="M 30 220 Q 250 250 470 220" stroke="#1b5e20" fill="none" stroke-width="3"/>
+                        <text x="250" y="270" text-anchor="middle" font-size="14" fill="#1b5e20" font-weight="bold">下表皮</text>
+                        
+                        <!-- 叶绿体标注 -->
+                        <line x1="250" y1="105" x2="250" y2="300" stroke="#666" stroke-width="1" stroke-dasharray="3,3"/>
+                        <text x="250" y="320" text-anchor="middle" font-size="12" fill="#1b5e20">
+                            🌿 叶绿体 (光合作用场所)
+                        </text>
+                    </g>
+                    
+                    <!-- 输出：O2 -->
+                    <g id="o2-output">
+                        <path d="M 700 350 Q 750 300 780 250" stroke="#4caf50" stroke-width="2" fill="none" stroke-dasharray="5,5">
+                            <animate attributeName="stroke-dashoffset" from="0" to="10" dur="1s" repeatCount="indefinite"/>
+                        </path>
+                        <polygon points="780,250 775,260 785,255" fill="#4caf50"/>
+                        
+                        <circle cx="800" cy="220" r="30" fill="#4caf50" stroke="#2e7d32" stroke-width="2"/>
+                        <text x="800" y="225" text-anchor="middle" font-size="14" fill="white">O₂</text>
+                        <text x="800" y="265" text-anchor="middle" font-size="12" fill="#2e7d32">氧气</text>
+                    </g>
+                    
+                    <!-- 输出：葡萄糖 -->
+                    <g id="glucose-output">
+                        <path d="M 500 480 L 500 550" stroke="#e91e63" stroke-width="2" fill="none" stroke-dasharray="5,5">
+                            <animate attributeName="stroke-dashoffset" from="0" to="10" dur="1s" repeatCount="indefinite"/>
+                        </path>
+                        <polygon points="500,550 495,540 505,540" fill="#e91e63"/>
+                        
+                        <rect x="450" y="560" width="100" height="40" rx="20" fill="#e91e63" stroke="#c2185b" stroke-width="2"/>
+                        <text x="500" y="585" text-anchor="middle" font-size="12" fill="white" font-weight="bold">葡萄糖</text>
+                        <text x="500" y="620" text-anchor="middle" font-size="11" fill="#c2185b">C₆H₁₂O₆</text>
+                    </g>
+                    
+                    <!-- 化学反应式 -->
+                    <g id="equation" transform="translate(200, 650)">
+                        <rect x="0" y="0" width="600" height="40" rx="8" fill="#f5f5f5" stroke="#bdbdbd"/>
+                        <text x="300" y="28" text-anchor="middle" font-size="18" font-weight="bold">
+                            6CO₂ + 6H₂O + 光能 → C₆H₁₂O₆ + 6O₂
+                        </text>
+                    </g>
+                    
+                    <!-- 图例 -->
+                    <g id="legend" transform="translate(50, 550)">
+                        <rect x="0" y="0" width="180" height="130" fill="white" stroke="#e0e0e0" rx="8"/>
+                        <text x="90" y="25" text-anchor="middle" font-size="14" font-weight="bold">图例</text>
+                        
+                        <circle cx="25" cy="50" r="8" fill="#ff9800"/>
+                        <text x="45" y="55" font-size="11">光能输入</text>
+                        
+                        <circle cx="25" cy="75" r="8" fill="#2196f3"/>
+                        <text x="45" y="80" font-size="11">水 (H₂O)</text>
+                        
+                        <circle cx="25" cy="100" r="8" fill="#4caf50"/>
+                        <text x="45" y="105" font-size="11">氧气 (O₂)</text>
+                        
+                        <circle cx="25" cy="125" r="8" fill="#e91e63"/>
+                        <text x="45" y="130" font-size="11">葡萄糖</text>
+                    </g>
+                </svg>
+            </div>
+            
+            <div class="legend">
+                <h3>📖 图解说明</h3>
+                <div class="legend-item">
+                    <div class="color-box" style="background: #ffeb3b;"></div>
+                    <div><strong>太阳光</strong></div>
+                    <div style="font-size: 12px; color: #666;">能量来源</div>
+                </div>
+                <div class="legend-item">
+                    <div class="color-box" style="background: #4caf50;"></div>
+                    <div><strong>叶绿体</strong></div>
+                    <div style="font-size: 12px; color: #666;">光合作用场所</div>
+                </div>
+                <div class="legend-item">
+                    <div class="color-box" style="background: #2196f3;"></div>
+                    <div><strong>水</strong></div>
+                    <div style="font-size: 12px; color: #666;">反应物</div>
+                </div>
+                <div class="legend-item">
+                    <div class="color-box" style="background: #9e9e9e;"></div>
+                    <div><strong>CO₂</strong></div>
+                    <div style="font-size: 12px; color: #666;">反应物</div>
+                </div>
+                <div class="legend-item">
+                    <div class="color-box" style="background: #4caf50;"></div>
+                    <div><strong>O₂</strong></div>
+                    <div style="font-size: 12px; color: #666;">产物</div>
+                </div>
+                <div class="legend-item">
+                    <div class="color-box" style="background: #e91e63;"></div>
+                    <div><strong>葡萄糖</strong></div>
+                    <div style="font-size: 12px; color: #666;">产物</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 方案2：Mermaid流程图 -->
+        <div id="mermaid-flow" class="content-card">
+            <h2>📊 方案2：流程图（Mermaid）</h2>
+            <p>简化的流程图，适合快速理解光合作用的基本过程。</p>
+            
+            <div class="mermaid">
+graph TD
+    subgraph 输入
+        A1["☀️ 太阳光<br/>能量来源"]
+        A2["CO₂ 二氧化碳<br/>碳源"]
+        A3["H₂O 水<br/>氢源和氧源"]
+    end
+
+    subgraph 叶片结构
+        B1["气孔<br/>进气口"]
+        B2["🌿 叶绿体<br/>加工车间"]
+        B3["叶肉细胞<br/>生产单元"]
+    end
+
+    subgraph 过程
+        C1["步骤1: 光能吸收<br/>叶绿素捕获光能"]
+        C2["步骤2: 水分解<br/>释放O₂和H"]
+        C3["步骤3: CO₂固定<br/>碳原子进入有机物"]
+        C4["步骤4: 糖合成<br/>生成葡萄糖"]
+    end
+
+    subgraph 输出
+        D1["O₂ 氧气<br/>副产物"]
+        D2["🍬 葡萄糖<br/>主要产物"]
+    end
+
+    A1 -->|光能| B2
+    A2 -->|通过气孔| B1
+    A3 -->|根部吸收| B3
+
+    B1 --> C1
+    B2 --> C2
+    B3 --> C3
+
+    C1 -->|提供能量| C2
+    C2 -->|提供H| C3
+    C3 --> C4
+
+    C2 -->|释放| D1
+    C4 -->|生成| D2
+
+    style A1 fill:#fff3e0,stroke:#ff9800,stroke-width:3px
+    style B2 fill:#e8f5e9,stroke:#4caf50,stroke-width:3px
+    style D1 fill:#e3f2fd,stroke:#2196f3,stroke-width:3px
+    style D2 fill:#fce4ec,stroke:#e91e63,stroke-width:3px
+            </div>
+            
+            <div class="equation-box">
+                <h3>总反应式</h3>
+                <p style="font-size: 20px; margin: 20px 0;">
+                    6CO₂ + 6H₂O + 光能 → C₆H₁₂O₆ + 6O₂
+                </p>
+                <p style="color: #666;">（在叶绿体中进行）</p>
+            </div>
+        </div>
+        
+        <!-- 方案3：简化示意图 -->
+        <div id="svg-simple" class="content-card">
+            <h2>🎯 方案3：简化示意图（SVG）</h2>
+            <p>突出核心概念，去除复杂细节，适合初学者。</p>
+            
+            <div class="svg-container">
+                <svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
+                    <!-- 标题 -->
+                    <text x="400" y="40" text-anchor="middle" font-size="24" font-weight="bold" fill="#2c3e50">
+                        光合作用简化示意图
+                    </text>
+                    
+                    <!-- 叶片 -->
+                    <ellipse cx="400" cy="250" rx="200" ry="120" fill="#81c784" stroke="#4caf50" stroke-width="3"/>
+                    <text x="400" y="255" text-anchor="middle" font-size="28" fill="white" font-weight="bold">🍃 叶片</text>
+                    <text x="400" y="280" text-anchor="middle" font-size="12" fill="white">（含有叶绿体）</text>
+                    
+                    <!-- 输入：太阳 -->
+                    <circle cx="100" cy="150" r="50" fill="#ffeb3b" stroke="#ffa000" stroke-width="3">
+                        <animate attributeName="r" values="50;55;50" dur="2s" repeatCount="indefinite"/>
+                    </circle>
+                    <text x="100" y="155" text-anchor="middle" font-size="30">☀️</text>
+                    <text x="100" y="220" text-anchor="middle" font-size="14" fill="#e65100" font-weight="bold">太阳光</text>
+                    
+                    <!-- 光能箭头 -->
+                    <path d="M 150 150 L 250 200" stroke="#ff9800" stroke-width="4" marker-end="url(#arrowOrange)">
+                        <animate attributeName="stroke-dasharray" values="0,200;200,0" dur="2s" repeatCount="indefinite"/>
+                    </path>
+                    <text x="200" y="160" font-size="12" fill="#e65100">光能</text>
+                    
+                    <!-- 输入：CO2 -->
+                    <circle cx="700" cy="200" r="35" fill="#e0e0e0" stroke="#9e9e9e" stroke-width="2"/>
+                    <text x="700" y="205" text-anchor="middle" font-size="16" font-weight="bold">CO₂</text>
+                    <text x="700" y="250" text-anchor="middle" font-size="12" fill="#757575">二氧化碳</text>
+                    
+                    <!-- CO2箭头 -->
+                    <path d="M 665 200 L 580 220" stroke="#9e9e9e" stroke-width="3" marker-end="url(#arrowGray)">
+                        <animate attributeName="stroke-dasharray" values="0,100;100,0" dur="2s" repeatCount="indefinite"/>
+                    </path>
+                    
+                    <!-- 输入：H2O -->
+                    <circle cx="100" cy="350" r="35" fill="#2196f3" stroke="#1976d2" stroke-width="2"/>
+                    <text x="100" y="355" text-anchor="middle" font-size="16" font-weight="bold" fill="white">H₂O</text>
+                    <text x="100" y="400" text-anchor="middle" font-size="12" fill="#1976d2">水</text>
+                    
+                    <!-- H2O箭头 -->
+                    <path d="M 135 350 L 250 300" stroke="#2196f3" stroke-width="3" marker-end="url(#arrowBlue)">
+                        <animate attributeName="stroke-dasharray" values="0,100;100,0" dur="2s" repeatCount="indefinite"/>
+                    </path>
+                    
+                    <!-- 输出：O2 -->
+                    <circle cx="700" cy="300" r="35" fill="#4caf50" stroke="#2e7d32" stroke-width="2"/>
+                    <text x="700" y="305" text-anchor="middle" font-size="16" font-weight="bold" fill="white">O₂</text>
+                    <text x="700" y="350" text-anchor="middle" font-size="12" fill="#2e7d32">氧气</text>
+                    
+                    <!-- O2箭头 -->
+                    <path d="M 550 280 L 665 300" stroke="#4caf50" stroke-width="3" marker-end="url(#arrowGreen)">
+                        <animate attributeName="stroke-dasharray" values="0,100;100,0" dur="2s" repeatCount="indefinite"/>
+                    </path>
+                    
+                    <!-- 输出：葡萄糖 -->
+                    <rect x="350" cy="420" width="100" height="50" rx="25" fill="#e91e63" stroke="#c2185b" stroke-width="2"/>
+                    <text x="400" y="450" text-anchor="middle" font-size="14" font-weight="bold" fill="white">葡萄糖</text>
+                    <text x="400" y="490" text-anchor="middle" font-size="11" fill="#c2185b">C₆H₁₂O₆</text>
+                    
+                    <!-- 葡萄糖箭头 -->
+                    <path d="M 400 320 L 400 420" stroke="#e91e63" stroke-width="3" marker-end="url(#arrowPink)">
+                        <animate attributeName="stroke-dasharray" values="0,100;100,0" dur="2s" repeatCount="indefinite"/>
+                    </path>
+                    
+                    <!-- 箭头标记 -->
+                    <defs>
+                        <marker id="arrowOrange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <polygon points="0 0, 10 3, 0 6" fill="#ff9800"/>
+                        </marker>
+                        <marker id="arrowGray" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <polygon points="0 0, 10 3, 0 6" fill="#9e9e9e"/>
+                        </marker>
+                        <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <polygon points="0 0, 10 3, 0 6" fill="#2196f3"/>
+                        </marker>
+                        <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <polygon points="0 0, 10 3, 0 6" fill="#4caf50"/>
+                        </marker>
+                        <marker id="arrowPink" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <polygon points="0 0, 10 3, 0 6" fill="#e91e63"/>
+                        </marker>
+                    </defs>
+                    
+                    <!-- 核心提示 -->
+                    <rect x="200" y="350" width="400" height="30" rx="15" fill="#fff3e0" stroke="#ff9800" stroke-width="1"/>
+                    <text x="400" y="370" text-anchor="middle" font-size="12" fill="#e65100">
+                        💡 光能 + CO₂ + H₂O → 葡萄糖 + O₂
+                    </text>
+                </svg>
+            </div>
+            
+            <div class="key-points">
+                <div class="key-point">
+                    <h4>🌞 输入</h4>
+                    <ul>
+                        <li>太阳光（能量来源）</li>
+                        <li>二氧化碳 CO₂（碳源）</li>
+                        <li>水 H₂O（氢源和氧源）</li>
+                    </ul>
+                </div>
+                <div class="key-point">
+                    <h4>🏭 场所</h4>
+                    <ul>
+                        <li>叶片（主要器官）</li>
+                        <li>叶绿体（细胞器）</li>
+                        <li>叶绿素（色素）</li>
+                    </ul>
+                </div>
+                <div class="key-point">
+                    <h4>📤 输出</h4>
+                    <ul>
+                        <li>葡萄糖（有机物）</li>
+                        <li>氧气 O₂（副产物）</li>
+                        <li>能量储存（化学能）</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 方案4：对比说明 -->
+        <div id="comparison" class="content-card">
+            <h2>⚖️ 方案对比</h2>
+            <p>不同方案适用于不同场景，选择最适合的。</p>
+            
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <thead>
+                    <tr style="background: #f5f5f5;">
+                        <th style="padding: 15px; border: 1px solid #e0e0e0; text-align: left;">方案</th>
+                        <th style="padding: 15px; border: 1px solid #e0e0e0; text-align: left;">优势</th>
+                        <th style="padding: 15px; border: 1px solid #e0e0e0; text-align: left;">劣势</th>
+                        <th style="padding: 15px; border: 1px solid #e0e0e0; text-align: left;">适用场景</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding: 15px; border: 1px solid #e0e0e0;"><strong>详细结构图</strong></td>
+                        <td style="padding: 15px; border: 1px solid #e0e0e0;">
+                            <ul>
+                                <li>科学准确</li>
+                                <li>细节丰富</li>
+                                <li>可视化强</li>
+                            </ul>
+                        </td>
+                        <td style="padding: 15px; border: 1px solid #e0e0e0;">
+                            <ul>
+                                <li>复杂度高</li>
+                                <li>需要专业知识</li>
+                            </ul>
+                        </td>
+                        <td style="padding: 15px; border: 1px solid #e0e0e0;">高中生物、大学课程</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 15px; border: 1px solid #e0e0e0;"><strong>流程图</strong></td>
+                        <td style="padding: 15px; border: 1px solid #e0e0e0;">
+                            <ul>
+                                <li>逻辑清晰</li>
+                                <li>易于理解</li>
+                                <li>生成快速</li>
+                            </ul>
+                        </td>
+                        <td style="padding: 15px; border: 1px solid #e0e0e0;">
+                            <ul>
+                                <li>缺少结构细节</li>
+                                <li>抽象化</li>
+                            </ul>
+                        </td>
+                        <td style="padding: 15px; border: 1px solid #e0e0e0;">初中生物、科普教育</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 15px; border: 1px solid #e0e0e0;"><strong>简化示意图</strong></td>
+                        <td style="padding: 15px; border: 1px solid #e0e0e0;">
+                            <ul>
+                                <li>简洁明了</li>
+                                <li>重点突出</li>
+                                <li>适合初学者</li>
+                            </ul>
+                        </td>
+                        <td style="padding: 15px; border: 1px solid #e0e0e0;">
+                            <ul>
+                                <li>信息量少</li>
+                                <li>不够精确</li>
+                            </ul>
+                        </td>
+                        <td style="padding: 15px; border: 1px solid #e0e0e0;">小学生、快速复习</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="interactive-note">
+                <strong>💡 生成方式说明：</strong>
+                <p style="margin-top: 10px;">
+                    这三个可视化方案都是通过<strong>结构化参数 + 模板渲染</strong>生成的：
+                </p>
+                <ol style="margin-top: 10px; margin-left: 20px;">
+                    <li><strong>LLM理解需求</strong> → 生成结构化JSON参数</li>
+                    <li><strong>参数验证</strong> → 确保安全性和正确性</li>
+                    <li><strong>模板选择</strong> → 根据学生水平选择模板</li>
+                    <li><strong>渲染输出</strong> → 生成SVG/Mermaid代码</li>
+                </ol>
+            </div>
+            
+            <h3 style="margin-top: 30px; color: #2c3e50;">🔧 技术实现要点</h3>
+            <div class="key-points">
+                <div class="key-point">
+                    <h4>结构化参数示例</h4>
+                    <pre style="font-size: 11px; background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto;">
+{
+  "concept": "光合作用",
+  "components": [
+    {"name": "太阳", "type": "circle"},
+    {"name": "叶片", "type": "ellipse"},
+    {"name": "CO2", "type": "circle"}
+  ],
+  "flows": [
+    {"from": "太阳", "to": "叶片"},
+    {"from": "CO2", "to": "叶片"}
+  ]
+}</pre>
+                </div>
+                <div class="key-point">
+                    <h4>安全性保障</h4>
+                    <ul>
+                        <li>✅ 只允许预定义图形类型</li>
+                        <li>✅ 坐标范围验证</li>
+                        <li>✅ 颜色格式检查</li>
+                        <li>✅ 无代码注入风险</li>
+                    </ul>
+                </div>
+                <div class="key-point">
+                    <h4>扩展性</h4>
+                    <ul>
+                        <li>✅ 添加新的原子图形</li>
+                        <li>✅ 自定义布局算法</li>
+                        <li>✅ 多种输出格式</li>
+                        <li>✅ 动画支持</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 初始化Mermaid
+        mermaid.initialize({ startOnLoad: true });
+        
+        // Tab切换功能
+        function showTab(tabId) {
+            // 隐藏所有内容卡片
+            document.querySelectorAll('.content-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // 移除所有tab按钮的active状态
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 显示选中的内容卡片
+            document.getElementById(tabId).classList.add('active');
+            
+            // 激活对应的tab按钮
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

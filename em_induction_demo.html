@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电磁感应模板扩展演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+            font-size: 36px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+        
+        <!-- 步骤说明 -->
+        .steps-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .steps-section h2 {
+            color: #1e3c72;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .step-box {
+            background: #f5f7fa;
+            border-left: 4px solid #1e3c72;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .step-box h3 {
+            color: #1e3c72;
+            margin-bottom: 10px;
+        }
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+        
+        <!-- 图片网格 -->
+        .images-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .image-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .image-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .badge {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .badge-green {
+            background: linear-gradient(135deg, #43A047 0%, #66BB6A 100%);
+        }
+        .badge-red {
+            background: linear-gradient(135deg, #E53935 0%, #EF5350 100%);
+        }
+        .image-wrapper {
+            border: 2px solid #f0f0f0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fafafa;
+            margin-bottom: 15px;
+        }
+        .description {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        <!-- 优势总结 -->
+        .advantages {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .advantages h2 {
+            color: #1e3c72;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .adv-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .adv-item {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+        }
+        .adv-icon {
+            font-size: 32px;
+            margin-right: 15px;
+        }
+        .adv-text h4 {
+            color: #1e3c72;
+            margin-bottom: 5px;
+        }
+        .adv-text p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        <!-- 对比表格 -->
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .comparison-table th {
+            background: #1e3c72;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+        .comparison-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .comparison-table tr:hover {
+            background: #f5f5f5;
+        }
+        .check {
+            color: #43A047;
+            font-weight: bold;
+        }
+        .cross {
+            color: #E53935;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧲 电磁感应模板扩展演示</h1>
+        <p class="subtitle">展示模板驱动方案如何处理复杂物理场景</p>
+        
+        <!-- 实现步骤 -->
+        <div class="steps-section">
+            <h2>📐 扩展步骤：从简单到复杂</h2>
+            
+            <div class="step-box">
+                <h3>Step 1: 分析场景特征</h3>
+                <p>电磁感应包含：磁铁、线圈、磁场线、电流方向、公式等关键元素</p>
+                <ul style="margin-top: 10px; margin-left: 20px; color: #666;">
+                    <li>磁铁可以有不同的位置（进入、静止、离开）</li>
+                    <li>线圈匝数可变</li>
+                    <li>磁场线需要动态效果</li>
+                    <li>电流方向符合楞次定律</li>
+                </ul>
+            </div>
+            
+            <div class="step-box">
+                <h3>Step 2: 定义参数结构</h3>
+                <p>LLM只需要输出这些参数：</p>
+                <div class="code-block">{
+  "title": "电磁感应 - 磁铁进入线圈",
+  "magnet_position": "entering",  // entering, inside, leaving
+  "coil_turns": 6,                 // 线圈匝数
+  "show_magnetic_field": true,     // 显示磁场线
+  "show_current": true,            // 显示电流
+  "show_formula": true             // 显示公式框
+}</div>
+            </div>
+            
+            <div class="step-box">
+                <h3>Step 3: 编写模板渲染器</h3>
+                <p>模板引擎根据参数生成精美的SVG：</p>
+                <ul style="margin-top: 10px; margin-left: 20px; color: #666;">
+                    <li>✅ 自动计算布局和坐标</li>
+                    <li>✅ 添加渐变、阴影、发光效果</li>
+                    <li>✅ 动画效果（磁场线流动、电流指示闪烁）</li>
+                    <li>✅ 物理公式自动匹配</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 生成的图片 -->
+        <div class="images-grid">
+            <!-- 场景1: 磁铁进入 -->
+            <div class="image-card">
+                <h3>
+                    场景1: 磁铁进入线圈
+                    <span class="badge">磁通量增加</span>
+                    <span class="badge badge-green">顺时针电流</span>
+                </h3>
+                <div class="image-wrapper">
+                    <img src="em_induction_entering.svg" alt="磁铁进入线圈" style="width: 100%; display: block;">
+                </div>
+                <div class="description">
+                    <strong>物理原理：</strong>当磁铁N极接近线圈时，穿过线圈的磁通量增加。根据楞次定律，
+                    感应电流产生的磁场方向与原磁场方向相反，以阻碍磁通量的增加。因此电流方向为顺时针。
+                </div>
+            </div>
+            
+            <!-- 场景2: 磁铁静止 -->
+            <div class="image-card">
+                <h3>
+                    场景2: 磁铁静止在线圈内
+                    <span class="badge">磁通量不变</span>
+                    <span class="badge badge-red">无电流</span>
+                </h3>
+                <div class="image-wrapper">
+                    <img src="em_induction_inside.svg" alt="磁铁静止在线圈内" style="width: 100%; display: block;">
+                </div>
+                <div class="description">
+                    <strong>物理原理：</strong>当磁铁静止在线圈内时，穿过线圈的磁通量不发生变化。
+                    根据法拉第电磁感应定律 ε = -dΦ/dt，磁通量变化率为零，因此不产生感应电流。
+                </div>
+            </div>
+            
+            <!-- 场景3: 磁铁离开 -->
+            <div class="image-card">
+                <h3>
+                    场景3: 磁铁离开线圈
+                    <span class="badge">磁通量减少</span>
+                    <span class="badge badge-green">逆时针电流</span>
+                </h3>
+                <div class="image-wrapper">
+                    <img src="em_induction_leaving.svg" alt="磁铁离开线圈" style="width: 100%; display: block;">
+                </div>
+                <div class="description">
+                    <strong>物理原理：</strong>当磁铁N极远离线圈时，穿过线圈的磁通量减少。根据楞次定律，
+                    感应电流产生的磁场方向与原磁场方向相同，以阻碍磁通量的减少。因此电流方向为逆时针。
+                </div>
+            </div>
+        </div>
+        
+        <!-- 参数对比 -->
+        <div class="steps-section">
+            <h2>📊 三个场景的参数对比</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>参数</th>
+                        <th>场景1（进入）</th>
+                        <th>场景2（静止）</th>
+                        <th>场景3（离开）</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>magnet_position</strong></td>
+                        <td>"entering"</td>
+                        <td>"inside"</td>
+                        <td>"leaving"</td>
+                    </tr>
+                    <tr>
+                        <td><strong>coil_turns</strong></td>
+                        <td>6</td>
+                        <td>6</td>
+                        <td>6</td>
+                    </tr>
+                    <tr>
+                        <td><strong>电流方向</strong></td>
+                        <td>顺时针</td>
+                        <td>无</td>
+                        <td>逆时针</td>
+                    </tr>
+                    <tr>
+                        <td><strong>磁通量变化</strong></td>
+                        <td>增加 ↑</td>
+                        <td>不变 —</td>
+                        <td>减少 ↓</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="color: #666; margin-top: 15px;">
+                <strong>关键点：</strong>只需修改一个参数 <code>magnet_position</code>，就能生成完全不同的物理场景图片，
+                且保证物理原理的准确性！
+            </p>
+        </div>
+        
+        <!-- 优势总结 -->
+        <div class="advantages">
+            <h2>✨ 模板扩展的核心优势</h2>
+            <div class="adv-grid">
+                <div class="adv-item">
+                    <div class="adv-icon">🎯</div>
+                    <div class="adv-text">
+                        <h4>参数化控制</h4>
+                        <p>一个参数控制整个场景，LLM负担极轻</p>
+                    </div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-icon">🔬</div>
+                    <div class="adv-text">
+                        <h4>物理准确性</h4>
+                        <p>电流方向、磁场分布符合物理定律</p>
+                    </div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-icon">🎨</div>
+                    <div class="adv-text">
+                        <h4>专业视觉效果</h4>
+                        <p>渐变、动画、发光，媲美专业软件</p>
+                    </div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-icon">📚</div>
+                    <div class="adv-text">
+                        <h4>教学友好</h4>
+                        <p>自动添加公式框、图例说明</p>
+                    </div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-icon">⚡</div>
+                    <div class="adv-text">
+                        <h4>开发效率高</h4>
+                        <p>新增场景只需扩展参数范围</p>
+                    </div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-icon">🔄</div>
+                    <div class="adv-text">
+                        <h4>易于维护</h4>
+                        <p>修改模板即可全局更新所有图片</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

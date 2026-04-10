@@ -1,0 +1,60 @@
+<svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" style="background: #f8f9fa; border-radius: 12px;">
+  <!-- 标题 -->
+  <text x="400" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#2c3e50">
+    三角形内角和定理证明
+  </text>
+  
+  <!-- 主三角形 -->
+  <g id="main-triangle">
+    <polygon points="150,350 350,350 250,150" 
+             fill="#e3f2fd" stroke="#1976d2" stroke-width="2"/>
+    
+    <!-- 角度标记 -->
+    <path d="M 170,350 A 20,20 0 0,1 150,330" fill="none" stroke="#f44336" stroke-width="2"/>
+    <text x="180" y="370" font-size="16" fill="#f44336">∠A</text>
+    
+    <path d="M 330,350 A 20,20 0 0,0 350,330" fill="none" stroke="#4caf50" stroke-width="2"/>
+    <text x="330" y="370" font-size="16" fill="#4caf50">∠B</text>
+    
+    <path d="M 240,170 A 20,20 0 0,1 260,170" fill="none" stroke="#2196f3" stroke-width="2"/>
+    <text x="265" y="175" font-size="16" fill="#2196f3">∠C</text>
+  </g>
+  
+  <!-- 平行线 -->
+  <g id="parallel-lines">
+    <line x1="200" y1="150" x2="400" y2="150" stroke="#ff9800" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="410" y="155" font-size="14" fill="#ff9800">过C点的平行线</text>
+    
+    <!-- 内错角标记 -->
+    <path d="M 240,150 A 15,15 0 0,0 230,165" fill="none" stroke="#f44336" stroke-width="2"/>
+    <text x="215" y="145" font-size="14" fill="#f44336">∠1=∠A</text>
+    
+    <path d="M 260,150 A 15,15 0 0,1 270,165" fill="none" stroke="#4caf50" stroke-width="2"/>
+    <text x="275" y="145" font-size="14" fill="#4caf50">∠2=∠B</text>
+  </g>
+  
+  <!-- 结论 -->
+  <g id="conclusion">
+    <rect x="450" y="180" width="300" height="150" fill="#fff3e0" rx="8" stroke="#ff9800"/>
+    <text x="600" y="210" text-anchor="middle" font-size="16" font-weight="bold" fill="#e65100">
+      证明过程
+    </text>
+    <text x="470" y="240" font-size="14" fill="#333">
+      ∵ ∠1 = ∠A (内错角相等)
+    </text>
+    <text x="470" y="265" font-size="14" fill="#333">
+      ∵ ∠2 = ∠B (内错角相等)
+    </text>
+    <text x="470" y="290" font-size="14" fill="#333">
+      ∵ ∠1 + ∠C + ∠2 = 180° (平角定义)
+    </text>
+    <text x="470" y="315" font-size="14" font-weight="bold" fill="#1976d2">
+      ∴ ∠A + ∠B + ∠C = 180°
+    </text>
+  </g>
+  
+  <!-- 交互提示 -->
+  <text x="400" y="390" text-anchor="middle" font-size="12" fill="#999">
+    💡 点击角度标记可以查看详细说明
+  </text>
+</svg>

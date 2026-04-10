@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模板驱动方案演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            font-size: 36px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            font-size: 18px;
+            margin-top: -30px;
+            margin-bottom: 40px;
+        }
+        .comparison {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .comparison h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+        }
+        .workflow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .step {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 5px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .arrow {
+            font-size: 24px;
+            color: #667eea;
+            margin: 0 10px;
+        }
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(700px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        .image-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        .image-card:hover {
+            transform: translateY(-5px);
+        }
+        .image-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .image-wrapper {
+            border: 2px solid #f0f0f0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fafafa;
+        }
+        .json-box {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+        .json-key { color: #66d9ef; }
+        .json-string { color: #a6e22e; }
+        .advantages {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .advantages h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .adv-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .adv-item {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+        }
+        .adv-icon {
+            font-size: 32px;
+            margin-right: 15px;
+        }
+        .adv-text h4 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .adv-text p {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 模板驱动教学图片生成方案</h1>
+        <p class="subtitle">预定义精美模板 + LLM输出结构化参数 = 稳定高质量输出</p>
+        
+        <!-- 工作流程对比 -->
+        <div class="comparison">
+            <h2>📍 核心思路对比</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div>
+                    <h3 style="color: #999; margin-bottom: 15px;">❌ 原方案（三层架构）</h3>
+                    <div class="workflow">
+                        <div class="step" style="background: #999;">用户需求</div>
+                        <span class="arrow">→</span>
+                        <div class="step" style="background: #999;">语义理解</div>
+                        <span class="arrow">→</span>
+                        <div class="step" style="background: #999;">组合决策</div>
+                        <span class="arrow">→</span>
+                        <div class="step" style="background: #999;">原子渲染</div>
+                    </div>
+                    <ul style="color: #999; line-height: 1.8; margin-top: 15px;">
+                        <li>复杂度高：需要三层处理</li>
+                        <li>质量不稳定：LLM直接生成SVG</li>
+                        <li>开发成本高：需要大量规则</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: #667eea; margin-bottom: 15px;">✅ 新方案（模板驱动）</h3>
+                    <div class="workflow">
+                        <div class="step">用户需求</div>
+                        <span class="arrow">→</span>
+                        <div class="step">LLM输出JSON</div>
+                        <span class="arrow">→</span>
+                        <div class="step">套用模板</div>
+                        <span class="arrow">→</span>
+                        <div class="step">精美SVG</div>
+                    </div>
+                    <ul style="color: #667eea; line-height: 1.8; margin-top: 15px;">
+                        <li>复杂度低：只需参数化</li>
+                        <li>质量稳定：模板保证效果</li>
+                        <li>开发简单：维护模板库</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 生成的图片展示 -->
+        <div class="comparison">
+            <h2>🖼️ 生成的图片示例</h2>
+            <div class="images-grid">
+                <!-- 图片1: 光合作用 -->
+                <div class="image-card">
+                    <h3>
+                        光合作用流程图
+                        <span class="badge">流程模板</span>
+                    </h3>
+                    <div class="image-wrapper">
+                        <img src="demo_template_1.svg" alt="光合作用" style="width: 100%; display: block;">
+                    </div>
+                    <div class="json-box">
+{
+  "template": "process_flow",
+  "title": "光合作用过程",
+  "steps": ["光能吸收", "水分解", "氧气释放", "有机物合成"],
+  "colors": ["#4CAF50", "#2196F3", "#FF9800", "#E91E63"]
+}
+                    </div>
+                </div>
+                
+                <!-- 图片2: 电路图 -->
+                <div class="image-card">
+                    <h3>
+                        串联电路图
+                        <span class="badge">电路模板</span>
+                    </h3>
+                    <div class="image-wrapper">
+                        <img src="demo_template_2.svg" alt="电路图" style="width: 100%; display: block;">
+                    </div>
+                    <div class="json-box">
+{
+  "template": "circuit_simple",
+  "title": "串联电路",
+  "components": ["电源", "开关", "灯泡"]
+}
+                    </div>
+                </div>
+                
+                <!-- 图片3: 力学分析 -->
+                <div class="image-card">
+                    <h3>
+                        力学分析图
+                        <span class="badge">力学模板</span>
+                    </h3>
+                    <div class="image-wrapper">
+                        <img src="demo_template_3.svg" alt="力学分析" style="width: 100%; display: block;">
+                    </div>
+                    <div class="json-box">
+{
+  "template": "mechanics_force",
+  "title": "水平推力分析",
+  "forces": ["推力F", "摩擦力f", "重力G", "支持力N"]
+}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 优势总结 -->
+        <div class="advantages">
+            <h2>✨ 方案核心优势</h2>
+            <div class="adv-grid">
+                <div class="adv-item">
+                    <div class="adv-icon">🎯</div>
+                    <div class="adv-text">
+                        <h4>LLM负担轻</h4>
+                        <p>只需输出JSON参数，不需要编写SVG代码</p>
+                    </div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-icon">💎</div>
+                    <div class="adv-text">
+                        <h4>质量稳定</h4>
+                        <p>模板经过专业设计，视觉效果有保障</p>
+                    </div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-icon">🚀</div>
+                    <div class="adv-text">
+                        <h4>开发简单</h4>
+                        <p>只需维护几十个模板，无需复杂规则引擎</p>
+                    </div>
+                </div>
+                <div class="adv-item">
+                    <div class="adv-icon">📦</div>
+                    <div class="adv-text">
+                        <h4>易于扩展</h4>
+                        <p>新增教学场景只需添加对应模板</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
