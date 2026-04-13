@@ -12,6 +12,7 @@ from app.api.chat import router as chat_router
 from app.api.admin import router as admin_router
 from app.api.chapters import router as chapters_router
 from app.api.knowledge_points import router as kp_router
+from app.api.teaching_v2 import router as teaching_v2_router
 
 api_router = APIRouter()
 
@@ -25,3 +26,4 @@ api_router.include_router(chat_router, prefix="/chat", tags=["对话推荐"])
 api_router.include_router(admin_router, tags=["年级科目管理"])
 api_router.include_router(chapters_router, tags=["章节管理"])
 api_router.include_router(kp_router, tags=["知识点管理"])
+api_router.include_router(teaching_v2_router, prefix="/teaching-v2", tags=["教学V2(分层Agent)"])

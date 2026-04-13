@@ -1,0 +1,150 @@
+{
+  "timestamp": "2026-04-10T23:28:40.659007",
+  "results": [
+    {
+      "test": "Tool selection: Phase 1, KP type 概念",
+      "passed": true,
+      "details": {
+        "expected": [
+          "image_generation"
+        ],
+        "actual": [
+          "image_generation"
+        ]
+      },
+      "timestamp": "2026-04-10T23:28:17.801646"
+    },
+    {
+      "test": "Tool selection: Phase 1, KP type 几何概念",
+      "passed": true,
+      "details": {
+        "expected": [
+          "image_generation"
+        ],
+        "actual": [
+          "image_generation"
+        ]
+      },
+      "timestamp": "2026-04-10T23:28:17.801718"
+    },
+    {
+      "test": "Tool selection: Phase 2, KP type 公式推导",
+      "passed": true,
+      "details": {
+        "expected": [
+          "image_generation"
+        ],
+        "actual": [
+          "image_generation"
+        ]
+      },
+      "timestamp": "2026-04-10T23:28:17.801784"
+    },
+    {
+      "test": "Tool selection: Phase 3, KP type 概念",
+      "passed": true,
+      "details": {
+        "expected": [
+          "interactive_demo"
+        ],
+        "actual": [
+          "interactive_demo"
+        ]
+      },
+      "timestamp": "2026-04-10T23:28:17.801852"
+    },
+    {
+      "test": "Tool selection: Phase 4, KP type 任何",
+      "passed": false,
+      "details": {
+        "expected": [
+          "question_generator"
+        ],
+        "actual": []
+      },
+      "timestamp": "2026-04-10T23:28:17.801918"
+    },
+    {
+      "test": "Image library retrieval",
+      "passed": false,
+      "details": {
+        "image_id": "IMG_K1_001",
+        "source": null,
+        "cost": 0
+      },
+      "timestamp": "2026-04-10T23:28:17.803037"
+    },
+    {
+      "test": "Template rendering",
+      "passed": false,
+      "details": {
+        "concept": "函数图像",
+        "source": null,
+        "cost": 0
+      },
+      "timestamp": "2026-04-10T23:28:18.307085"
+    },
+    {
+      "test": "AI generation (fallback)",
+      "passed": false,
+      "details": {
+        "concept": "一次函数与几何图形结合",
+        "source": null,
+        "cost": 0
+      },
+      "timestamp": "2026-04-10T23:28:18.595483"
+    },
+    {
+      "test": "Teaching flow with tools",
+      "passed": false,
+      "details": {
+        "total_events": 0,
+        "tool_events": 0
+      },
+      "timestamp": "2026-04-10T23:28:25.846671"
+    },
+    {
+      "test": "Old mode (no tools)",
+      "passed": false,
+      "details": {
+        "total_events": 0,
+        "tool_events": 0
+      },
+      "timestamp": "2026-04-10T23:28:33.368548"
+    },
+    {
+      "test": "New mode (with tools)",
+      "passed": false,
+      "details": {
+        "total_events": 0,
+        "tool_events": 0
+      },
+      "timestamp": "2026-04-10T23:28:40.657888"
+    },
+    {
+      "test": "Student context loading",
+      "passed": true,
+      "details": {
+        "has_profile": true,
+        "has_history": true,
+        "has_summary": true,
+        "history_count": 0
+      },
+      "timestamp": "2026-04-10T23:28:40.658184"
+    },
+    {
+      "test": "Cost optimization",
+      "passed": true,
+      "details": {
+        "note": "No usage logs yet"
+      },
+      "timestamp": "2026-04-10T23:28:40.658295"
+    }
+  ],
+  "summary": {
+    "total": 13,
+    "passed": 6,
+    "images_generated": 3,
+    "cost_saved": 0
+  }
+}

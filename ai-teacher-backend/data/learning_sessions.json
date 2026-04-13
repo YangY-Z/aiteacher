@@ -270,7 +270,79 @@
         }
       ],
       "current_round_index": 1
+    },
+    {
+      "id": "test_session_phase3",
+      "student_id": 1,
+      "course_id": "MATH_JUNIOR_01",
+      "kp_id": "K1",
+      "status": "active",
+      "created_at": "2026-04-10T23:21:58.745541",
+      "rounds": [
+        {
+          "round_number": 1,
+          "start_time": "2026-04-10T23:21:58.745536",
+          "end_time": null,
+          "status": "in_progress",
+          "messages": [],
+          "teaching_mode": null,
+          "current_phase": 1,
+          "total_phases": 4,
+          "phases_completed": [],
+          "assessment_result": null,
+          "summary": null
+        }
+      ],
+      "current_round_index": 0
+    },
+    {
+      "id": "test_e2e_session_1",
+      "student_id": 1,
+      "course_id": "MATH_JUNIOR_01",
+      "kp_id": "K1",
+      "status": "active",
+      "created_at": "2026-04-10T23:28:18.595905",
+      "rounds": [
+        {
+          "round_number": 1,
+          "start_time": "2026-04-10T23:28:18.595862",
+          "end_time": null,
+          "status": "in_progress",
+          "messages": [],
+          "teaching_mode": null,
+          "current_phase": 1,
+          "total_phases": 4,
+          "phases_completed": [],
+          "assessment_result": null,
+          "summary": null
+        }
+      ],
+      "current_round_index": 0
+    },
+    {
+      "id": "test_e2e_session_2",
+      "student_id": 1,
+      "course_id": "MATH_JUNIOR_01",
+      "kp_id": "K1",
+      "status": "active",
+      "created_at": "2026-04-10T23:28:25.847329",
+      "rounds": [
+        {
+          "round_number": 1,
+          "start_time": "2026-04-10T23:28:25.847063",
+          "end_time": null,
+          "status": "in_progress",
+          "messages": [],
+          "teaching_mode": null,
+          "current_phase": 1,
+          "total_phases": 4,
+          "phases_completed": [],
+          "assessment_result": null,
+          "summary": null
+        }
+      ],
+      "current_round_index": 0
     }
   ],
-  "updated_at": "2026-04-08T22:28:22.432885"
+  "updated_at": "2026-04-10T23:28:25.857453"
 }

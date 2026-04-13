@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button, message } from 'antd';
-import { LogoutOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { LogoutOutlined, ArrowLeftOutlined, ToolOutlined, EyeOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import FloatingWhiteboard from '../components/whiteboard/FloatingWhiteboard';
+import TeachingImage from '../components/teaching/TeachingImage';
 import { useAuthStore, useLearningStore } from '../store';
 import './MinimalLearning.css';
 
@@ -39,6 +40,7 @@ interface Message {
   phase?: LearningPhase;
   question?: Question;
   questionResults?: QuestionResult[];  // 评估结果
+  imageId?: string;  // 工具增强：图片ID
 }
 
 interface LearningState {
@@ -52,6 +54,8 @@ interface LearningState {
   assessmentQuestions: Question[];
   currentQuestionIndex: number;
   selectedAnswers: Record<string, string>;
+  // 工具增强相关
+  useTools: boolean;  // 是否启用工具增强
 }
 
 // 渲染带有公式的内容
@@ -174,6 +178,7 @@ const MinimalLearning: React.FC = () => {
     assessmentQuestions: [],
     currentQuestionIndex: 0,
     selectedAnswers: {},
+    useTools: true,  // 默认启用工具增强
   });
   
   const chatRef = useRef<HTMLDivElement>(null);
@@ -481,13 +486,50 @@ const MinimalLearning: React.FC = () => {
               switch (currentEventType) {
                 case 'segment':
                   if (json.message) {
-                    queueMessage(json.message, 'explain');
+                    // 工具增强：支持image_id
+                    const msgId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+                    setState(prev => ({
+                      ...prev,
+                      messages: [...prev.messages, {
+                        id: msgId,
+                        role: 'ai',
+                        content: json.message,
+                        timestamp: new Date(),
+                        phase: 'explain',
+                        imageId: json.image_id,  // 添加图片ID
+                      }],
+                    }));
                   }
                   if (json.whiteboard) {
                     if (json.whiteboard.title) setWhiteboardTitle(json.whiteboard.title);
                     if (json.whiteboard.points) {
                       json.whiteboard.points.forEach((p: string) => addWhiteboardPoint(p));
                     }
+                  }
+                  break;
+                
+                // 工具增强事件（v2新增）
+                case 'tool_call':
+                  console.log('[Tool Call]', json.tool_name, json.action);
+                  // 可选：显示工具调用提示
+                  break;
+                
+                case 'tool_result':
+                  console.log('[Tool Result]', json.tool_name, json.success);
+                  // 如果工具结果包含图片，添加到消息中
+                  if (json.success && json.image_id) {
+                    const toolMsgId = `tool-${Date.now()}`;
+                    setState(prev => ({
+                      ...prev,
+                      messages: [...prev.messages, {
+                        id: toolMsgId,
+                        role: 'ai',
+                        content: json.message || '',
+                        timestamp: new Date(),
+                        phase: 'explain',
+                        imageId: json.image_id,
+                      }],
+                    }));
                   }
                   break;
                 
@@ -587,13 +629,48 @@ const MinimalLearning: React.FC = () => {
               // 教学模式事件
               case 'segment':
                 if (json.message) {
-                  queueMessage(json.message, 'explain');
+                  // 工具增强：支持image_id
+                  const msgId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+                  setState(prev => ({
+                    ...prev,
+                    messages: [...prev.messages, {
+                      id: msgId,
+                      role: 'ai',
+                      content: json.message,
+                      timestamp: new Date(),
+                      phase: 'explain',
+                      imageId: json.image_id,  // 添加图片ID
+                    }],
+                  }));
                 }
                 if (json.whiteboard) {
                   if (json.whiteboard.title) setWhiteboardTitle(json.whiteboard.title);
                   if (json.whiteboard.points) {
                     json.whiteboard.points.forEach((p: string) => addWhiteboardPoint(p));
                   }
+                }
+                break;
+              
+              // 工具增强事件（v2新增）
+              case 'tool_call':
+                console.log('[Tool Call]', json.tool_name, json.action);
+                break;
+              
+              case 'tool_result':
+                console.log('[Tool Result]', json.tool_name, json.success);
+                if (json.success && json.image_id) {
+                  const toolMsgId = `tool-${Date.now()}`;
+                  setState(prev => ({
+                    ...prev,
+                    messages: [...prev.messages, {
+                      id: toolMsgId,
+                      role: 'ai',
+                      content: json.message || '',
+                      timestamp: new Date(),
+                      phase: 'explain',
+                      imageId: json.image_id,
+                    }],
+                  }));
                 }
                 break;
               
@@ -677,8 +754,13 @@ const MinimalLearning: React.FC = () => {
         if (sessionId) {
           setState(prev => ({ ...prev, sessionId }));
           
+          // 根据useTools选择不同的API端点
+          const apiUrl = state.useTools 
+            ? `/api/v1/teaching-v2/session/${sessionId}/teach-v2?use_tools=true`
+            : `/api/v1/learning/session/${sessionId}/stream`;
+          
           // 首次输入发送空消息，让后端开始教学
-          const res = await fetch(`/api/v1/learning/session/${sessionId}/stream`, {
+          const res = await fetch(apiUrl, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({ 
@@ -692,7 +774,12 @@ const MinimalLearning: React.FC = () => {
           await processStreamResponse(res);
         }
       } else {
-        const res = await fetch(`/api/v1/learning/session/${state.sessionId}/stream`, {
+        // 根据useTools选择不同的API端点
+        const apiUrl = state.useTools 
+          ? `/api/v1/teaching-v2/session/${state.sessionId}/teach-v2?use_tools=true`
+          : `/api/v1/learning/session/${state.sessionId}/stream`;
+        
+        const res = await fetch(apiUrl, {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({ 
@@ -711,7 +798,7 @@ const MinimalLearning: React.FC = () => {
     } finally {
       setState(prev => ({ ...prev, isStreaming: false }));
     }
-  }, [state.sessionId, state.isStreaming, state.phase, state.isFirstInput, addMessageNow, getAuthHeaders, queueMessage]);
+  }, [state.sessionId, state.isStreaming, state.phase, state.isFirstInput, state.useTools, addMessageNow, getAuthHeaders, queueMessage]);
 
   return (
     <div className="minimal-learning">
@@ -722,6 +809,17 @@ const MinimalLearning: React.FC = () => {
           </Button>
           <div className="header-right">
             <span className="header-topic">{state.currentTopic}</span>
+            {/* 工具增强开关 */}
+            <Button 
+              type={state.useTools ? 'primary' : 'default'}
+              size="small"
+              icon={<ToolOutlined />}
+              onClick={() => setState(prev => ({ ...prev, useTools: !prev.useTools }))}
+              title={state.useTools ? '工具增强已启用' : '工具增强已禁用'}
+              style={{ marginRight: 12 }}
+            >
+              {state.useTools ? '工具增强' : '标准模式'}
+            </Button>
             <div className="user-info">
               <span className="user-name">{user?.name || '学生'}</span>
               <Button type="text" icon={<LogoutOutlined />} onClick={handleLogout} className="logout-btn" title="退出登录" />
@@ -739,6 +837,14 @@ const MinimalLearning: React.FC = () => {
               </div>
               <div className="message-content">
                 {renderContentWithFormula(msg.content)}
+                {/* 工具增强：显示教学图片 */}
+                {msg.imageId && (
+                  <TeachingImage 
+                    imageId={msg.imageId}
+                    alt="教学图片"
+                    showDescription={true}
+                  />
+                )}
                 {/* 展示评估结果详情 */}
                 {msg.questionResults && msg.questionResults.length > 0 && (
                   <div className="assessment-results">

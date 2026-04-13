@@ -42,6 +42,9 @@ export type StreamEventType =
   | 'msg_feedback'
   | 'msg_encourage'
   | 'msg_supplement'
+  // 工具增强事件（v2新增）
+  | 'tool_call'
+  | 'tool_result'
   // 控制事件
   | 'whiteboard'
   | 'complete'
@@ -61,6 +64,39 @@ export interface SegmentData {
   message: string;
   whiteboard: WhiteboardSegment;
   is_question?: boolean;
+  // 工具增强字段（v2新增）
+  image_id?: string;
+  video_id?: string;
+  demo_id?: string;
+}
+
+// 工具调用数据（v2新增）
+export interface ToolCallData {
+  tool_name: string;
+  action: string;
+  params: Record<string, any>;
+}
+
+// 工具结果数据（v2新增）
+export interface ToolResultData {
+  tool_name: string;
+  success: boolean;
+  message?: string;
+  image_id?: string;
+  video_id?: string;
+  demo_id?: string;
+}
+
+// 教学图片数据（v2新增）
+export interface TeachingImageData {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  thumbnail_url?: string;
+  knowledge_point_id: string;
+  image_type: string;
+  tags: string[];
 }
 
 export interface StreamCallbacks {
@@ -81,6 +117,9 @@ export interface StreamCallbacks {
   onMsgFeedback?: (content: string) => void;
   onMsgEncourage?: (content: string) => void;
   onMsgSupplement?: (content: string) => void;
+  // 工具增强事件（v2新增）
+  onToolCall?: (data: ToolCallData) => void;
+  onToolResult?: (data: ToolResultData) => void;
   // 控制事件
   onWhiteboard?: (whiteboard: WhiteboardContent) => void;
   onComplete?: (nextAction: string) => void;
@@ -391,4 +430,130 @@ export interface ChatRecommendResponse {
 export const chatApi = {
   recommend: (data: ChatRecommendRequest) =>
     api.post<ApiResponse<ChatRecommendResponse>>('/chat/recommend', data),
+};
+
+// 教学V2 API - 工具增强版（v2新增）
+export const teachingV2Api = {
+  // 流式获取教学内容（工具增强版）
+  streamTeachingContent: async (sessionId: string, useTools: boolean, callbacks: StreamCallbacks) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/api/v1/teaching-v2/session/${sessionId}/teach-v2?use_tools=${useTools}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+
+    if (!reader) {
+      callbacks.onError?.('无法读取响应流');
+      return;
+    }
+
+    let currentEvent: string = '';
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value);
+        const lines = text.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            currentEvent = line.slice(6).trim();
+          } else if (line.startsWith('data:')) {
+            const dataStr = line.slice(5).trim();
+            try {
+              const data = JSON.parse(dataStr);
+              
+              // 处理增量事件
+              switch (currentEvent) {
+                case 'segment':
+                  callbacks.onSegment?.(data);
+                  break;
+                case 'wb_title':
+                  callbacks.onWbTitle?.(data.content);
+                  break;
+                case 'wb_points':
+                  callbacks.onWbPoints?.(data.content);
+                  break;
+                case 'wb_formulas':
+                  callbacks.onWbFormulas?.(data.content);
+                  break;
+                case 'wb_examples':
+                  callbacks.onWbExamples?.(data.content);
+                  break;
+                case 'wb_notes':
+                  callbacks.onWbNotes?.(data.content);
+                  break;
+                case 'msg_intro':
+                  callbacks.onMsgIntro?.(data.content);
+                  break;
+                case 'msg_def':
+                  callbacks.onMsgDef?.(data.content);
+                  break;
+                case 'msg_example':
+                  callbacks.onMsgExample?.(data.content);
+                  break;
+                case 'msg_summary':
+                  callbacks.onMsgSummary?.(data.content);
+                  break;
+                case 'msg_question':
+                  callbacks.onMsgQuestion?.(data.content);
+                  break;
+                case 'msg_feedback':
+                  callbacks.onMsgFeedback?.(data.content);
+                  break;
+                case 'msg_encourage':
+                  callbacks.onMsgEncourage?.(data.content);
+                  break;
+                case 'msg_supplement':
+                  callbacks.onMsgSupplement?.(data.content);
+                  break;
+                case 'tool_call':
+                  callbacks.onToolCall?.(data);
+                  break;
+                case 'tool_result':
+                  callbacks.onToolResult?.(data);
+                  break;
+                case 'whiteboard':
+                  callbacks.onWhiteboard?.(data);
+                  break;
+                case 'phase_advance':
+                  callbacks.onPhaseAdvance?.(data);
+                  break;
+                case 'complete':
+                  callbacks.onComplete?.(data.next_action || 'wait_for_student');
+                  break;
+                case 'error':
+                  callbacks.onError?.(data.error || '未知错误');
+                  break;
+              }
+            } catch (e) {
+              // 解析失败，忽略
+            }
+          }
+        }
+      }
+    } catch (error) {
+      callbacks.onError?.(error instanceof Error ? error.message : '流式读取错误');
+    }
+  },
+
+  // 查看可用工具
+  getAvailableTools: (sessionId: string) =>
+    api.get<ApiResponse<{ tools: string[]; session_id: string; knowledge_point: string }>>(`/teaching-v2/session/${sessionId}/tools/available`),
+
+  // 获取图片
+  getImage: (imageId: string) =>
+    api.get<ApiResponse<TeachingImageData>>(`/teaching-v2/images/${imageId}`),
+
+  // 生成图片
+  generateImage: (params: { concept: string; type: string; knowledge_point_id: string }) =>
+    api.post<ApiResponse<TeachingImageData & { source: string; cost: number }>>('/teaching-v2/images/generate', params),
 };
