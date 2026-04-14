@@ -13,6 +13,7 @@ from app.api.admin import router as admin_router
 from app.api.chapters import router as chapters_router
 from app.api.knowledge_points import router as kp_router
 from app.api.teaching_v2 import router as teaching_v2_router
+from app.api.animation import router as animation_router
 
 api_router = APIRouter()
 

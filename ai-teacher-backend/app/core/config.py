@@ -57,6 +57,14 @@ class Settings(BaseSettings):
     # CORS - allow all origins in development
     cors_origins: list[str] = ["*"]
 
+    # OpenSandbox Configuration
+    opensandbox_server_url: str = "http://localhost:8080"
+    opensandbox_api_key: Optional[str] = None
+    sandbox_image: str = "opensandbox/code-interpreter:latest"
+    sandbox_timeout: int = 60  # seconds
+    sandbox_max_memory_mb: int = 512  # MB
+    sandbox_max_cpus: float = 1.0
+
     @property
     def is_production(self) -> bool:
         """Check if running in production environment."""

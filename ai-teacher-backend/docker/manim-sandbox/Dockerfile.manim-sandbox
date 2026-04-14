@@ -1,0 +1,66 @@
+# Manim Docker 镜像构建文件
+# 用于创建安全的沙箱环境来执行LLM生成的Manim代码
+#
+# 构建命令:
+#   cd ai-teacher-backend/docker/manim-sandbox
+#   docker build -t manim-sandbox:latest .
+#
+# 运行示例:
+#   docker run --rm \
+#     --memory=512m \
+#     --cpus=1 \
+#     --network=none \
+#     --read-only \
+#     --tmpfs /tmp:rw,size=100m \
+#     --user=1000:1000 \
+#     -v $(pwd)/workspace:/workspace:rw \
+#     -v $(pwd)/output:/output:rw \
+#     manim-sandbox:latest \
+#     python /workspace/animation.py
+
+FROM python:3.11-slim
+
+LABEL maintainer="AI Teacher Team"
+LABEL version="1.0"
+LABEL description="Manim sandbox for safely executing LLM-generated animation code"
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libglib2.0-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装Python依赖
+RUN pip install --no-cache-dir \
+    manim==0.18.0 \
+    numpy==1.26.4
+
+# 创建非root用户（安全性）
+RUN useradd -m -u 1000 -s /bin/bash manimuser
+
+# 创建必要的目录
+RUN mkdir -p /workspace /output /tmp/manim \
+    && chown -R manimuser:manimuser /workspace /output /tmp/manim
+
+# 设置工作目录
+WORKDIR /workspace
+
+# 切换到非root用户
+USER manimuser
+
+# 设置环境变量
+ENV HOME=/home/manimuser
+ENV MANIM_CONFIG_FILE=/tmp/manim/manim.cfg
+
+# 创建Manim配置文件（限制资源使用）
+RUN echo "[CLI]" > /tmp/manim/manim.cfg && \
+    echo "output_file = animation" >> /tmp/manim/manim.cfg && \
+    echo "media_dir = /output" >> /tmp/manim/manim.cfg && \
+    echo "format = mp4" >> /tmp/manim/manim.cfg && \
+    echo "quality = medium_quality" >> /tmp/manim/manim.cfg
+
+# 默认命令
+CMD ["python"]
