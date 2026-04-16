@@ -1,0 +1,9 @@
+---
+description: 
+alwaysApply: true
+enabled: true
+updatedAt: 2026-04-16T13:40:54.533Z
+provider: 
+---
+
+如果之前已经有一个创建的文档，之后就不要再创建相似的文档，在原来的文档基础上修改就行。

@@ -17,11 +17,18 @@ from app.models.resource import (
 )
 from app.repositories.base import BaseRepository
 from app.repositories.memory_db import db
+from app.services.tools.protocols import (
+    ImageRepositoryProtocol,
+    UsageLogRepositoryProtocol,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class TeachingImageRepository(BaseRepository[TeachingImage, str]):
+class TeachingImageRepository(
+    BaseRepository[TeachingImage, str],
+    ImageRepositoryProtocol
+):
     """Repository for teaching images using in-memory storage."""
     
     def __init__(self):
@@ -242,7 +249,10 @@ class ImageTemplateRepository(BaseRepository[ImageTemplate, str]):
         return False
 
 
-class ToolUsageLogRepository(BaseRepository[ToolUsageLog, str]):
+class ToolUsageLogRepository(
+    BaseRepository[ToolUsageLog, str],
+    UsageLogRepositoryProtocol
+):
     """Repository for tool usage logs."""
     
     def __init__(self):

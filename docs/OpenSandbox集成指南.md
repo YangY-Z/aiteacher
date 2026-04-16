@@ -194,8 +194,9 @@ asyncio.run(generate_linear_function())
 ### 示例2：直接使用AnimationGenerator
 
 ```python
-from app.services.animation_generator import animation_generator
+from app.services.tools.animation_generator import animation_generator
 import asyncio
+
 
 async def main():
     result = await animation_generator.generate_animation(
@@ -203,8 +204,9 @@ async def main():
         params={"k": 3, "b": -2},
         trace_id="test-001"
     )
-    
+
     print(f"视频已生成: {result['video_url']}")
+
 
 asyncio.run(main())
 ```
@@ -440,7 +442,8 @@ class AnimationScene(Scene):
 ```python
 # 在teaching_flow.py中使用
 
-from app.services.animation_generator import animation_generator
+from app.services.tools.animation_generator import animation_generator
+
 
 async def enhance_teaching_with_animation(kp_info):
     if kp_info["type"] == "函数图像":
@@ -448,7 +451,7 @@ async def enhance_teaching_with_animation(kp_info):
             animation_type="linear_function",
             params=kp_info["params"]
         )
-        
+
         # 将视频URL添加到教学内容
         return {
             "video_url": result["video_url"],

@@ -1,7 +1,7 @@
 """Tests for AnimationGenerator."""
 
 import pytest
-from app.services.animation_generator import AnimationGenerator, ANIMATION_TEMPLATES
+from app.services.tools.animation_generator import AnimationGenerator, ANIMATION_TEMPLATES
 
 
 @pytest.mark.asyncio

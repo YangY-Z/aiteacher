@@ -685,7 +685,8 @@ class ToolSelectionRuleEngine:
 ```python
 # ai-teacher-backend/app/services/tools/registry.py
 
-from app.services.animation_generator import animation_generator
+from app.services.tools.animation_generator import animation_generator
+
 
 class ToolRegistry:
     def __init__(self):
@@ -696,18 +697,18 @@ class ToolRegistry:
             "executor": animation_generator,
             "context_builder": self._build_animation_context,
         })
-    
+
     async def _build_animation_context(
-        self, 
-        kp_id: str
+            self,
+            kp_id: str
     ) -> ToolContext:
         """构建动画工具上下文"""
-        
+
         kp_info = course_service.get_knowledge_point_info(kp_id)
-        
+
         # 根据知识点类型确定动画类型
         animation_type = self._infer_animation_type(kp_info)
-        
+
         context = ToolContext(
             tool_name="animation_generator",
             description=f"""
@@ -725,7 +726,7 @@ class ToolRegistry:
                 "params": {"kp_name": kp_info["name"]},
             }
         )
-        
+
         return context
 ```
 
@@ -793,9 +794,10 @@ export const AnimationPlayer: React.FC<AnimationPlayerProps> = ({
 # ai-teacher-backend/app/api/animation.py
 
 from fastapi import APIRouter, HTTPException
-from app.services.animation_generator import animation_generator
+from app.services.tools.animation_generator import animation_generator
 
 router = APIRouter(prefix="/api/v1/animations", tags=["animations"])
+
 
 @router.post("/generate")
 async def generate_animation(request: AnimationRequest):
@@ -819,7 +821,7 @@ async def get_cached_animation(cache_key: str):
     video_path = animation_generator.output_dir / f"{cache_key}.mp4"
     if not video_path.exists():
         raise HTTPException(status_code=404, detail="动画不存在")
-    
+
     from fastapi.responses import FileResponse
     return FileResponse(
         video_path,

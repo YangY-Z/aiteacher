@@ -15,7 +15,7 @@ from pathlib import Path
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent))
 
-from app.services.animation_generator import animation_generator
+from app.services.tools.animation_generator import animation_generator
 
 
 async def test_opensandbox_connection():
@@ -94,7 +94,7 @@ async def test_template_rendering():
     print("=" * 60)
     
     try:
-        from app.services.animation_generator import ANIMATION_TEMPLATES
+        from app.services.tools.animation_generator import ANIMATION_TEMPLATES
         
         template = ANIMATION_TEMPLATES["linear_function"]
         code = template.format(k=3, b=-2)

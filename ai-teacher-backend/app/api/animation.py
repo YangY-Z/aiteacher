@@ -6,7 +6,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.services.animation_generator import animation_generator
+from app.services.tools.animation_generator import animation_generator
 
 logger = logging.getLogger(__name__)
 

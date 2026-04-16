@@ -7,11 +7,12 @@ from typing import Any, Optional
 import httpx
 
 from app.models.resource import ImageType
+from app.services.tools.protocols import AIImageGeneratorProtocol
 
 logger = logging.getLogger(__name__)
 
 
-class AIImageGenerator:
+class AIImageGenerator(AIImageGeneratorProtocol):
     """Service for generating images using AI APIs."""
     
     def __init__(self):

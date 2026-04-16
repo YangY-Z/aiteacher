@@ -22,6 +22,7 @@ from typing import Any, Dict, Optional
 
 from app.core.config import settings
 from app.services.llm_service import llm_service
+from app.services.tools.protocols import AnimationGeneratorProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +154,7 @@ class AnimationScene(Scene):
 }
 
 
-class AnimationGenerator:
+class AnimationGenerator(AnimationGeneratorProtocol):
     """Generate Manim animations using OpenSandbox.
     
     This class handles the complete workflow:
@@ -196,22 +197,25 @@ class AnimationGenerator:
         animation_type: str,
         params: Dict[str, Any],
         trace_id: Optional[str] = None,
+        output_format: str = "image",
     ) -> Dict[str, Any]:
         """Generate animation using OpenSandbox.
         
         This is the main entry point for animation generation.
         
         Args:
-            animation_type: Type of animation (e.g., "linear_function")
+            animation_type: Type of animation (e.g., "linear_function", "auto")
             params: Animation parameters
             trace_id: Optional trace ID for logging
+            output_format: Output format - "video" or "image"
             
         Returns:
             {
-                "video_url": "/media/xxx.mp4",
+                "video_url": "/media/xxx.mp4",  # or "image_url" for image
                 "file_path": "/path/to/video.mp4",
-                "duration": 15.0,
-                "cached": False
+                "duration": 15.0,  # only for video
+                "cached": False,
+                "type": "video" or "image"
             }
             
         Raises:
@@ -221,11 +225,11 @@ class AnimationGenerator:
         trace_id = trace_id or str(uuid.uuid4())
         logger.info(
             f"[{trace_id}] Starting animation generation: "
-            f"type={animation_type}, params={params}"
+            f"type={animation_type}, output_format={output_format}"
         )
         
         # Check cache
-        cache_key = self._build_cache_key(animation_type, params)
+        cache_key = self._build_cache_key(animation_type, params, output_format)
         if self.use_cache:
             cached_result = await self._check_cache(cache_key)
             if cached_result:
@@ -239,23 +243,33 @@ class AnimationGenerator:
         )
         
         # Step 2: Execute in OpenSandbox
-        video_data = await self._execute_in_sandbox(
-            manim_code, trace_id
+        media_data = await self._execute_in_sandbox(
+            manim_code, trace_id, output_format
         )
         
-        # Step 3: Save video
-        video_path = self.output_dir / f"{cache_key}.mp4"
-        video_path.write_bytes(video_data)
+        # Step 3: Save media file
+        file_extension = "mp4" if output_format == "video" else "png"
+        media_path = self.output_dir / f"{cache_key}.{file_extension}"
+        media_path.write_bytes(media_data)
         
-        logger.info(f"[{trace_id}] Video saved: {video_path}")
+        logger.info(f"[{trace_id}] Media saved: {media_path}")
         
         # Step 4: Return result
-        result = {
-            "video_url": f"/media/{cache_key}.mp4",
-            "file_path": str(video_path),
-            "duration": self._estimate_duration(manim_code),
-            "cached": False,
-        }
+        if output_format == "video":
+            result = {
+                "video_url": f"/media/{cache_key}.mp4",
+                "file_path": str(media_path),
+                "duration": self._estimate_duration(manim_code),
+                "cached": False,
+                "type": "video",
+            }
+        else:
+            result = {
+                "image_url": f"/media/{cache_key}.png",
+                "file_path": str(media_path),
+                "cached": False,
+                "type": "image",
+            }
         
         return result
     
@@ -268,17 +282,17 @@ class AnimationGenerator:
         """Generate Manim code using LLM.
         
         Args:
-            animation_type: Type of animation
+            animation_type: Type of animation (or "auto" for LLM to decide)
             params: Animation parameters
             trace_id: Trace ID for logging
             
         Returns:
             Manim Python code
         """
-        logger.info(f"[{trace_id}] Generating Manim code")
+        logger.info(f"[{trace_id}] Generating Manim code for type: {animation_type}")
         
-        # Use template if available
-        if animation_type in ANIMATION_TEMPLATES:
+        # Use template if available and not "auto"
+        if animation_type != "auto" and animation_type in ANIMATION_TEMPLATES:
             template = ANIMATION_TEMPLATES[animation_type]
             try:
                 manim_code = template.format(**params)
@@ -290,12 +304,12 @@ class AnimationGenerator:
                     f"falling back to LLM generation"
                 )
         
-        # Generate using LLM
+        # Generate using LLM (for "auto" or missing template)
         prompt = self._build_manim_prompt(animation_type, params)
         
         response = llm_service.chat(
             system_prompt=MANIM_SYSTEM_PROMPT,
-            user_prompt=prompt,
+            user_message=prompt,
         )
         
         # Extract code from response
@@ -315,13 +329,49 @@ class AnimationGenerator:
         """Build prompt for LLM to generate Manim code.
         
         Args:
-            animation_type: Type of animation
+            animation_type: Type of animation (or "auto")
             params: Animation parameters
             
         Returns:
             Prompt string
         """
-        prompt = f"""
+        concept = params.get("concept", "")
+        
+        if animation_type == "auto":
+            # Auto mode: let LLM decide what to generate
+            prompt = f"""
+请生成一个Manim动画场景，要求如下：
+
+【概念描述】
+{concept}
+
+【参数】
+{params}
+
+【要求】
+1. 根据概念描述，自主决定最适合的动画类型
+2. 可以绘制：函数图像、几何图形、数学证明、公式推导、数据可视化等
+3. 只输出Python代码，不要包含任何解释说明
+4. 类名必须是 AnimationScene
+5. 继承自 Scene 或其他Manim场景类
+6. 代码必须可以直接运行
+7. 动画时长控制在10-20秒（视频输出时）或静态展示（图片输出时）
+
+【示例】
+```python
+from manim import *
+
+class AnimationScene(Scene):
+    def construct(self):
+        # 你的代码...
+        pass
+```
+
+请输出代码：
+"""
+        else:
+            # Specified type
+            prompt = f"""
 请生成一个Manim动画场景，要求如下：
 
 【动画类型】
@@ -354,21 +404,23 @@ class AnimationScene(Scene):
         self,
         manim_code: str,
         trace_id: str,
+        output_format: str = "video",
     ) -> bytes:
         """Execute Manim code in OpenSandbox.
         
         Args:
             manim_code: Manim Python code
             trace_id: Trace ID for logging
+            output_format: Output format - "video" or "image"
             
         Returns:
-            Video file bytes
+            Video or image file bytes
             
         Raises:
             RuntimeError: If execution fails
             TimeoutError: If execution times out
         """
-        logger.info(f"[{trace_id}] Executing in OpenSandbox")
+        logger.info(f"[{trace_id}] Executing in OpenSandbox, output_format={output_format}")
         
         try:
             # Import OpenSandbox (lazy import)
@@ -398,10 +450,15 @@ class AnimationScene(Scene):
                     
                     logger.info(f"[{trace_id}] Code written to sandbox")
                     
+                    # Build Manim command based on output format
+                    if output_format == "video":
+                        manim_cmd = "cd /workspace && manim -qh --format mp4 animation.py AnimationScene"
+                    else:
+                        manim_cmd = "cd /workspace && manim -qh -s animation.py AnimationScene"
+                    
                     # Execute Manim render
                     execution = await sandbox.commands.run(
-                        "cd /workspace && "
-                        "manim -qh --format mp4 animation.py AnimationScene",
+                        manim_cmd,
                         timeout=timedelta(seconds=self.timeout - 10),
                     )
                     
@@ -418,24 +475,43 @@ class AnimationScene(Scene):
                     
                     logger.info(f"[{trace_id}] Manim rendering completed")
                     
-                    # Find generated video file
-                    video_files = await sandbox.files.list_dir(
-                        "/workspace/media/videos/animation/1080p60"
-                    )
-                    mp4_files = [f for f in video_files if f.endswith(".mp4")]
+                    # Find generated media file
+                    if output_format == "video":
+                        # Find video file
+                        video_files = await sandbox.files.list_dir(
+                            "/workspace/media/videos/animation/1080p60"
+                        )
+                        mp4_files = [f for f in video_files if f.endswith(".mp4")]
+                        
+                        if not mp4_files:
+                            raise FileNotFoundError("No video file generated")
+                        
+                        # Read video file
+                        media_path = mp4_files[0]
+                        media_data = await sandbox.files.read_file(media_path)
+                        
+                        logger.info(
+                            f"[{trace_id}] Video retrieved, size={len(media_data)} bytes"
+                        )
+                    else:
+                        # Find image file (last frame)
+                        image_files = await sandbox.files.list_dir(
+                            "/workspace/media/images/animation"
+                        )
+                        png_files = [f for f in image_files if f.endswith(".png")]
+                        
+                        if not png_files:
+                            raise FileNotFoundError("No image file generated")
+                        
+                        # Read image file
+                        media_path = png_files[0]
+                        media_data = await sandbox.files.read_file(media_path)
+                        
+                        logger.info(
+                            f"[{trace_id}] Image retrieved, size={len(media_data)} bytes"
+                        )
                     
-                    if not mp4_files:
-                        raise FileNotFoundError("No video file generated")
-                    
-                    # Read video file
-                    video_path = mp4_files[0]
-                    video_data = await sandbox.files.read_file(video_path)
-                    
-                    logger.info(
-                        f"[{trace_id}] Video retrieved, size={len(video_data)} bytes"
-                    )
-                    
-                    return video_data
+                    return media_data
                     
             finally:
                 # Cleanup sandbox
@@ -458,12 +534,14 @@ class AnimationScene(Scene):
         self,
         animation_type: str,
         params: Dict[str, Any],
+        output_format: str = "video",
     ) -> str:
         """Build cache key for animation.
         
         Args:
             animation_type: Type of animation
             params: Animation parameters
+            output_format: Output format - "video" or "image"
             
         Returns:
             Unique cache key
@@ -473,10 +551,10 @@ class AnimationScene(Scene):
         
         params_str = json.dumps(params, sort_keys=True)
         hash_str = hashlib.md5(
-            f"{animation_type}:{params_str}".encode()
+            f"{animation_type}:{output_format}:{params_str}".encode()
         ).hexdigest()
         
-        return f"{animation_type}_{hash_str}"
+        return f"{animation_type}_{output_format}_{hash_str}"
     
     async def _check_cache(
         self,
@@ -490,13 +568,23 @@ class AnimationScene(Scene):
         Returns:
             Cached result if exists, None otherwise
         """
+        # Try video cache
         video_path = self.output_dir / f"{cache_key}.mp4"
-        
         if video_path.exists():
             return {
                 "video_url": f"/media/{cache_key}.mp4",
                 "file_path": str(video_path),
                 "duration": self._get_video_duration(video_path),
+                "type": "video",
+            }
+        
+        # Try image cache
+        image_path = self.output_dir / f"{cache_key}.png"
+        if image_path.exists():
+            return {
+                "image_url": f"/media/{cache_key}.png",
+                "file_path": str(image_path),
+                "type": "image",
             }
         
         return None
