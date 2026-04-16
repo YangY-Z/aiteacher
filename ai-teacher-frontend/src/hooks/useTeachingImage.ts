@@ -4,7 +4,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { teachingV2Api, TeachingImageData } from '../api';
+import { teachingV2Api } from '../api';
+import type { TeachingImageData } from '../api';
 
 interface UseTeachingImageResult {
   imageUrl: string | null;
@@ -38,9 +39,9 @@ export function useTeachingImage(imageId: string | null): UseTeachingImageResult
 
     teachingV2Api.getImage(imageId)
       .then(response => {
-        if (response.success && response.data) {
-          setImageData(response.data);
-          setImageUrl(response.data.url);
+        if (response.data.success && response.data.data) {
+          setImageData(response.data.data);
+          setImageUrl(response.data.data.url);
         } else {
           setError('图片不存在');
         }
@@ -77,8 +78,8 @@ export async function preloadImages(imageIds: string[]): Promise<void> {
     if (!imageCache.has(id)) {
       try {
         const response = await teachingV2Api.getImage(id);
-        if (response.success && response.data) {
-          imageCache.set(id, response.data);
+        if (response.data.success && response.data.data) {
+          imageCache.set(id, response.data.data);
         }
       } catch (error) {
         console.error(`Failed to preload image ${id}:`, error);

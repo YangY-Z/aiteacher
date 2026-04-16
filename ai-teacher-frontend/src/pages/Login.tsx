@@ -19,7 +19,7 @@ const LoginPage: React.FC = () => {
       const response = await authApi.login(values);
       console.log('登录响应:', response);
       
-      const { access_token, student_id, student_name } = response.data;
+      const { access_token, student_id, student_name } = response.data.data;
       
       // 保存 token
       localStorage.setItem('token', access_token);

@@ -186,35 +186,72 @@ class TeachingFlow:
         
         # ========== Step 5: Stream LLM response ==========
         logger.info(f"[{trace_id}] === 步骤5: 流式调用LLM ===")
+        
+        # Use buffer to accumulate stream data
+        buffer = ""
         event_count = 0
-        
-        for chunk in self.llm_service.stream_chat(SYSTEM_PROMPT, prompt, trace_id=trace_id):
-            # Parse chunk as JSONL
-            try:
-                # Try to parse as JSON
-                event_data = json.loads(chunk.strip())
-                event_type = event_data.get("type", "")
-                event_count += 1
+
+        try:
+            for chunk in self.llm_service.stream_chat(SYSTEM_PROMPT, prompt, trace_id=trace_id):
+                buffer += chunk
                 
-                # Build teaching event
-                event = TeachingEvent(
-                    event_type=event_type,
-                    message=chunk,
-                    next_action=event_data.get("next_action", ""),
-                )
-                
-                # ========== Step 6: Process tool results ==========
-                processed_event = await self._process_tool_references(
-                    event, tool_contexts, trace_id
-                )
-                
-                # Yield processed event
-                yield self._event_to_sse(processed_event, event_data)
-                
-            except json.JSONDecodeError:
-                # Skip invalid JSON
-                continue
-        
+                # Try to parse complete JSON lines
+                while "\n" in buffer:
+                    line, buffer = buffer.split("\n", 1)
+                    line = line.strip()
+                    
+                    if not line:
+                        continue
+                    
+                    # Try to parse as JSON
+                    try:
+                        # Skip markdown code blocks
+                        if line.startswith("```"):
+                            continue
+                        
+                        # Fix backslash escaping issue
+                        import re
+                        line_fixed = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', line)
+                        
+                        event_data = json.loads(line_fixed)
+                        event_type = event_data.get("type", "")
+                        event_count += 1
+                        
+                        # Build teaching event
+                        event = TeachingEvent(
+                            event_type=event_type,
+                            message=line_fixed,
+                            next_action=event_data.get("next_action", ""),
+                        )
+                        
+                        # ========== Step 6: Process tool results ==========
+                        processed_event = await self._process_tool_references(
+                            event, tool_contexts, trace_id
+                        )
+                        
+                        # Yield processed event
+                        yield self._event_to_sse(processed_event, event_data)
+                        
+                    except json.JSONDecodeError as e:
+                        # Skip invalid JSON
+                        logger.warning(f"[{trace_id}] JSON解析失败: {line[:50]}... 错误: {e}")
+                        continue
+
+            # Check if no events were yielded
+            if event_count == 0:
+                logger.error(f"[{trace_id}] LLM返回空响应")
+                yield {
+                    "event": "error",
+                    "data": json.dumps({"error": "LLM返回空响应，请检查LLM服务配置"}, ensure_ascii=False)
+                }
+
+        except Exception as e:
+            logger.error(f"[{trace_id}] LLM调用失败: {e}", exc_info=True)
+            yield {
+                "event": "error",
+                "data": json.dumps({"error": f"LLM调用失败: {str(e)}"}, ensure_ascii=False)
+            }
+
         logger.info(f"[{trace_id}] === 教学阶段执行完成, 共{event_count}个事件 ===")
     
     def _build_teaching_prompt(

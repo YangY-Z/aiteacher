@@ -1,6 +1,19 @@
 {
   "students": [
     {
+      "id": 999,
+      "name": "系统管理员",
+      "grade": "初一",
+      "password_hash": "5979b1a3616de8999baf4fbe980b9704$b7ed109f94e404ebd17a562713a71fa40bcc66458aa1b573124995e73181c9a1",
+      "phone": "admin",
+      "avatar_url": null,
+      "status": "active",
+      "role": "admin",
+      "last_login_at": null,
+      "created_at": "2026-04-14T21:31:51.478270",
+      "updated_at": "2026-04-14T21:31:51.478271"
+    },
+    {
       "id": 1,
       "name": "赵阳阳01",
       "grade": "初一",
@@ -8,9 +21,10 @@
       "phone": "17866812222",
       "avatar_url": null,
       "status": "active",
-      "last_login_at": "2026-04-06T21:18:27.764305",
+      "role": "student",
+      "last_login_at": "2026-04-14T22:53:43.767859",
       "created_at": "2026-03-16T16:43:29.844085",
-      "updated_at": "2026-04-06T21:18:27.764331"
+      "updated_at": "2026-04-14T22:53:43.767874"
     },
     {
       "id": 2,
@@ -20,6 +34,7 @@
       "phone": "17866813333",
       "avatar_url": null,
       "status": "active",
+      "role": "student",
       "last_login_at": "2026-03-17T15:29:07.030547",
       "created_at": "2026-03-17T15:28:42.970394",
       "updated_at": "2026-03-17T15:29:07.030557"
@@ -32,6 +47,7 @@
       "phone": "17866819281",
       "avatar_url": null,
       "status": "active",
+      "role": "student",
       "last_login_at": "2026-03-30T16:12:20.780282",
       "created_at": "2026-03-29T17:45:17.477196",
       "updated_at": "2026-03-30T16:12:20.780298"
@@ -147,5 +163,5 @@
     }
   ],
   "next_profile_id": 4,
-  "updated_at": "2026-04-06T21:18:27.766589"
+  "updated_at": "2026-04-14T22:53:43.770149"
 }

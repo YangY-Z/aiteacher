@@ -252,7 +252,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
           setSelectedNode(newSelectedId);
 
           // 显示/隐藏依赖连线（显示所有前置依赖链）
-          const allPrereqIds = getAllPrerequisites(newSelectedId, dependencyLinks);
+          const allPrereqIds = newSelectedId ? getAllPrerequisites(newSelectedId, dependencyLinks) : new Set<string>();
           
           dependencyPaths.style('opacity', function(linkData) {
             if (!newSelectedId) return 0;
@@ -269,12 +269,13 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
 
           // 高亮所有前置依赖节点
           node.selectAll('.node-rect')
-            .style('opacity', function(nodeData) {
+            .style('opacity', function(nodeData: unknown) {
+              const data = nodeData as GraphNode;
               if (!newSelectedId) return 1;
-              if (nodeData.id === newSelectedId) return 1;
-              
+              if (data.id === newSelectedId) return 1;
+
               // 高亮所有前置依赖节点（包括间接依赖）
-              return allPrereqIds.has(nodeData.id) ? 1 : 0.3;
+              return allPrereqIds.has(data.id) ? 1 : 0.3;
             });
 
           const kp = knowledgePoints.find(k => k.id === d.id);
@@ -302,11 +303,12 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
 
             // 高亮所有前置依赖节点
             node.selectAll('.node-rect')
-              .style('opacity', function(nodeData) {
-                if (nodeData.id === d.id) return 1;
-                
+              .style('opacity', function(nodeData: unknown) {
+                const data = nodeData as GraphNode;
+                if (data.id === d.id) return 1;
+
                 // 高亮所有前置依赖节点（包括间接依赖）
-                return allPrereqIds.has(nodeData.id) ? 1 : 0.3;
+                return allPrereqIds.has(data.id) ? 1 : 0.3;
               });
           }
 

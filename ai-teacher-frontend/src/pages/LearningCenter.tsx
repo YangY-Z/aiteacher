@@ -59,25 +59,25 @@ const LearningCenter: React.FC<{
         console.log('正在获取课程信息...', DEFAULT_COURSE_ID);
         const courseRes = await courseApi.getById(DEFAULT_COURSE_ID);
         console.log('课程响应:', courseRes);
-        
-        if (courseRes.success) {
-          setCourse(courseRes.data);
+
+        if (courseRes.data.success) {
+          setCourse(courseRes.data.data);
         } else {
           console.error('获取课程失败:', courseRes);
-          setError(`获取课程失败: ${courseRes.message || '未知错误'}`);
+          setError(`获取课程失败: ${courseRes.data.message || '未知错误'}`);
           return;
         }
-        
+
         // 获取学习进度
         console.log('正在获取学习进度...', DEFAULT_COURSE_ID);
         const progressRes = await learningApi.getProgress(DEFAULT_COURSE_ID);
         console.log('进度响应:', progressRes);
-        
-        if (progressRes.success) {
-          setProgress(progressRes.data);
+
+        if (progressRes.data.success) {
+          setProgress(progressRes.data.data);
         } else {
           console.error('获取进度失败:', progressRes);
-          setError(`获取进度失败: ${progressRes.message || '未知错误'}`);
+          setError(`获取进度失败: ${progressRes.data.message || '未知错误'}`);
           return;
         }
       } catch (error) {
