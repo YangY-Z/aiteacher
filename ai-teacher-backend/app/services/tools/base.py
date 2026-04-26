@@ -33,7 +33,8 @@ class TeachingTool(ABC):
             ToolContext with available resources and usage guide
             
         Example:
-            >>> tool = ImageTool()
+            >>> from app.services.tools.image_tool import create_image_tool
+            >>> tool = create_image_tool()
             >>> context = await tool.get_context("K3")
             >>> print(context.description)
             "可用图片资源"
@@ -59,7 +60,8 @@ class TeachingTool(ABC):
             ToolResult with success status and resource (if successful)
             
         Example:
-            >>> tool = ImageTool()
+            >>> from app.services.tools.image_tool import create_image_tool
+            >>> tool = create_image_tool()
             >>> request = ToolRequest(action="get_image", params={"image_id": "IMG_001"})
             >>> result = await tool.execute(request)
             >>> if result.success:
@@ -81,7 +83,8 @@ class TeachingTool(ABC):
             ToolMetadata with tool capabilities
             
         Example:
-            >>> tool = ImageTool()
+            >>> from app.services.tools.image_tool import create_image_tool
+            >>> tool = create_image_tool()
             >>> metadata = tool.get_metadata()
             >>> print(metadata.name)
             "image_generation"

@@ -199,7 +199,7 @@ class TeachingFlow:
                 while "\n" in buffer:
                     line, buffer = buffer.split("\n", 1)
                     line = line.strip()
-                    
+                    print(line)
                     if not line:
                         continue
                     

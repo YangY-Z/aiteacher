@@ -58,9 +58,9 @@ async def test_image_generation():
     """Test image generation strategy."""
     logger.info("\n【Test 2】Image Generation Strategy")
     
-    from app.services.tools.image_tool import ImageTool
+    from app.services.tools.image_tool import create_image_tool
     
-    tool = ImageTool()
+    tool = create_image_tool()
     
     # Test library retrieval
     logger.info("  Testing library retrieval...")

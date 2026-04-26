@@ -14,6 +14,7 @@ from app.schemas.common import APIResponse
 from app.repositories.learning_repository import learning_session_repository
 from app.services.student_service import student_service
 from app.services.teaching_flow import teaching_flow
+from app.services.tools.image_tool import create_image_tool
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -265,8 +266,6 @@ async def generate_image(
     ensure_system_initialized()
     
     from app.models.tool import ToolRequest
-    from app.services.tools.image_tool import ImageTool
-    
     # Extract parameters
     concept = request.get("concept", "")
     image_type = request.get("type", "infographic")
@@ -279,7 +278,7 @@ async def generate_image(
         )
     
     # Create image tool
-    image_tool = ImageTool()
+    image_tool = create_image_tool()
     
     # Generate image
     tool_request = ToolRequest(

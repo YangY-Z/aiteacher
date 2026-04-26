@@ -100,7 +100,7 @@ class ImageProcessStrategy(ToolProcessStrategy):
         
         # Case 2: Request for new image
         if event.needs_image_generation():
-            logger.info(f"Processing image generation request")
+            logger.info(f"Processing image generation request: {event.get_generation_request()}")
             tool_request = event.get_generation_request()
             result = await tool_registry.execute_tool(
                 "image_generation",

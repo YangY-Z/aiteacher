@@ -181,7 +181,7 @@ class TeachingEvent:
                 action="generate_image",
                 params={
                     "concept": need_image.get("concept", ""),
-                    "type": need_image.get("type", "infographic"),
+                    "animation_type": need_image.get("animation_type", "auto"),
                 }
             )
         except (json.JSONDecodeError, AttributeError):
@@ -195,7 +195,7 @@ class TeachingEvent:
                         action="generate_image",
                         params={
                             "concept": need_image.get("concept", ""),
-                            "type": need_image.get("type", "infographic"),
+                            "animation_type": need_image.get("animation_type", "auto"),
                         }
                     )
                 except json.JSONDecodeError:

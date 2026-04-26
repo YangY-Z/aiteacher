@@ -160,7 +160,13 @@ const renderContentWithFormula = (content: string): React.ReactNode => {
 const MinimalLearning: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout, token } = useAuthStore();
-  const { setWhiteboardTitle, addWhiteboardPoint } = useLearningStore();
+  const { 
+    setWhiteboardTitle, 
+    addWhiteboardPoint, 
+    addWhiteboardFormula, 
+    addWhiteboardExample, 
+    addWhiteboardNote 
+  } = useLearningStore();
   
   const [state, setState] = useState<LearningState>({
     currentTopic: '一次函数',
@@ -558,10 +564,19 @@ const MinimalLearning: React.FC = () => {
                   break;
                 
                 case 'wb_points':
-                case 'wb_formulas':
-                case 'wb_examples':
-                case 'wb_notes':
                   if (json.content) addWhiteboardPoint(json.content);
+                  break;
+                
+                case 'wb_formulas':
+                  if (json.content) addWhiteboardFormula(json.content);
+                  break;
+                
+                case 'wb_examples':
+                  if (json.content) addWhiteboardExample(json.content);
+                  break;
+                
+                case 'wb_notes':
+                  if (json.content) addWhiteboardNote(json.content);
                   break;
                 
                 case 'complete':
@@ -696,7 +711,7 @@ const MinimalLearning: React.FC = () => {
               case 'wb_formulas':
                 // 白板公式事件：显示在白板上而不是消息列表
                 if (json.content) {
-                  addWhiteboardPoint(json.content);
+                  addWhiteboardFormula(json.content);
                 }
                 break;
               

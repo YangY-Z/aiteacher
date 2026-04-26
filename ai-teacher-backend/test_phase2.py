@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from app.core.init_tools import initialize_system
-from app.services.tools.image_tool import ImageTool
+from app.services.tools.image_tool import create_image_tool
 from app.models.tool import ToolRequest
 from app.repositories.resource_repository import (
     teaching_image_repository,
@@ -66,7 +66,7 @@ async def test_phase2():
     # Step 3: Test ImageTool with real data
     logger.info("【Step 3】Test ImageTool with Real Data")
     
-    image_tool = ImageTool()
+    image_tool = create_image_tool()
     
     # Test 3.1: Get context for K1 (has images)
     logger.info("  Test 3.1: Get context for K1")

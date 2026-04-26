@@ -29,8 +29,9 @@ class ToolRegistry:
     - Dependency Injection: Tools are injected via register()
     
     Example:
+        >>> from app.services.tools.image_tool import create_image_tool
         >>> registry = ToolRegistry()
-        >>> registry.register("image_generation", ImageTool())
+        >>> registry.register("image_generation", create_image_tool())
         >>> registry.register("video_generation", VideoTool())
         >>> 
         >>> # Get all registered tools
@@ -55,7 +56,8 @@ class ToolRegistry:
             tool: Tool instance implementing TeachingTool
             
         Example:
-            >>> registry.register("image_generation", ImageTool())
+            >>> from app.services.tools.image_tool import create_image_tool
+            >>> registry.register("image_generation", create_image_tool())
             >>> registry.register("video_generation", VideoTool())
         """
         if tool_name in self.tools:

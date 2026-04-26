@@ -11,6 +11,7 @@ OpenSandbox集成快速测试脚本
 import asyncio
 import sys
 from pathlib import Path
+import pytest
 
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent))
@@ -18,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from app.services.tools.animation_generator import animation_generator
 
 
+@pytest.mark.asyncio
 async def test_opensandbox_connection():
     """测试OpenSandbox连接"""
     print("=" * 60)
@@ -51,7 +53,7 @@ async def test_opensandbox_connection():
         print("2. OpenSandbox Server已启动 (opensandbox-server)")
         return False
 
-
+@pytest.mark.asyncio
 async def test_animation_generation():
     """测试动画生成"""
     print("=" * 60)
@@ -87,6 +89,7 @@ async def test_animation_generation():
         return False
 
 
+@pytest.mark.asyncio
 async def test_template_rendering():
     """测试模板渲染"""
     print("=" * 60)

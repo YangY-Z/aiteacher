@@ -4,7 +4,7 @@ import asyncio
 import logging
 
 from app.services.tools.registry import tool_registry
-from app.services.tools.image_tool import ImageTool
+from app.services.tools.image_tool import create_image_tool
 from app.services.tool_selection_engine import tool_selection_engine
 from app.services.student_context_loader import student_context_loader
 from app.services.tool_strategies import strategy_selector
@@ -30,7 +30,7 @@ def initialize_tools() -> None:
     logger.info("=== Initializing Teaching Tools ===")
     
     # Register Image Tool
-    image_tool = ImageTool()
+    image_tool = create_image_tool()
     tool_registry.register("image_generation", image_tool)
     logger.info("✓ Image tool registered")
     

@@ -159,9 +159,9 @@ class E2ETestRunner:
         """Test 2: Image generation strategy (library/template/AI)."""
         logger.info("\n【Test 2】Image Generation Strategy")
         
-        from app.services.tools.image_tool import ImageTool
+        from app.services.tools.image_tool import create_image_tool
         
-        tool = ImageTool()
+        tool = create_image_tool()
         
         # Test 2.1: Library retrieval
         request = ToolRequest(
