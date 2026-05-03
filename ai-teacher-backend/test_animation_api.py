@@ -64,19 +64,22 @@ async def test_animation_generation():
         result = await animation_generator.generate_animation(
             animation_type="linear_function",
             params={"k": 2, "b": 1},
-            trace_id="test-001"
+            trace_id="test-001",
+            output_format="video"
         )
         
         print(f"✓ 动画生成成功")
-        print(f"  视频URL: {result['video_url']}")
-        print(f"  文件路径: {result['file_path']}")
-        print(f"  时长: {result['duration']}秒")
-        print(f"  是否缓存: {result['cached']}")
+        print(f"  结果: {result}")
+        media_url = result.get('video_url') or result.get('image_url')
+        print(f"  媒体URL: {media_url}")
+        print(f"  文件路径: {result.get('file_path')}")
+        print(f"  时长: {result.get('duration', 'N/A')}秒")
+        print(f"  类型: {result.get('type')}")
         
         # 检查文件是否存在
-        video_path = Path(result['file_path'])
-        if video_path.exists():
-            file_size = video_path.stat().st_size
+        file_path = Path(result['file_path'])
+        if file_path.exists():
+            file_size = file_path.stat().st_size
             print(f"  文件大小: {file_size / 1024:.2f} KB")
         
         print("\n✅ 动画生成测试通过\n")

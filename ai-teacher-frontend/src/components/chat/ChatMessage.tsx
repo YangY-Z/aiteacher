@@ -121,6 +121,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   const contentToShow = enableTypewriter ? displayedText : message.content;
 
   const renderContent = () => {
+    // DEBUG: 检查消息的 image/video 字段
+    if (message.image || message.video) {
+      console.log('[DEBUG renderContent] message.id:', message.id, 'image:', message.image, 'video:', message.video, 'type:', message.type);
+    }
+    
     // 老师的文本提问（需要学生回复）
     if (message.type === 'teacher_question') {
       return (
@@ -183,6 +188,43 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
             {isCorrect ? '✅' : '❌'}
           </span>
           <span>{renderMarkdown(message.content)}</span>
+        </div>
+      );
+    }
+
+    // 图片资源
+    if (message.image) {
+      return (
+        <div className="message-media">
+          {contentToShow && <div className="message-text">{renderMarkdown(contentToShow)}</div>}
+          <div className="media-container">
+            <img
+              className="media-image"
+              src={message.image.url}
+              alt={message.image.title || '教学图片'}
+              title={message.image.description || message.image.title || ''}
+            />
+          </div>
+          {message.image.title && <div className="media-caption">{message.image.title}</div>}
+        </div>
+      );
+    }
+
+    // 视频资源
+    if (message.video) {
+      return (
+        <div className="message-media">
+          {contentToShow && <div className="message-text">{renderMarkdown(contentToShow)}</div>}
+          <div className="media-container">
+            <video
+              className="media-video"
+              src={message.video.url}
+              controls
+              poster={message.video.thumbnail_url}
+              title={message.video.description || message.video.title || ''}
+            />
+          </div>
+          {message.video.title && <div className="media-caption">{message.video.title}</div>}
         </div>
       );
     }

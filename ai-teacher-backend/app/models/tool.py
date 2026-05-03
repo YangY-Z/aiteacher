@@ -173,34 +173,44 @@ class TeachingEvent:
         """Extract image generation request from the event."""
         import json
         import re
-        
+
         try:
             data = json.loads(self.message)
             need_image = data.get("need_image", {})
+            # Pass all need_image params through (k, b, output_format, etc.)
+            params = dict(need_image)
+            params.setdefault("concept", "")
+            params.setdefault("animation_type", "auto")
+            # If concept is empty but message field has content, use it as fallback
+            if not params.get("concept"):
+                params["concept"] = data.get("message", "")
             return ToolRequest(
                 action="generate_image",
-                params={
-                    "concept": need_image.get("concept", ""),
-                    "animation_type": need_image.get("animation_type", "auto"),
-                }
+                params=params,
             )
         except (json.JSONDecodeError, AttributeError):
-            # Fallback: extract using regex
-            match = re.search(r'"need_image":\s*\{[^}]+\}', self.message)
+            # Fallback: extract using regex - handle nested braces properly
+            match = re.search(r'"need_image":\s*(\{[^}]*\})', self.message)
+            if not match:
+                # Try greedy match for simple cases
+                match = re.search(r'"need_image":\s*(\{.*?\})', self.message)
             if match:
                 try:
-                    need_image_str = match.group(0).replace('"need_image":', '')
-                    need_image = json.loads(need_image_str)
+                    need_image = json.loads(match.group(1))
+                    params = dict(need_image)
+                    params.setdefault("concept", "")
+                    params.setdefault("animation_type", "auto")
+                    # If concept is empty, try extracting from message field in the JSON
+                    msg_match = re.search(r'"message":\s*"([^"]*)"', self.message)
+                    if not params.get("concept") and msg_match:
+                        params["concept"] = msg_match.group(1)
                     return ToolRequest(
                         action="generate_image",
-                        params={
-                            "concept": need_image.get("concept", ""),
-                            "animation_type": need_image.get("animation_type", "auto"),
-                        }
+                        params=params,
                     )
                 except json.JSONDecodeError:
                     pass
-        
+
         return ToolRequest(action="generate_image", params={})
     
     def get_video_request(self) -> ToolRequest:

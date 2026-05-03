@@ -92,6 +92,46 @@ export interface SessionResponse {
   status: string;
 }
 
+// 会话历史相关类型
+export interface SessionListItem {
+  session_id: string;
+  course_id: string;
+  kp_id: string | null;
+  kp_name: string | null;
+  status: string;
+  current_round: number;
+  rounds_count: number;
+  total_messages: number;
+  created_at: string | null;
+}
+
+export interface RoundMessage {
+  role: string;
+  content: string;
+}
+
+export interface SessionHistoryRound {
+  round_number: number;
+  status: string;
+  start_time: string | null;
+  end_time: string | null;
+  messages: RoundMessage[];
+  teaching_mode: string | null;
+  assessment_result: Record<string, unknown> | null;
+  summary: Record<string, unknown> | null;
+}
+
+export interface SessionHistoryResponse {
+  session_id: string;
+  course_id: string;
+  kp_id: string | null;
+  kp_name: string | null;
+  status: string;
+  created_at: string | null;
+  current_round_index: number;
+  rounds: SessionHistoryRound[];
+}
+
 // 聊天
 export interface ChatRequest {
   message: string;
@@ -192,6 +232,19 @@ export interface RemedialContent {
   practice_questions: string[];
 }
 
+// 媒体资源信息
+export interface MediaResource {
+  id?: string;
+  type: 'image' | 'video';
+  url: string;
+  thumbnail_url?: string;
+  title?: string;
+  description?: string;
+  source?: string;
+  duration?: number;
+  cached?: boolean;
+}
+
 // 聊天消息
 export interface Message {
   id: string;
@@ -201,6 +254,8 @@ export interface Message {
   type?: 'text' | 'question' | 'teacher_question' | 'feedback';
   question?: QuestionContent;
   isTyping?: boolean; // 是否正在打字中
+  image?: MediaResource;
+  video?: MediaResource;
 }
 
 export interface QuestionContent {

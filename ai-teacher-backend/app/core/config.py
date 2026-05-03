@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     # OpenSandbox Configuration
     opensandbox_server_url: str = "http://localhost:8080"
     opensandbox_api_key: Optional[str] = None
-    sandbox_image: str = "opensandbox/code-interpreter:latest"
+    sandbox_image: str = "sandbox-registry.cn-zhangjiakou.cr.aliyuncs.com/opensandbox/code-interpreter:v1.0.2"
     sandbox_timeout: int = 60  # seconds
     sandbox_max_memory_mb: int = 512  # MB
     sandbox_max_cpus: float = 1.0

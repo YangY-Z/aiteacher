@@ -19,9 +19,54 @@ from app.schemas.grade import (
 )
 from app.services.grade_service import grade_service
 from app.services.subject_service import subject_service
-from app.core.exceptions import DuplicateEntityError, EntityNotFoundError, ValidationError
+from app.services.student_service import student_service
+from app.schemas.admin import AdminLogin, AdminToken
+from app.schemas.common import APIResponse
+from app.core.exceptions import AuthenticationError
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+# ============ Auth Management ============
+
+
+@router.post("/login", response_model=APIResponse[AdminToken])
+async def admin_login(login_data: AdminLogin) -> APIResponse[AdminToken]:
+    """Admin login with phone and password.
+
+    Args:
+        login_data: Admin login credentials (phone + password).
+
+    Returns:
+        API response with access token and admin info.
+
+    Raises:
+        HTTPException: 401 if credentials are invalid or user is not admin.
+    """
+    try:
+        result = student_service.login_admin(
+            phone=login_data.phone,
+            password=login_data.password,
+        )
+        return APIResponse(
+            success=True,
+            data=AdminToken(
+                access_token=result["access_token"],
+                token_type=result["token_type"],
+                admin_id=result["admin_id"],
+                admin_name=result["admin_name"],
+            ),
+            message="登录成功",
+        )
+    except AuthenticationError as e:
+        from fastapi import status as http_status
+
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=http_status.HTTP_401_UNAUTHORIZED,
+            detail=e.message,
+        )
 
 
 # ============ Grade Management ============

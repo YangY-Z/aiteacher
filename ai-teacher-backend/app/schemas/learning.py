@@ -102,3 +102,50 @@ class SkipRequest(BaseModel):
     """Request model for skipping a knowledge point."""
 
     reason: Optional[str] = Field(None, description="跳过原因")
+
+
+class RoundMessage(BaseModel):
+    """消息记录"""
+
+    role: str = Field(..., description="角色: assistant/user")
+    content: str = Field("", description="消息内容")
+
+
+class SessionListItem(BaseModel):
+    """会话列表项"""
+
+    session_id: str = Field(..., description="会话ID")
+    course_id: str = Field(..., description="课程ID")
+    kp_id: Optional[str] = Field(None, description="当前知识点ID")
+    kp_name: Optional[str] = Field(None, description="当前知识点名称")
+    status: str = Field(..., description="会话状态")
+    current_round: int = Field(1, description="当前轮次")
+    rounds_count: int = Field(0, description="总轮次数")
+    total_messages: int = Field(0, description="总消息数")
+    created_at: Optional[str] = Field(None, description="创建时间")
+
+
+class SessionHistoryRound(BaseModel):
+    """会话历史中的轮次详情"""
+
+    round_number: int = Field(..., description="轮次编号")
+    status: str = Field(..., description="状态")
+    start_time: Optional[str] = Field(None, description="开始时间")
+    end_time: Optional[str] = Field(None, description="结束时间")
+    messages: list[RoundMessage] = Field(default_factory=list, description="对话消息列表")
+    teaching_mode: Optional[str] = Field(None, description="教学模式")
+    assessment_result: Optional[dict[str, Any]] = Field(None, description="评估结果")
+    summary: Optional[dict[str, Any]] = Field(None, description="轮次总结")
+
+
+class SessionHistoryResponse(BaseModel):
+    """会话历史详情响应"""
+
+    session_id: str = Field(..., description="会话ID")
+    course_id: str = Field(..., description="课程ID")
+    kp_id: Optional[str] = Field(None, description="当前知识点ID")
+    kp_name: Optional[str] = Field(None, description="当前知识点名称")
+    status: str = Field(..., description="会话状态")
+    created_at: Optional[str] = Field(None, description="创建时间")
+    current_round_index: int = Field(0, description="当前轮次索引")
+    rounds: list[SessionHistoryRound] = Field(default_factory=list, description="所有轮次详情")

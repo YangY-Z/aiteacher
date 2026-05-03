@@ -117,6 +117,7 @@ class InMemoryDatabase:
         self._load_students_from_file()
         self.load_learner_profiles_from_file()
         self.load_learning_sessions_from_file()
+        self.load_media_resources_from_file()
 
     def _get_data_file_path(self) -> Path:
         """Get the absolute path to the data file.
@@ -721,6 +722,112 @@ class InMemoryDatabase:
             logger.warning(f"Invalid JSON in learning sessions file: {e}")
         except Exception as e:
             logger.error(f"Failed to load learning sessions from file: {e}")
+
+    def _get_media_data_file_path(self) -> Path:
+        """Get the path to the media resources data file."""
+        project_root = Path(__file__).parent.parent.parent
+        return project_root / "data" / "media_resources.json"
+
+    def save_media_resources_to_file(self) -> None:
+        """Save media resources (images + videos) to JSON file."""
+        file_path = self._get_media_data_file_path()
+        try:
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+
+            data = {
+                "images": [],
+                "videos": [],
+            }
+
+            # Save teaching images
+            if hasattr(self, "_teaching_images"):
+                for img in self._teaching_images.values():
+                    data["images"].append(img.to_dict())
+
+            # Save teaching videos
+            if hasattr(self, "_teaching_videos"):
+                for vid in self._teaching_videos.values():
+                    data["videos"].append(vid.to_dict())
+
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+
+            total = len(data["images"]) + len(data["videos"])
+            logger.info(f"Saved {total} media resources to {file_path}")
+
+        except Exception as e:
+            logger.error(f"Failed to save media resources: {e}")
+
+    def load_media_resources_from_file(self) -> None:
+        """Load media resources from JSON file."""
+        file_path = self._get_media_data_file_path()
+        if not file_path.exists():
+            logger.debug(f"Media resources file not found: {file_path}")
+            return
+
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+            if not content:
+                return
+            data = json.loads(content)
+
+            # Initialize storage if needed
+            if not hasattr(self, "_teaching_images"):
+                self._teaching_images = {}
+            if not hasattr(self, "_teaching_videos"):
+                self._teaching_videos = {}
+
+            # Load images
+            from app.models.resource import TeachingImage, ImageType, ImageStatus
+            for img_dict in data.get("images", []):
+                try:
+                    img = TeachingImage(
+                        id=img_dict["id"],
+                        knowledge_point_id=img_dict["knowledge_point_id"],
+                        title=img_dict["title"],
+                        description=img_dict["description"],
+                        image_type=ImageType(img_dict["image_type"]),
+                        file_path=img_dict["file_path"],
+                        thumbnail_path=img_dict.get("thumbnail_path"),
+                        tags=img_dict.get("tags", []),
+                        metadata=img_dict.get("metadata", {}),
+                        usage_count=img_dict.get("usage_count", 0),
+                        rating=img_dict.get("rating", 0.0),
+                        status=ImageStatus(img_dict.get("status", "ready")),
+                    )
+                    self._teaching_images[img.id] = img
+                except (KeyError, ValueError) as e:
+                    logger.warning(f"Skipping invalid image record: {e}")
+
+            # Load videos
+            from app.models.resource import TeachingVideo
+            for vid_dict in data.get("videos", []):
+                try:
+                    vid = TeachingVideo(
+                        id=vid_dict["id"],
+                        knowledge_point_id=vid_dict["knowledge_point_id"],
+                        title=vid_dict["title"],
+                        description=vid_dict["description"],
+                        video_url=vid_dict["video_url"],
+                        duration=vid_dict.get("duration", 0),
+                        thumbnail_url=vid_dict.get("thumbnail_url"),
+                        tags=vid_dict.get("tags", []),
+                        metadata=vid_dict.get("metadata", {}),
+                        usage_count=vid_dict.get("usage_count", 0),
+                        rating=vid_dict.get("rating", 0.0),
+                    )
+                    self._teaching_videos[vid.id] = vid
+                except (KeyError, ValueError) as e:
+                    logger.warning(f"Skipping invalid video record: {e}")
+
+            total = len(data.get("images", [])) + len(data.get("videos", []))
+            logger.info(f"Loaded {total} media resources from {file_path}")
+
+        except json.JSONDecodeError as e:
+            logger.warning(f"Invalid JSON in media resources file: {e}")
+        except Exception as e:
+            logger.error(f"Failed to load media resources from file: {e}")
 
 
 # Global database instance

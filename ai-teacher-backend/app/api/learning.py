@@ -5,6 +5,7 @@ import logging
 import uuid
 from typing import Annotated, Any, Optional
 
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sse_starlette.sse import EventSourceResponse
@@ -19,12 +20,17 @@ from app.schemas.learning import (
     AssessmentResponse,
     ProgressResponse,
     SkipRequest,
+    SessionListItem,
+    SessionHistoryResponse,
+    SessionHistoryRound,
+    RoundMessage,
 )
 from app.schemas.common import APIResponse
 from app.services.learning_service import learning_service
 from app.services.student_service import student_service
 from app.services.backtrack_service import backtrack_service
 from app.repositories.learning_repository import learning_session_repository
+from app.repositories.memory_db import db
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -601,4 +607,119 @@ async def get_current_phase(
             "phase_status": session.phase_status,
             "phase_info": phase_info,
         },
+    )
+
+
+@router.get("/sessions", response_model=APIResponse[list[SessionListItem]])
+async def list_sessions(
+    course_id: Optional[str] = None,
+    kp_id: Optional[str] = None,
+    student_id: Annotated[int, Depends(get_current_student_id)] = None
+) -> APIResponse[list[SessionListItem]]:
+    """Get all learning sessions for the current student.
+
+    Args:
+        course_id: Optional course ID filter.
+        kp_id: Optional knowledge point ID filter.
+        student_id: Authenticated student ID.
+
+    Returns:
+        API response with list of sessions.
+    """
+    sessions = learning_session_repository.get_by_student(student_id)
+
+    # Filter by course_id if provided
+    if course_id:
+        sessions = [s for s in sessions if s.course_id == course_id]
+
+    # Filter by kp_id if provided
+    if kp_id:
+        sessions = [s for s in sessions if s.kp_id == kp_id]
+
+    # Get KP name lookup
+    kp_names: dict[str, str] = {}
+    for kp in db._knowledge_points.values():
+        kp_names[kp.id] = kp.name
+
+    # Sort by created_at descending (most recent first)
+    sessions.sort(key=lambda s: s.created_at or datetime.min, reverse=True)
+
+    session_list = []
+    for session in sessions:
+        total_messages = sum(len(r.messages) for r in session.rounds)
+        session_list.append(SessionListItem(
+            session_id=session.id,
+            course_id=session.course_id,
+            kp_id=session.kp_id,
+            kp_name=kp_names.get(session.kp_id) if session.kp_id else None,
+            status=session.status.value,
+            current_round=session.learning_round,
+            rounds_count=len(session.rounds),
+            total_messages=total_messages,
+            created_at=session.created_at.isoformat() if session.created_at else None,
+        ))
+
+    return APIResponse(
+        success=True,
+        data=session_list,
+    )
+
+
+@router.get("/session/{session_id}/history", response_model=APIResponse[SessionHistoryResponse])
+async def get_session_history(
+    session_id: str,
+    student_id: Annotated[int, Depends(get_current_student_id)]
+) -> APIResponse[SessionHistoryResponse]:
+    """Get full conversation history for a learning session.
+
+    Args:
+        session_id: Session ID.
+        student_id: Authenticated student ID.
+
+    Returns:
+        API response with full session history including all rounds and messages.
+    """
+    session = learning_service.get_session(session_id)
+
+    if session.student_id != student_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权访问此会话",
+        )
+
+    # Get KP name lookup
+    kp_names: dict[str, str] = {}
+    for kp in db._knowledge_points.values():
+        kp_names[kp.id] = kp.name
+
+    # Build rounds detail
+    rounds_detail = []
+    for round_data in session.rounds:
+        messages = [
+            RoundMessage(role=m.get("role", "assistant"), content=m.get("content", ""))
+            for m in round_data.messages
+        ]
+        rounds_detail.append(SessionHistoryRound(
+            round_number=round_data.round_number,
+            status=round_data.status.value if isinstance(round_data.status, type(round_data.status)) else str(round_data.status),
+            start_time=round_data.start_time.isoformat() if round_data.start_time else None,
+            end_time=round_data.end_time.isoformat() if round_data.end_time else None,
+            messages=messages,
+            teaching_mode=round_data.teaching_mode,
+            assessment_result=round_data.assessment_result.to_dict() if round_data.assessment_result else None,
+            summary=round_data.summary.to_dict() if round_data.summary else None,
+        ))
+
+    return APIResponse(
+        success=True,
+        data=SessionHistoryResponse(
+            session_id=session.id,
+            course_id=session.course_id,
+            kp_id=session.kp_id,
+            kp_name=kp_names.get(session.kp_id) if session.kp_id else None,
+            status=session.status.value,
+            created_at=session.created_at.isoformat() if session.created_at else None,
+            current_round_index=session.current_round_index,
+            rounds=rounds_detail,
+        ),
     )

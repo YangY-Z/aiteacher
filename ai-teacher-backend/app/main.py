@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api import api_router
 from app.core.config import settings
@@ -100,6 +101,11 @@ def create_app() -> FastAPI:
 
     # Include API routes
     app.include_router(api_router, prefix="/api/v1")
+
+    # Mount generated media files (Manim animations, images)
+    generated_media_dir = Path("./generated_media")
+    generated_media_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/media", StaticFiles(directory=str(generated_media_dir)), name="generated_media")
 
     # Global exception handler
     @app.exception_handler(AppException)

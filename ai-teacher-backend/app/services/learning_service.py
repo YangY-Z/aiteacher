@@ -803,20 +803,29 @@ class LearningService:
                         # 边讲边写模式：同时发送消息和白板内容
                         message_content = data.get("message", "")
                         whiteboard = data.get("whiteboard", {})
+                        need_image = data.get("need_image")
                         
-                        # 先发送白板内容（如果有）
-                        if whiteboard:
-                            # 发送segment事件（前端可以同时处理消息和白板）
-                            yield {"event": "segment", "data": json.dumps({
-                                "message": message_content,
-                                "whiteboard": whiteboard
-                            }, ensure_ascii=False)}
-                        else:
-                            # 只有消息，没有白板内容
-                            yield {"event": "segment", "data": json.dumps({
-                                "message": message_content,
-                                "whiteboard": {}
-                            }, ensure_ascii=False)}
+                        # 处理图片/视频生成请求
+                        media_resource = None
+                        if need_image:
+                            try:
+                                media_resource = await self._process_image_generation(
+                                    need_image, session.kp_id or "", trace_id
+                                )
+                            except Exception as e:
+                                logger.error(f"[{trace_id}] 图片生成失败: {e}", exc_info=True)
+                        
+                        # 构建SSE数据
+                        segment_data = {
+                            "message": message_content,
+                            "whiteboard": whiteboard
+                        }
+                        
+                        # 附加媒体资源
+                        if media_resource:
+                            segment_data["image"] = media_resource
+                        
+                        yield {"event": "segment", "data": json.dumps(segment_data, ensure_ascii=False)}
                     
                     elif event_type == "wb_title":
                         # 白板标题（兼容旧格式）
@@ -886,6 +895,157 @@ class LearningService:
                 pass
         
         logger.info(f"[{trace_id}] === 教学流式响应结束, 总计{event_count}个事件 ===")
+
+    async def _process_image_generation(
+        self,
+        need_image: dict,
+        kp_id: str,
+        trace_id: str,
+    ) -> Optional[dict]:
+        """处理图片/视频生成请求。
+
+        生成后自动落库到 TeachingImage/TeachingVideo，提取关键词并持久化到 JSON 文件。
+
+        Args:
+            need_image: LLM输出的need_image字段内容。
+            kp_id: 知识点ID。
+            trace_id: 链路追踪ID。
+
+        Returns:
+            媒体资源字典，失败时返回None。
+        """
+        from app.services.tools.animation_generator import AnimationGenerator
+        from app.repositories.resource_repository import (
+            teaching_image_repository,
+            teaching_video_repository,
+            extract_keywords,
+        )
+        from app.models.resource import ImageType
+
+        concept = need_image.get("concept", "")
+        animation_type = need_image.get("animation_type", "auto")
+        output_format = need_image.get("output_format", "image")
+
+        if not concept:
+            logger.warning(f"[{trace_id}] need_image缺少concept字段，跳过生成")
+            return None
+
+        # 提取关键词
+        tags = extract_keywords(concept)
+        logger.info(f"[{trace_id}] 开始生成媒体: concept={concept}, format={output_format}, tags={tags}")
+
+        params = {
+            "concept": concept,
+            "animation_type": animation_type,
+            "output_format": output_format,
+            "knowledge_point_id": kp_id,
+        }
+
+        try:
+            # 使用AnimationGenerator生成
+            generator = AnimationGenerator()
+            generated = await generator.generate_animation(
+                animation_type=animation_type,
+                params=params,
+                trace_id=trace_id,
+                output_format=output_format,
+            )
+
+            cache_key = generated.get("cache_key", "")
+            is_video = output_format == "video" or generated.get("type") == "video"
+
+            if is_video:
+                url = generated.get("video_url", "")
+                resource_id = url.split("/")[-1].replace(".mp4", "")
+                resource = {
+                    "id": resource_id,
+                    "type": "video",
+                    "url": url,
+                    "title": concept,
+                    "description": concept,
+                    "source": "manim_generated",
+                    "duration": generated.get("duration", 15.0),
+                    "cached": generated.get("cached", False),
+                    "concept": concept,
+                    "tags": tags,
+                }
+
+                # 落库 TeachingVideo
+                try:
+                    from app.models.resource import TeachingVideo
+                    existing = teaching_video_repository.find_by_cache_key(cache_key)
+                    if not existing:
+                        video = TeachingVideo(
+                            id=resource_id,
+                            knowledge_point_id=kp_id,
+                            title=concept,
+                            description=concept,
+                            video_url=url,
+                            duration=int(generated.get("duration", 15.0)),
+                            thumbnail_url=url,
+                            tags=tags,
+                            metadata={
+                                "cache_key": cache_key,
+                                "animation_type": animation_type,
+                                "source": "manim_generated",
+                                "generated_concept": concept,
+                            },
+                        )
+                        teaching_video_repository.create(video)
+                        logger.info(f"[{trace_id}] 视频已落库: {resource_id}")
+                    else:
+                        logger.info(f"[{trace_id}] 视频已存在(缓存命中): {existing.id}")
+                except Exception as db_err:
+                    logger.warning(f"[{trace_id}] 视频落库失败: {db_err}")
+            else:
+                url = generated.get("image_url", "")
+                resource_id = url.split("/")[-1].replace(".png", "")
+                resource = {
+                    "id": resource_id,
+                    "type": "image",
+                    "url": url,
+                    "title": concept,
+                    "description": concept,
+                    "source": "manim_generated",
+                    "cached": generated.get("cached", False),
+                    "concept": concept,
+                    "tags": tags,
+                }
+
+                # 落库 TeachingImage
+                try:
+                    existing = teaching_image_repository.find_by_cache_key(cache_key)
+                    if not existing:
+                        from app.models.resource import TeachingImage, ImageStatus
+                        image = TeachingImage(
+                            id=resource_id,
+                            knowledge_point_id=kp_id,
+                            title=concept,
+                            description=concept,
+                            image_type=ImageType.INFOGRAPHIC,
+                            file_path=url,
+                            tags=tags,
+                            metadata={
+                                "cache_key": cache_key,
+                                "animation_type": animation_type,
+                                "source": "manim_generated",
+                                "generated_concept": concept,
+                            },
+                            status=ImageStatus.READY,
+                        )
+                        teaching_image_repository.create(image)
+                        logger.info(f"[{trace_id}] 图片已落库: {resource_id}")
+                    else:
+                        logger.info(f"[{trace_id}] 图片已存在(缓存命中): {existing.id}")
+                except Exception as db_err:
+                    logger.warning(f"[{trace_id}] 图片落库失败: {db_err}")
+
+            logger.info(f"[{trace_id}] 媒体生成成功: {resource.get('url')}")
+            return resource
+
+        except Exception as e:
+            logger.error(f"[{trace_id}] 媒体生成失败: {e}", exc_info=True)
+            return None
 
     def _should_skip_to_assessment(self, message: str) -> bool:
         """检查是否应跳过对话直接进入评估。

@@ -1,0 +1,250 @@
+{
+  "images": [
+    {
+      "id": "IMG_K1_001",
+      "knowledge_point_id": "K1",
+      "title": "正比例函数y=2x的图像",
+      "description": "展示正比例函数y=2x的图像,经过原点的直线",
+      "image_type": "example",
+      "file_path": "/static/images/linear_func/proportional_example.png",
+      "thumbnail_path": "/static/images/linear_func/proportional_example_thumb.png",
+      "tags": [
+        "正比例函数",
+        "图像",
+        "示例"
+      ],
+      "metadata": {
+        "function": "y=2x",
+        "slope": 2,
+        "intercept": 0
+      },
+      "usage_count": 15,
+      "rating": 4.5,
+      "status": "ready",
+      "created_at": "2026-05-03T15:51:00.835187",
+      "updated_at": "2026-05-03T15:51:00.835188"
+    },
+    {
+      "id": "IMG_K1_002",
+      "knowledge_point_id": "K1",
+      "title": "正比例函数性质总结",
+      "description": "信息图表总结正比例函数的性质:过原点、单调性、图像位置",
+      "image_type": "infographic",
+      "file_path": "/static/images/linear_func/proportional_properties.png",
+      "thumbnail_path": "/static/images/linear_func/proportional_properties_thumb.png",
+      "tags": [
+        "正比例函数",
+        "性质",
+        "信息图表"
+      ],
+      "metadata": {
+        "content": "性质总结"
+      },
+      "usage_count": 23,
+      "rating": 4.8,
+      "status": "ready",
+      "created_at": "2026-05-03T15:51:00.837934",
+      "updated_at": "2026-05-03T15:51:00.837935"
+    },
+    {
+      "id": "IMG_K2_001",
+      "knowledge_point_id": "K2",
+      "title": "一次函数的一般形式",
+      "description": "展示一次函数y=kx+b的一般形式,说明k和b的含义",
+      "image_type": "concept_map",
+      "file_path": "/static/images/linear_func/general_form.png",
+      "thumbnail_path": "/static/images/linear_func/general_form_thumb.png",
+      "tags": [
+        "一次函数",
+        "定义",
+        "概念图"
+      ],
+      "metadata": {
+        "formula": "y=kx+b"
+      },
+      "usage_count": 18,
+      "rating": 4.6,
+      "status": "ready",
+      "created_at": "2026-05-03T15:51:00.838915",
+      "updated_at": "2026-05-03T15:51:00.838916"
+    },
+    {
+      "id": "IMG_K2_002",
+      "knowledge_point_id": "K2",
+      "title": "k和b对图像的影响",
+      "description": "对比图展示不同k和b值对一次函数图像的影响",
+      "image_type": "comparison",
+      "file_path": "/static/images/linear_func/kb_effect.png",
+      "thumbnail_path": "/static/images/linear_func/kb_effect_thumb.png",
+      "tags": [
+        "一次函数",
+        "k值",
+        "b值",
+        "对比"
+      ],
+      "metadata": {
+        "comparison_items": [
+          "k>0",
+          "k<0",
+          "b>0",
+          "b<0"
+        ]
+      },
+      "usage_count": 25,
+      "rating": 4.9,
+      "status": "ready",
+      "created_at": "2026-05-03T15:51:00.840066",
+      "updated_at": "2026-05-03T15:51:00.840067"
+    },
+    {
+      "id": "IMG_K3_001",
+      "knowledge_point_id": "K3",
+      "title": "一次函数图像绘制步骤",
+      "description": "步骤图展示绘制一次函数图像的详细步骤",
+      "image_type": "step_by_step",
+      "file_path": "/static/images/linear_func/draw_steps.png",
+      "thumbnail_path": "/static/images/linear_func/draw_steps_thumb.png",
+      "tags": [
+        "一次函数",
+        "图像绘制",
+        "步骤"
+      ],
+      "metadata": {
+        "steps": [
+          "列表",
+          "描点",
+          "连线"
+        ]
+      },
+      "usage_count": 30,
+      "rating": 4.7,
+      "status": "ready",
+      "created_at": "2026-05-03T15:51:00.841186",
+      "updated_at": "2026-05-03T15:51:00.841187"
+    },
+    {
+      "id": "IMG_K3_002",
+      "knowledge_point_id": "K3",
+      "title": "两点法画一次函数图像",
+      "description": "示例展示如何用两点法快速画出一次函数图像",
+      "image_type": "example",
+      "file_path": "/static/images/linear_func/two_point_method.png",
+      "thumbnail_path": "/static/images/linear_func/two_point_method_thumb.png",
+      "tags": [
+        "一次函数",
+        "两点法",
+        "示例"
+      ],
+      "metadata": {
+        "method": "两点法"
+      },
+      "usage_count": 28,
+      "rating": 4.8,
+      "status": "ready",
+      "created_at": "2026-05-03T15:51:00.842567",
+      "updated_at": "2026-05-03T15:51:00.842568"
+    },
+    {
+      "id": "IMG_K4_001",
+      "knowledge_point_id": "K4",
+      "title": "一次函数性质全解析",
+      "description": "信息图表全面展示一次函数的性质:单调性、象限、截距",
+      "image_type": "infographic",
+      "file_path": "/static/images/linear_func/properties_overview.png",
+      "thumbnail_path": "/static/images/linear_func/properties_overview_thumb.png",
+      "tags": [
+        "一次函数",
+        "性质",
+        "信息图表"
+      ],
+      "metadata": {
+        "properties": [
+          "单调性",
+          "象限分布",
+          "截距"
+        ]
+      },
+      "usage_count": 35,
+      "rating": 4.9,
+      "status": "ready",
+      "created_at": "2026-05-03T15:51:00.843726",
+      "updated_at": "2026-05-03T15:51:00.843727"
+    },
+    {
+      "id": "IMG_K4_002",
+      "knowledge_point_id": "K4",
+      "title": "k的正负对单调性的影响",
+      "description": "对比图展示k>0和k<0时函数的单调性差异",
+      "image_type": "comparison",
+      "file_path": "/static/images/linear_func/monotonicity.png",
+      "thumbnail_path": "/static/images/linear_func/monotonicity_thumb.png",
+      "tags": [
+        "一次函数",
+        "单调性",
+        "k值",
+        "对比"
+      ],
+      "metadata": {
+        "cases": [
+          "k>0递增",
+          "k<0递减"
+        ]
+      },
+      "usage_count": 22,
+      "rating": 4.6,
+      "status": "ready",
+      "created_at": "2026-05-03T15:51:00.844915",
+      "updated_at": "2026-05-03T15:51:00.844915"
+    },
+    {
+      "id": "IMG_K5_001",
+      "knowledge_point_id": "K5",
+      "title": "待定系数法求解析式",
+      "description": "步骤图详细展示待定系数法的完整流程",
+      "image_type": "step_by_step",
+      "file_path": "/static/images/linear_func/undetermined_coefficients.png",
+      "thumbnail_path": "/static/images/linear_func/undetermined_coefficients_thumb.png",
+      "tags": [
+        "一次函数",
+        "待定系数法",
+        "步骤"
+      ],
+      "metadata": {
+        "steps": [
+          "设解析式",
+          "代入点坐标",
+          "解方程组",
+          "写出解析式"
+        ]
+      },
+      "usage_count": 40,
+      "rating": 4.9,
+      "status": "ready",
+      "created_at": "2026-05-03T15:51:00.845985",
+      "updated_at": "2026-05-03T15:51:00.845986"
+    },
+    {
+      "id": "IMG_K5_002",
+      "knowledge_point_id": "K5",
+      "title": "待定系数法应用示例",
+      "description": "具体示例展示如何用待定系数法求解一次函数解析式",
+      "image_type": "example",
+      "file_path": "/static/images/linear_func/undetermined_example.png",
+      "thumbnail_path": "/static/images/linear_func/undetermined_example_thumb.png",
+      "tags": [
+        "一次函数",
+        "待定系数法",
+        "示例"
+      ],
+      "metadata": {
+        "example_type": "两点求解析式"
+      },
+      "usage_count": 32,
+      "rating": 4.7,
+      "status": "ready",
+      "created_at": "2026-05-03T15:51:00.847219",
+      "updated_at": "2026-05-03T15:51:00.847220"
+    }
+  ],
+  "videos": []
+}

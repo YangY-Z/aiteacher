@@ -80,7 +80,7 @@ class AnimationScene(Scene):
         axes = Axes(
             x_range=[-5, 5, 1],
             y_range=[-5, 5, 1],
-            axis_config={"color": GREY, "stroke_width": 2},
+            axis_config={{"color": GREY, "stroke_width": 2}},
         )
         
         # 添加坐标轴标签
@@ -95,7 +95,7 @@ class AnimationScene(Scene):
         if b >= 0:
             label_text = f"y = {k}x + {b}"
         else:
-            label_text = f"y = {k}x - {abs(b)}"
+            label_text = f"y = {k}x - {{abs(b)}}"
         label = axes.get_graph_label(graph, label_text)
         
         # 动画展示
@@ -112,7 +112,7 @@ class AnimationScene(Scene):
         axes = Axes(
             x_range=[-5, 5, 1],
             y_range=[-5, 5, 1],
-            axis_config={"include_numbers": True},
+            axis_config={{"include_numbers": True}},
         )
         
         # 添加标签
@@ -131,7 +131,7 @@ class AnimationScene(Scene):
         axes = Axes(
             x_range=[-5, 5, 1],
             y_range=[-5, 5, 1],
-            axis_config={"color": GREY},
+            axis_config={{"color": GREY}},
         )
         labels = axes.get_axis_labels(x_label="x", y_label="y")
         
@@ -143,7 +143,7 @@ class AnimationScene(Scene):
         y_val = {k}*x_val + {b}
         point = axes.c2p(x_val, y_val)
         dot = Dot(point, color=RED)
-        coord_label = MathTex(f"({x_val}, {y_val})").next_to(dot, UP)
+        coord_label = MathTex(f"({{x_val}}, {{y_val}})").next_to(dot, UP)
         
         # 动画展示
         self.play(Create(axes), Write(labels))
@@ -262,6 +262,8 @@ class AnimationGenerator(AnimationGeneratorProtocol):
                 "duration": self._estimate_duration(manim_code),
                 "cached": False,
                 "type": "video",
+                "concept": params.get("concept", ""),
+                "cache_key": cache_key,
             }
         else:
             result = {
@@ -269,6 +271,8 @@ class AnimationGenerator(AnimationGeneratorProtocol):
                 "file_path": str(media_path),
                 "cached": False,
                 "type": "image",
+                "concept": params.get("concept", ""),
+                "cache_key": cache_key,
             }
         
         return result
@@ -306,8 +310,9 @@ class AnimationGenerator(AnimationGeneratorProtocol):
         
         # Generate using LLM (for "auto" or missing template)
         prompt = self._build_manim_prompt(animation_type, params)
-        
-        response = llm_service.chat(
+
+        response = await asyncio.to_thread(
+            llm_service.chat,
             system_prompt=MANIM_SYSTEM_PROMPT,
             user_message=prompt,
         )
@@ -425,18 +430,21 @@ class AnimationScene(Scene):
         try:
             # Import OpenSandbox (lazy import)
             from opensandbox import Sandbox
-            from opensandbox.models import WriteEntry
-            
+            from opensandbox.models import WriteEntry, SearchEntry
+            from opensandbox.models.execd import RunCommandOpts
+
             # Create sandbox
             sandbox = await Sandbox.create(
                 settings.sandbox_image,
                 env={
                     "MANIM_QUALITY": "medium_quality",
-                    "PYTHON_VERSION": "3.11",
                 },
                 timeout=timedelta(seconds=self.timeout),
             )
-            
+
+            # Manim CLI path in the custom image
+            MANIM_BIN = "/opt/python/versions/cpython-3.12.12-linux-aarch64-gnu/bin/manim"
+
             try:
                 async with sandbox:
                     # Write Manim code to sandbox
@@ -450,63 +458,73 @@ class AnimationScene(Scene):
                     
                     logger.info(f"[{trace_id}] Code written to sandbox")
                     
-                    # Build Manim command based on output format
                     if output_format == "video":
-                        manim_cmd = "cd /workspace && manim -qh --format mp4 animation.py AnimationScene"
+                        manim_cmd = f"cd /workspace && {MANIM_BIN} -qm --format mp4 animation.py AnimationScene"
                     else:
-                        manim_cmd = "cd /workspace && manim -qh -s animation.py AnimationScene"
-                    
+                        manim_cmd = f"cd /workspace && {MANIM_BIN} -qm -s animation.py AnimationScene"
+
                     # Execute Manim render
                     execution = await sandbox.commands.run(
                         manim_cmd,
-                        timeout=timedelta(seconds=self.timeout - 10),
+                        opts=RunCommandOpts(
+                            timeout=timedelta(seconds=self.timeout - 10),
+                        ),
                     )
                     
                     if execution.exit_code != 0:
-                        error_msg = (
-                            execution.logs.stderr[0].text
-                            if execution.logs.stderr
-                            else "Unknown error"
-                        )
+                        stderr_text = "\n".join(
+                            log.text for log in execution.logs.stderr
+                        ) if execution.logs.stderr else ""
+                        stdout_text = "\n".join(
+                            log.text for log in execution.logs.stdout
+                        ) if execution.logs.stdout else ""
+                        error_msg = stderr_text or stdout_text or "Unknown error"
                         logger.error(
-                            f"[{trace_id}] Manim execution failed: {error_msg}"
+                            f"[{trace_id}] Manim execution failed:\n{error_msg}"
                         )
-                        raise RuntimeError(f"Manim execution failed: {error_msg}")
+                        raise RuntimeError(f"Manim execution failed: {error_msg[-2000:]}")
                     
                     logger.info(f"[{trace_id}] Manim rendering completed")
                     
                     # Find generated media file
                     if output_format == "video":
-                        # Find video file
-                        video_files = await sandbox.files.list_dir(
-                            "/workspace/media/videos/animation/1080p60"
+                        # Search for mp4 files under media/videos (quality dir varies)
+                        find_result = await sandbox.commands.run(
+                            "find /workspace/media/videos -name '*.mp4' -type f 2>/dev/null",
                         )
-                        mp4_files = [f for f in video_files if f.endswith(".mp4")]
-                        
+                        if find_result.exit_code == 0 and find_result.logs.stdout:
+                            mp4_files = [
+                                line.strip()
+                                for line in find_result.logs.stdout[0].text.strip().split('\n')
+                                if line.strip()
+                            ]
+                        else:
+                            mp4_files = []
+
                         if not mp4_files:
                             raise FileNotFoundError("No video file generated")
-                        
-                        # Read video file
+
+                        # Read video file as bytes
                         media_path = mp4_files[0]
-                        media_data = await sandbox.files.read_file(media_path)
-                        
+                        media_data = await sandbox.files.read_bytes(media_path)
+
                         logger.info(
                             f"[{trace_id}] Video retrieved, size={len(media_data)} bytes"
                         )
                     else:
-                        # Find image file (last frame)
-                        image_files = await sandbox.files.list_dir(
-                            "/workspace/media/images/animation"
+                        # Find image files via search
+                        image_entries = await sandbox.files.search(
+                            SearchEntry(path="/workspace/media/images/animation", pattern="*.png")
                         )
-                        png_files = [f for f in image_files if f.endswith(".png")]
-                        
+                        png_files = [e.path for e in image_entries]
+
                         if not png_files:
                             raise FileNotFoundError("No image file generated")
-                        
-                        # Read image file
+
+                        # Read image file as bytes
                         media_path = png_files[0]
-                        media_data = await sandbox.files.read_file(media_path)
-                        
+                        media_data = await sandbox.files.read_bytes(media_path)
+
                         logger.info(
                             f"[{trace_id}] Image retrieved, size={len(media_data)} bytes"
                         )
@@ -549,6 +567,17 @@ class AnimationScene(Scene):
         import hashlib
         import json
         
+        # Use concept as part of cache key for meaningful file names
+        concept = params.get("concept", "")
+        if concept:
+            # Normalize concept for filename: remove special chars, truncate
+            safe_concept = re.sub(r'[^\w\u4e00-\u9fff]', '_', concept)[:30]
+            params_str = json.dumps(params, sort_keys=True)
+            hash_str = hashlib.md5(
+                f"{animation_type}:{output_format}:{params_str}".encode()
+            ).hexdigest()[:8]
+            return f"{safe_concept}_{output_format}_{hash_str}"
+        
         params_str = json.dumps(params, sort_keys=True)
         hash_str = hashlib.md5(
             f"{animation_type}:{output_format}:{params_str}".encode()
@@ -576,6 +605,8 @@ class AnimationScene(Scene):
                 "file_path": str(video_path),
                 "duration": self._get_video_duration(video_path),
                 "type": "video",
+                "cached": True,
+                "cache_key": cache_key,
             }
         
         # Try image cache
@@ -585,6 +616,8 @@ class AnimationScene(Scene):
                 "image_url": f"/media/{cache_key}.png",
                 "file_path": str(image_path),
                 "type": "image",
+                "cached": True,
+                "cache_key": cache_key,
             }
         
         return None

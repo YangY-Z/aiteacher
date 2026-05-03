@@ -259,7 +259,25 @@ const LearningPage: React.FC = () => {
     await learningApi.streamTeachingContent(sessionId, {
       // 边讲边写模式：同时处理消息和白板
       onSegment: (data) => {
-        // 1. 添加消息
+        // DEBUG: 检查收到的 segment 数据
+        console.log('[DEBUG onSegment] data:', JSON.stringify(data));
+        console.log('[DEBUG onSegment] data.image:', data.image);
+        console.log('[DEBUG onSegment] data.video:', data.video);
+        
+        // 1. 提取媒体资源（根据 type 字段正确分配到 image 或 video）
+        let imageResource = data.image || undefined;
+        let videoResource = data.video || undefined;
+        
+        // 后端 ImageProcessStrategy 将所有资源挂在 image 字段，需按 type 分配
+        if (data.image && data.image.type === 'video') {
+          videoResource = data.image;
+          imageResource = undefined;
+        } else if (data.image && data.image.type === 'image') {
+          imageResource = data.image;
+          videoResource = undefined;
+        }
+        
+        // 2. 添加消息
         if (data.message) {
           // 检测是否是提问消息
           const isQuestion = data.is_question === true || 
@@ -272,6 +290,18 @@ const LearningPage: React.FC = () => {
             content: data.message,
             timestamp: new Date(),
             type: isQuestion ? 'teacher_question' : undefined,
+            image: imageResource,
+            video: videoResource,
+          });
+        } else if (imageResource || videoResource) {
+          // 只有媒体资源没有文本消息时，单独添加一条媒体消息
+          addMessage({
+            id: `msg-media-${Date.now()}`,
+            role: 'ai',
+            content: imageResource?.title || videoResource?.title || '',
+            timestamp: new Date(),
+            image: imageResource,
+            video: videoResource,
           });
         }
         

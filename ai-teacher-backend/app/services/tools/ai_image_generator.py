@@ -137,12 +137,12 @@ class AIImageGenerator(AIImageGeneratorProtocol):
                 },
                 timeout=60.0,
             )
-            
+
             if response.status_code != 200:
                 raise Exception(f"API call failed: {response.status_code} - {response.text}")
-            
+
             data = response.json()
-            
+
             # Extract image URL from response
             # Note: Actual response format depends on API
             if "data" in data and len(data["data"]) > 0:

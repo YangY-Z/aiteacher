@@ -121,36 +121,43 @@ class ImageProcessStrategy(ToolProcessStrategy):
 
 class VideoProcessStrategy(ToolProcessStrategy):
     """Strategy for processing video references.
-    
-    Videos are static resources and are attached directly without LLM processing.
+
+    Videos are generated via image_generation tool with animation_type set.
     """
-    
+
     def can_handle(self, event: TeachingEvent) -> bool:
         """Check if event contains video reference."""
         return event.has_video_reference()
-    
+
     async def process(
         self,
         event: TeachingEvent,
         tool_registry: ToolRegistry,
         llm_service: Any,
     ) -> TeachingEvent:
-        """Process video reference."""
+        """Process video reference by generating animation."""
         logger.info(f"Processing video reference")
-        
-        tool_request = event.get_video_request()
+
+        # Convert video request to image_generation with video output
+        from app.models.tool import ToolRequest
+        tool_request = ToolRequest(
+            action="generate_image",
+            params={
+                "output_format": "video",
+                "animation_type": "auto",
+            }
+        )
         result = await tool_registry.execute_tool(
-            "video_generation",
+            "image_generation",
             tool_request
         )
-        
+
         if result.success:
-            # Static resource: directly attach
             event.video = result.resource
             logger.info(f"Video attached: {result.resource.get('id')}")
         else:
-            logger.error(f"Failed to get video: {result.error}")
-        
+            logger.warning(f"Video generation failed: {result.error}")
+
         return event
 
 

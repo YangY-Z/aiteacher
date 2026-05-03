@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Button, message } from 'antd';
-import { LogoutOutlined, ArrowLeftOutlined, ToolOutlined, EyeOutlined } from '@ant-design/icons';
+import { Button, message, Drawer, List, Tag, Empty } from 'antd';
+import { LogoutOutlined, ArrowLeftOutlined, ToolOutlined, HistoryOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import FloatingWhiteboard from '../components/whiteboard/FloatingWhiteboard';
 import TeachingImage from '../components/teaching/TeachingImage';
 import { useAuthStore, useLearningStore } from '../store';
+import type { SessionListItem, SessionHistoryResponse } from '../types';
 import './MinimalLearning.css';
 
 type LearningPhase = 'explain' | 'question' | 'feedback' | 'assessment';
@@ -32,6 +33,18 @@ interface QuestionResult {
   explanation?: string;
 }
 
+interface MediaResource {
+  id?: string;
+  type: 'image' | 'video';
+  url: string;
+  thumbnail_url?: string;
+  title?: string;
+  description?: string;
+  source?: string;
+  duration?: number;
+  cached?: boolean;
+}
+
 interface Message {
   id: string;
   role: 'ai' | 'student';
@@ -40,11 +53,14 @@ interface Message {
   phase?: LearningPhase;
   question?: Question;
   questionResults?: QuestionResult[];  // 评估结果
-  imageId?: string;  // 工具增强：图片ID
+  imageId?: string;  // 工具增强：图片ID（兼容旧版）
+  image?: MediaResource;  // 完整图片资源
+  video?: MediaResource;  // 完整视频资源
 }
 
 interface LearningState {
   currentTopic: string;
+  currentKpId: string | null;
   phase: LearningPhase;
   messages: Message[];
   isStreaming: boolean;
@@ -170,6 +186,7 @@ const MinimalLearning: React.FC = () => {
   
   const [state, setState] = useState<LearningState>({
     currentTopic: '一次函数',
+    currentKpId: null,
     phase: 'explain',
     messages: [{
       id: 'welcome-msg',
@@ -197,6 +214,12 @@ const MinimalLearning: React.FC = () => {
   // 防止评估接口重复调用
   const isLoadingAssessmentRef = useRef(false);
 
+  // 历史会话相关状态
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [sessionList, setSessionList] = useState<SessionListItem[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+
   const getAuthHeaders = useCallback(() => ({
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token || localStorage.getItem('token')}`,
@@ -204,8 +227,123 @@ const MinimalLearning: React.FC = () => {
 
   const handleLogout = () => {
     logout();
+    localStorage.removeItem('learning_session_id');
     window.location.href = '/login';
   };
+
+  // 保存 sessionId 到 localStorage
+  const saveSessionId = useCallback((sessionId: string) => {
+    localStorage.setItem('learning_session_id', sessionId);
+  }, []);
+
+  // 从 localStorage 恢复会话
+  const restoreSession = useCallback(async (sessionId: string) => {
+    setIsRestoring(true);
+    try {
+      const res = await fetch(`/api/v1/learning/session/${sessionId}/history`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      if (!res.ok) {
+        localStorage.removeItem('learning_session_id');
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data.success && data.data) {
+        const history: SessionHistoryResponse = data.data;
+
+        // 将后端消息转换为前端消息格式
+        const restoredMessages: Message[] = [];
+        for (const round of history.rounds) {
+          for (const msg of round.messages) {
+            const role = msg.role === 'assistant' ? 'ai' : 'student';
+            const content = msg.content;
+            if (!content) continue;
+            restoredMessages.push({
+              id: `hist-${round.round_number}-${Math.random().toString(36).slice(2, 9)}`,
+              role,
+              content,
+              timestamp: round.start_time ? new Date(round.start_time) : new Date(),
+              phase: 'explain',
+            });
+          }
+        }
+
+        // 只在有消息时才恢复，否则保持欢迎语
+        if (restoredMessages.length > 0) {
+          setState(prev => ({
+            ...prev,
+            sessionId,
+            currentKpId: history.kp_id || prev.currentKpId,
+            messages: restoredMessages,
+            isFirstInput: false,
+            currentTopic: history.kp_name || '一次函数',
+          }));
+        } else {
+          setState(prev => ({
+            ...prev,
+            sessionId,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('恢复会话失败:', error);
+      localStorage.removeItem('learning_session_id');
+    } finally {
+      setIsRestoring(false);
+    }
+  }, [getAuthHeaders]);
+
+  // 获取会话历史列表（仅当前知识点）
+  const fetchSessionList = useCallback(async () => {
+    if (!state.currentKpId) return;
+    setIsLoadingHistory(true);
+    try {
+      const params = new URLSearchParams({
+        course_id: 'MATH_JUNIOR_01',
+        kp_id: state.currentKpId,
+      });
+      const res = await fetch(`/api/v1/learning/sessions?${params}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setSessionList(data.data || []);
+        }
+      }
+    } catch (error) {
+      console.error('获取会话列表失败:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, [getAuthHeaders, state.currentKpId]);
+
+  // 加载某个历史会话的对话
+  const loadSessionHistory = useCallback(async (sessionId: string) => {
+    setHistoryOpen(false);
+    await restoreSession(sessionId);
+  }, [restoreSession]);
+
+  // 页面加载时恢复会话
+  useEffect(() => {
+    const savedSessionId = localStorage.getItem('learning_session_id');
+    if (savedSessionId) {
+      restoreSession(savedSessionId);
+    }
+  }, [restoreSession]);
+
+  // 打开历史面板时获取列表
+  useEffect(() => {
+    if (historyOpen && sessionList.length === 0) {
+      fetchSessionList();
+    }
+  }, [historyOpen, sessionList.length, fetchSessionList]);
 
   useEffect(() => {
     if (chatRef.current) {
@@ -492,7 +630,10 @@ const MinimalLearning: React.FC = () => {
               switch (currentEventType) {
                 case 'segment':
                   if (json.message) {
-                    // 工具增强：支持image_id
+                    let imageResource: MediaResource | undefined = json.image && json.image.type === 'image' ? json.image : undefined;
+                    let videoResource: MediaResource | undefined = json.image && json.image.type === 'video' ? json.image : undefined;
+                    if (json.video) videoResource = json.video;
+                    
                     const msgId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
                     setState(prev => ({
                       ...prev,
@@ -502,7 +643,9 @@ const MinimalLearning: React.FC = () => {
                         content: json.message,
                         timestamp: new Date(),
                         phase: 'explain',
-                        imageId: json.image_id,  // 添加图片ID
+                        imageId: json.image_id || undefined,
+                        image: imageResource,
+                        video: videoResource,
                       }],
                     }));
                   }
@@ -644,7 +787,11 @@ const MinimalLearning: React.FC = () => {
               // 教学模式事件
               case 'segment':
                 if (json.message) {
-                  // 工具增强：支持image_id
+                  // 提取媒体资源
+                  let imageResource: MediaResource | undefined = json.image && json.image.type === 'image' ? json.image : undefined;
+                  let videoResource: MediaResource | undefined = json.image && json.image.type === 'video' ? json.image : undefined;
+                  if (json.video) videoResource = json.video;
+                  
                   const msgId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
                   setState(prev => ({
                     ...prev,
@@ -654,7 +801,27 @@ const MinimalLearning: React.FC = () => {
                       content: json.message,
                       timestamp: new Date(),
                       phase: 'explain',
-                      imageId: json.image_id,  // 添加图片ID
+                      imageId: json.image_id || undefined,
+                      image: imageResource,
+                      video: videoResource,
+                    }],
+                  }));
+                } else if (json.image) {
+                  // 只有媒体资源没有文本消息
+                  let imageResource: MediaResource | undefined = json.image.type === 'image' ? json.image : undefined;
+                  let videoResource: MediaResource | undefined = json.image.type === 'video' ? json.image : undefined;
+                  
+                  const msgId = `msg-media-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+                  setState(prev => ({
+                    ...prev,
+                    messages: [...prev.messages, {
+                      id: msgId,
+                      role: 'ai',
+                      content: json.image.title || '',
+                      timestamp: new Date(),
+                      phase: 'explain',
+                      image: imageResource,
+                      video: videoResource,
                     }],
                   }));
                 }
@@ -767,7 +934,9 @@ const MinimalLearning: React.FC = () => {
         const sessionId = startData.data?.session_id;
         
         if (sessionId) {
-          setState(prev => ({ ...prev, sessionId }));
+          const kpId = startData.data?.kp_id || null;
+          setState(prev => ({ ...prev, sessionId, currentKpId: kpId }));
+          saveSessionId(sessionId);
           
           // 根据useTools选择不同的API端点
           const apiUrl = state.useTools 
@@ -813,7 +982,7 @@ const MinimalLearning: React.FC = () => {
     } finally {
       setState(prev => ({ ...prev, isStreaming: false }));
     }
-  }, [state.sessionId, state.isStreaming, state.phase, state.isFirstInput, state.useTools, addMessageNow, getAuthHeaders, queueMessage]);
+  }, [state.sessionId, state.isStreaming, state.phase, state.isFirstInput, state.useTools, addMessageNow, getAuthHeaders, queueMessage, saveSessionId]);
 
   return (
     <div className="minimal-learning">
@@ -824,6 +993,44 @@ const MinimalLearning: React.FC = () => {
           </Button>
           <div className="header-right">
             <span className="header-topic">{state.currentTopic}</span>
+            {/* 历史会话按钮 */}
+            <Button
+              type="text"
+              size="small"
+              icon={<HistoryOutlined />}
+              onClick={() => { fetchSessionList(); setHistoryOpen(true); }}
+              title="历史会话"
+              style={{ marginRight: 4 }}
+            />
+            {/* 新开会话按钮 */}
+            <Button
+              type="text"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                localStorage.removeItem('learning_session_id');
+                setState(prev => ({
+                  ...prev,
+                  sessionId: null,
+                  currentKpId: null,
+                  messages: [{
+                    id: 'welcome-msg',
+                    role: 'ai' as const,
+                    content: '你好！我是你的AI老师。今天我们来学习"一次函数"。准备好了吗？输入任何内容开始学习。',
+                    timestamp: new Date(),
+                    phase: 'explain' as LearningPhase,
+                  }],
+                  isFirstInput: true,
+                  phase: 'explain' as LearningPhase,
+                  assessmentQuestions: [],
+                  currentQuestionIndex: 0,
+                  selectedAnswers: {},
+                  currentTopic: '一次函数',
+                }));
+              }}
+              title="新开会话"
+              style={{ marginRight: 4 }}
+            />
             {/* 工具增强开关 */}
             <Button 
               type={state.useTools ? 'primary' : 'default'}
@@ -852,8 +1059,39 @@ const MinimalLearning: React.FC = () => {
               </div>
               <div className="message-content">
                 {renderContentWithFormula(msg.content)}
-                {/* 工具增强：显示教学图片 */}
-                {msg.imageId && (
+                {/* 完整媒体资源：视频 */}
+                {msg.video && (
+                  <div className="message-media" style={{ marginTop: 8 }}>
+                    <div style={{ background: '#000', borderRadius: 8, overflow: 'hidden' }}>
+                      <video
+                        style={{ maxWidth: '100%', maxHeight: 360, display: 'block' }}
+                        src={msg.video.url}
+                        controls
+                        poster={msg.video.thumbnail_url}
+                      />
+                    </div>
+                    {msg.video.title && (
+                      <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{msg.video.title}</div>
+                    )}
+                  </div>
+                )}
+                {/* 完整媒体资源：图片 */}
+                {msg.image && !msg.video && (
+                  <div className="message-media" style={{ marginTop: 8 }}>
+                    <div style={{ borderRadius: 8, overflow: 'hidden' }}>
+                      <img
+                        style={{ maxWidth: '100%', maxHeight: 360, display: 'block' }}
+                        src={msg.image.url}
+                        alt={msg.image.title || '教学图片'}
+                      />
+                    </div>
+                    {msg.image.title && (
+                      <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{msg.image.title}</div>
+                    )}
+                  </div>
+                )}
+                {/* 兼容旧版：通过 imageId 加载图片 */}
+                {msg.imageId && !msg.image && !msg.video && (
                   <TeachingImage 
                     imageId={msg.imageId}
                     alt="教学图片"
@@ -903,7 +1141,7 @@ const MinimalLearning: React.FC = () => {
           ))}
           
           {/* AI正在输入的加载指示器 */}
-          {state.isStreaming && (
+          {(state.isStreaming || isRestoring) && (
             <div className="message ai">
               <div className="message-avatar">👨‍🏫</div>
               <div className="message-content">
@@ -1008,6 +1246,55 @@ const MinimalLearning: React.FC = () => {
       </footer>
       
       <FloatingWhiteboard loading={state.isStreaming} />
+
+      {/* 历史会话抽屉 */}
+      <Drawer
+        title="历史会话"
+        placement="left"
+        width={360}
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        closeIcon={<CloseOutlined />}
+      >
+        {isLoadingHistory ? (
+          <div style={{ textAlign: 'center', padding: 40 }}>加载中...</div>
+        ) : sessionList.length === 0 ? (
+          <Empty description="暂无历史会话" />
+        ) : (
+          <List
+            dataSource={sessionList}
+            renderItem={(item) => (
+              <List.Item
+                style={{
+                  cursor: 'pointer',
+                  padding: '12px 8px',
+                  borderRadius: 8,
+                  backgroundColor: item.session_id === state.sessionId ? '#e6f4ff' : undefined,
+                  border: item.session_id === state.sessionId ? '1px solid #91caff' : undefined,
+                }}
+                onClick={() => loadSessionHistory(item.session_id)}
+              >
+                <List.Item.Meta
+                  title={
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>
+                      {item.kp_name || '未开始'}
+                      {item.session_id === state.sessionId && (
+                        <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>当前</Tag>
+                      )}
+                    </span>
+                  }
+                  description={
+                    <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
+                      <div>第 {item.current_round} 轮 · {item.total_messages} 条消息</div>
+                      <div>{item.created_at ? new Date(item.created_at).toLocaleString('zh-CN') : ''}</div>
+                    </div>
+                  }
+                />
+              </List.Item>
+            )}
+          />
+        )}
+      </Drawer>
     </div>
   );
 };

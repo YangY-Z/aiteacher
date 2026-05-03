@@ -9,9 +9,9 @@
       "avatar_url": null,
       "status": "active",
       "role": "admin",
-      "last_login_at": null,
+      "last_login_at": "2026-05-03T15:45:30.023193",
       "created_at": "2026-04-14T21:31:51.478270",
-      "updated_at": "2026-04-14T21:31:51.478271"
+      "updated_at": "2026-05-03T15:45:30.023479"
     },
     {
       "id": 1,
@@ -22,9 +22,9 @@
       "avatar_url": null,
       "status": "active",
       "role": "student",
-      "last_login_at": "2026-04-14T22:53:43.767859",
+      "last_login_at": "2026-05-03T11:34:58.882875",
       "created_at": "2026-03-16T16:43:29.844085",
-      "updated_at": "2026-04-14T22:53:43.767874"
+      "updated_at": "2026-05-03T11:34:58.882895"
     },
     {
       "id": 2,
@@ -163,5 +163,5 @@
     }
   ],
   "next_profile_id": 4,
-  "updated_at": "2026-04-14T22:53:43.770149"
+  "updated_at": "2026-05-03T15:45:30.027085"
 }
