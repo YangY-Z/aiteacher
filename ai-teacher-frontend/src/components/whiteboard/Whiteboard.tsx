@@ -1,7 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-import { Button, Tooltip } from 'antd';
+import Button from 'antd/es/button';
+import Tooltip from 'antd/es/tooltip';
 import { DownloadOutlined, ClearOutlined } from '@ant-design/icons';
 import html2canvas from 'html2canvas';
 import { useLearningStore } from '../../store';

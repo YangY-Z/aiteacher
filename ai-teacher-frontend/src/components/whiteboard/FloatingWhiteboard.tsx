@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Button, Tooltip } from 'antd';
+import Button from 'antd/es/button';
+import Tooltip from 'antd/es/tooltip';
 import { ExpandOutlined, CompressOutlined, CloseOutlined, DownloadOutlined } from '@ant-design/icons';
 import Whiteboard from './Whiteboard';
 import { useLearningStore } from '../../store';

@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layout, Button, Modal, Form, Input, InputNumber, message, Popconfirm, Select, Dropdown } from 'antd';
+import Layout from 'antd/es/layout';
+import Button from 'antd/es/button';
+import Modal from 'antd/es/modal';
+import Form from 'antd/es/form';
+import Input from 'antd/es/input';
+import InputNumber from 'antd/es/input-number';
+import message from 'antd/es/message';
+import Popconfirm from 'antd/es/popconfirm';
+import Select from 'antd/es/select';
+import Dropdown from 'antd/es/dropdown';
 import { BookOutlined, PlusOutlined, EditOutlined, DeleteOutlined, LogoutOutlined, SettingOutlined, CloseOutlined, MoreOutlined } from '@ant-design/icons';
-import type { MenuProps } from 'antd';
+import type { MenuProps } from 'antd/es/menu-props';
 import { chapterApi } from '../api/admin';
 import './AdminCourses.css';
 

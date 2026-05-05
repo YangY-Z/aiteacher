@@ -279,7 +279,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
             });
 
           const kp = knowledgePoints.find(k => k.id === d.id);
-          if (kp && kp.status !== 'locked' && onNodeClick) {
+          if (kp && onNodeClick) {
             onNodeClick(kp);
           }
         })

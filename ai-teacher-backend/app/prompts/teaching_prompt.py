@@ -59,50 +59,43 @@ def get_phase_prompt_section(phase: TeachingPhase) -> str:
 """
 
 
-def get_phase_output_guide(phase: int, phase_config: Optional[TeachingPhase], total_phases: int) -> str:
+def get_phase_output_guide(phase: int, phase_config: Optional[TeachingPhase], total_phases: int = 4) -> str:
     """获取当前阶段的输出指引"""
     if not phase_config:
         return f"执行第{phase}阶段的教学内容"
-    
+
     phase_name = phase_config.name
     activities = phase_config.activities
     activities_text = " → ".join(activities)
-    
-    # 根据阶段序号和总阶段数决定 next_action
-    next_action = "next_phase" if phase < total_phases else "start_assessment"
-    
+
     guides = {
         1: f"""
 【阶段{phase}：{phase_name}】输出要求：
 - 本阶段活动：{activities_text}
 - 输出内容：情境引入、展示问题、激发兴趣
 - 结尾：提出引导性问题，让学生思考或预测
-- next_action: "{next_action}"
 """,
         2: f"""
 【阶段{phase}：{phase_name}】输出要求：
 - 本阶段活动：{activities_text}
 - 输出内容：详细讲解、示例演示、学生操作
 - 结尾：确认学生是否理解，或提出练习问题
-- next_action: "{next_action}"
 """,
         3: f"""
 【阶段{phase}：{phase_name}】输出要求：
 - 本阶段活动：{activities_text}
 - 输出内容：辨析练习、深化理解、错误诊断
 - 结尾：让学生用自己的话解释或举例子
-- next_action: "{next_action}"
 """,
         4: f"""
 【阶段{phase}：{phase_name}】输出要求：
 - 本阶段活动：{activities_text}
 - 输出内容：综合练习、巩固应用、总结归纳
 - 结尾：提问检查整体理解程度
-- next_action: "{next_action}"
 """,
     }
-    
-    return guides.get(phase, f"执行{phase_name}的内容，完成后设置 next_action: \"{next_action}\"")
+
+    return guides.get(phase, f"执行{phase_name}的内容")
 
 
 def get_mode_specific_requirements(mode_type: TeachingModeType) -> str:
@@ -220,10 +213,7 @@ def generate_teaching_prompt(
 
     # 根据阶段生成不同的输出指引
     phase_output_guide = get_phase_output_guide(current_phase, current_phase_config, total_phases)
-    
-    # 根据阶段序号和总阶段数决定 next_action
-    next_action = "next_phase" if current_phase < total_phases else "start_assessment"
-    
+
     # 准备历史学习记录部分
     history_section = ""
     if history_summary:
@@ -279,8 +269,8 @@ def generate_teaching_prompt(
 
 {{"type":"segment","message":"教学内容...","whiteboard":{{"title":"标题"}}}}
 {{"type":"segment","message":"教学内容...","whiteboard":{{"points":["要点1","要点2"]}}}}
-{{"type":"segment","message":"需要配图说明的内容","whiteboard":{{}},"need_image":{{"concept":"一次函数y=2x+1的图像","animation_type":"auto","output_format":"image"}}}}
-{{"type":"segment","message":"需要动画演示的内容","whiteboard":{{}},"need_image":{{"concept":"函数图像的平移变换过程","animation_type":"auto","output_format":"video"}}}}
+{{"type":"segment","message":"需要配图说明的内容","whiteboard":{{}},"need_image":{{"concept":"精确描述你想要画什么样的图片，不要产出模糊的描述，例如：y=2x+1的图片，要展示截距/斜率等重要信息","animation_type":"auto","output_format":"image"}}}}
+{{"type":"segment","message":"需要动画演示的内容","whiteboard":{{}},"need_image":{{"concept":"精确描述你想要画什么样的动画，不要产出模糊的描述，例如：希望展示函数变换的过程，对y=2x+1的图像先左右再上下平移3个单位","animation_type":"auto","output_format":"video"}}}}
 {{"type":"segment","message":"提问内容...","whiteboard":{{}},"is_question":true}}
 {{"type":"complete","next_action":"wait_for_student"}}
 

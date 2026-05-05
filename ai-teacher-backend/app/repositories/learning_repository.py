@@ -232,13 +232,14 @@ class LearningSessionRepository(BaseRepository[LearningSession, str]):
         return db._learning_sessions.get(id)
 
     def get_active_by_student(
-        self, student_id: int, course_id: str
+        self, student_id: int, course_id: str, kp_id: Optional[str] = None
     ) -> Optional[LearningSession]:
         """Get the active learning session for a student in a course.
 
         Args:
             student_id: Student ID.
             course_id: Course ID.
+            kp_id: Optional knowledge point ID to further scope the lookup.
 
         Returns:
             Active LearningSession if found, None otherwise.
@@ -249,7 +250,8 @@ class LearningSessionRepository(BaseRepository[LearningSession, str]):
                 and session.course_id == course_id
                 and session.status == SessionStatus.ACTIVE
             ):
-                return session
+                if kp_id is None or session.kp_id == kp_id:
+                    return session
         return None
 
     def get_by_student(self, student_id: int) -> list[LearningSession]:

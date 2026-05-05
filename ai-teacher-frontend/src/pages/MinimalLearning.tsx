@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Button, message, Drawer, List, Tag, Empty } from 'antd';
+import Button from 'antd/es/button';
+import message from 'antd/es/message';
+import Drawer from 'antd/es/drawer';
+import Tag from 'antd/es/tag';
+import Empty from 'antd/es/empty';
 import { LogoutOutlined, ArrowLeftOutlined, ToolOutlined, HistoryOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import FloatingWhiteboard from '../components/whiteboard/FloatingWhiteboard';
@@ -175,6 +179,9 @@ const renderContentWithFormula = (content: string): React.ReactNode => {
 
 const MinimalLearning: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlKpId = searchParams.get('kp_id');
+  const urlKpName = searchParams.get('kp_name');
   const { user, logout, token } = useAuthStore();
   const { 
     setWhiteboardTitle, 
@@ -185,7 +192,7 @@ const MinimalLearning: React.FC = () => {
   } = useLearningStore();
   
   const [state, setState] = useState<LearningState>({
-    currentTopic: '一次函数',
+    currentTopic: urlKpName || '一次函数',
     currentKpId: null,
     phase: 'explain',
     messages: [{
@@ -208,7 +215,7 @@ const MinimalLearning: React.FC = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // 消息队列和显示控制
-  const messageQueueRef = useRef<Array<{content: string, phase: LearningPhase}>>([]);
+  const messageQueueRef = useRef<Array<{content: string, phase: LearningPhase, imageId?: string, image?: MediaResource, video?: MediaResource}>>([]);
   const isDisplayingRef = useRef(false);
 
   // 防止评估接口重复调用
@@ -297,15 +304,14 @@ const MinimalLearning: React.FC = () => {
     }
   }, [getAuthHeaders]);
 
-  // 获取会话历史列表（仅当前知识点）
+  // 获取会话历史列表
   const fetchSessionList = useCallback(async () => {
-    if (!state.currentKpId) return;
     setIsLoadingHistory(true);
     try {
-      const params = new URLSearchParams({
-        course_id: 'MATH_JUNIOR_01',
-        kp_id: state.currentKpId,
-      });
+      const params = new URLSearchParams({ course_id: 'MATH_JUNIOR_01' });
+      if (state.currentKpId) {
+        params.set('kp_id', state.currentKpId);
+      }
       const res = await fetch(`/api/v1/learning/sessions?${params}`, {
         method: 'GET',
         headers: getAuthHeaders(),
@@ -352,7 +358,7 @@ const MinimalLearning: React.FC = () => {
   }, [state.messages]);
 
   // 直接添加消息到状态
-  const addMessageNow = useCallback((role: 'ai' | 'student', content: string, phase: LearningPhase) => {
+  const addMessageNow = useCallback((role: 'ai' | 'student', content: string, phase: LearningPhase, imageId?: string, image?: MediaResource, video?: MediaResource) => {
     const msgId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     setState(prev => ({
       ...prev,
@@ -362,32 +368,46 @@ const MinimalLearning: React.FC = () => {
         content,
         timestamp: new Date(),
         phase,
+        imageId: imageId || undefined,
+        image: image || undefined,
+        video: video || undefined,
       }],
     }));
   }, []);
 
   // 将消息加入队列，逐个显示
-  const queueMessage = useCallback((content: string, phase: LearningPhase) => {
-    messageQueueRef.current.push({ content, phase });
+  const queueMessage = useCallback((content: string, phase: LearningPhase, extra?: {imageId?: string, image?: MediaResource, video?: MediaResource}) => {
+    messageQueueRef.current.push({ content, phase, ...extra });
     processQueue();
   }, []);
 
-  // 处理消息队列，每条消息间隔 800ms
+  // 处理消息队列，每条消息间隔 1500ms
   const processQueue = () => {
     if (isDisplayingRef.current) return;
     if (messageQueueRef.current.length === 0) return;
-    
+
     isDisplayingRef.current = true;
     const item = messageQueueRef.current.shift()!;
-    
-    addMessageNow('ai', item.content, item.phase);
-    
+
+    addMessageNow('ai', item.content, item.phase, item.imageId, item.image, item.video);
+
     // 延迟后处理下一条
     setTimeout(() => {
       isDisplayingRef.current = false;
       processQueue();
-    }, 800);
+    }, 1500);
   };
+
+  // 等待消息队列清空
+  const waitForQueueDrain = useCallback(async () => {
+    // 最多等待 30 秒
+    const maxWait = 30000;
+    const start = Date.now();
+    while (isDisplayingRef.current || messageQueueRef.current.length > 0) {
+      if (Date.now() - start > maxWait) break;
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }, []);
 
   // 开始评估
   const startAssessment = async () => {
@@ -633,21 +653,7 @@ const MinimalLearning: React.FC = () => {
                     let imageResource: MediaResource | undefined = json.image && json.image.type === 'image' ? json.image : undefined;
                     let videoResource: MediaResource | undefined = json.image && json.image.type === 'video' ? json.image : undefined;
                     if (json.video) videoResource = json.video;
-                    
-                    const msgId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-                    setState(prev => ({
-                      ...prev,
-                      messages: [...prev.messages, {
-                        id: msgId,
-                        role: 'ai',
-                        content: json.message,
-                        timestamp: new Date(),
-                        phase: 'explain',
-                        imageId: json.image_id || undefined,
-                        image: imageResource,
-                        video: videoResource,
-                      }],
-                    }));
+                    queueMessage(json.message, 'explain', { imageId: json.image_id, image: imageResource, video: videoResource });
                   }
                   if (json.whiteboard) {
                     if (json.whiteboard.title) setWhiteboardTitle(json.whiteboard.title);
@@ -725,16 +731,20 @@ const MinimalLearning: React.FC = () => {
                 case 'complete':
                   if (json.next_action === 'start_assessment') {
                     setState(prev => ({ ...prev, phase: 'assessment' }));
-                    setTimeout(() => startAssessment(), 1000);
+                    waitForQueueDrain().then(() => {
+                      setTimeout(() => startAssessment(), 500);
+                    });
                   } else if (json.next_action === 'question') {
                     setState(prev => ({ ...prev, phase: 'question' }));
                   }
                   break;
-                
+
                 case 'phase_advance':
                   if (json.next_action === 'start_assessment') {
                     setState(prev => ({ ...prev, phase: 'assessment' }));
-                    setTimeout(() => startAssessment(), 1000);
+                    waitForQueueDrain().then(() => {
+                      setTimeout(() => startAssessment(), 500);
+                    });
                   }
                   break;
               }
@@ -791,39 +801,12 @@ const MinimalLearning: React.FC = () => {
                   let imageResource: MediaResource | undefined = json.image && json.image.type === 'image' ? json.image : undefined;
                   let videoResource: MediaResource | undefined = json.image && json.image.type === 'video' ? json.image : undefined;
                   if (json.video) videoResource = json.video;
-                  
-                  const msgId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-                  setState(prev => ({
-                    ...prev,
-                    messages: [...prev.messages, {
-                      id: msgId,
-                      role: 'ai',
-                      content: json.message,
-                      timestamp: new Date(),
-                      phase: 'explain',
-                      imageId: json.image_id || undefined,
-                      image: imageResource,
-                      video: videoResource,
-                    }],
-                  }));
+                  queueMessage(json.message, 'explain', { imageId: json.image_id, image: imageResource, video: videoResource });
                 } else if (json.image) {
                   // 只有媒体资源没有文本消息
                   let imageResource: MediaResource | undefined = json.image.type === 'image' ? json.image : undefined;
                   let videoResource: MediaResource | undefined = json.image.type === 'video' ? json.image : undefined;
-                  
-                  const msgId = `msg-media-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-                  setState(prev => ({
-                    ...prev,
-                    messages: [...prev.messages, {
-                      id: msgId,
-                      role: 'ai',
-                      content: json.image.title || '',
-                      timestamp: new Date(),
-                      phase: 'explain',
-                      image: imageResource,
-                      video: videoResource,
-                    }],
-                  }));
+                  queueMessage(json.image.title || '', 'explain', { image: imageResource, video: videoResource });
                 }
                 if (json.whiteboard) {
                   if (json.whiteboard.title) setWhiteboardTitle(json.whiteboard.title);
@@ -885,14 +868,19 @@ const MinimalLearning: React.FC = () => {
               case 'phase_advance':
                 if (json.next_action === 'start_assessment') {
                   setState(prev => ({ ...prev, phase: 'assessment' }));
-                  setTimeout(() => startAssessment(), 1000);
+                  waitForQueueDrain().then(() => {
+                    setTimeout(() => startAssessment(), 500);
+                  });
                 }
                 break;
               
               case 'complete':
                 if (json.next_action === 'start_assessment') {
                   setState(prev => ({ ...prev, phase: 'assessment' }));
-                  setTimeout(() => startAssessment(), 1000);
+                  // 等待消息队列全部展示完毕后再开始评估
+                  waitForQueueDrain().then(() => {
+                    setTimeout(() => startAssessment(), 500);
+                  });
                 } else if (json.next_action === 'question') {
                   setState(prev => ({ ...prev, phase: 'question' }));
                 }
@@ -921,11 +909,15 @@ const MinimalLearning: React.FC = () => {
       }
       
       if (!state.sessionId) {
-        // 创建会话
+        // 创建会话（如果有 URL 传入的 kp_id 则指定知识点）
+        const body: Record<string, string> = { course_id: 'MATH_JUNIOR_01' };
+        if (urlKpId) {
+          body.kp_id = urlKpId;
+        }
         const startRes = await fetch('/api/v1/learning/start', {
           method: 'POST',
           headers: getAuthHeaders(),
-          body: JSON.stringify({ course_id: 'MATH_JUNIOR_01' }),
+          body: JSON.stringify(body),
         });
         
         if (!startRes.ok) throw new Error(`创建会话失败: ${startRes.status}`);
@@ -934,9 +926,12 @@ const MinimalLearning: React.FC = () => {
         const sessionId = startData.data?.session_id;
         
         if (sessionId) {
-          const kpId = startData.data?.kp_id || null;
-          setState(prev => ({ ...prev, sessionId, currentKpId: kpId }));
+          const kpId = startData.data?.kp_id || urlKpId || null;
+          const kpName = startData.data?.kp_name || null;
+          setState(prev => ({ ...prev, sessionId, currentKpId: kpId, currentTopic: kpName || prev.currentTopic }));
           saveSessionId(sessionId);
+          // 清除 URL 中的 kp_id 参数，避免刷新重复创建
+          setSearchParams({}, { replace: true });
           
           // 根据useTools选择不同的API端点
           const apiUrl = state.useTools 
@@ -980,16 +975,18 @@ const MinimalLearning: React.FC = () => {
       console.error('发送失败:', error);
       message.error('发送失败，请重试');
     } finally {
+      // 等待消息队列全部展示完毕后再结束流式状态
+      await waitForQueueDrain();
       setState(prev => ({ ...prev, isStreaming: false }));
     }
-  }, [state.sessionId, state.isStreaming, state.phase, state.isFirstInput, state.useTools, addMessageNow, getAuthHeaders, queueMessage, saveSessionId]);
+  }, [state.sessionId, state.isStreaming, state.phase, state.isFirstInput, state.useTools, addMessageNow, getAuthHeaders, queueMessage, saveSessionId, waitForQueueDrain]);
 
   return (
     <div className="minimal-learning">
       <header className="minimal-header">
         <div className="header-content">
-          <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate('/center')} className="back-btn">
-            学习中心
+          <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} className="back-btn">
+            返回
           </Button>
           <div className="header-right">
             <span className="header-topic">{state.currentTopic}</span>
@@ -1009,6 +1006,7 @@ const MinimalLearning: React.FC = () => {
               icon={<PlusOutlined />}
               onClick={() => {
                 localStorage.removeItem('learning_session_id');
+                setSearchParams({}, { replace: true });
                 setState(prev => ({
                   ...prev,
                   sessionId: null,
@@ -1261,38 +1259,33 @@ const MinimalLearning: React.FC = () => {
         ) : sessionList.length === 0 ? (
           <Empty description="暂无历史会话" />
         ) : (
-          <List
-            dataSource={sessionList}
-            renderItem={(item) => (
-              <List.Item
+          <div>
+            {sessionList.map((item) => (
+              <div
+                key={item.session_id}
                 style={{
                   cursor: 'pointer',
                   padding: '12px 8px',
                   borderRadius: 8,
+                  marginBottom: 4,
                   backgroundColor: item.session_id === state.sessionId ? '#e6f4ff' : undefined,
-                  border: item.session_id === state.sessionId ? '1px solid #91caff' : undefined,
+                  border: item.session_id === state.sessionId ? '1px solid #91caff' : '1px solid transparent',
                 }}
                 onClick={() => loadSessionHistory(item.session_id)}
               >
-                <List.Item.Meta
-                  title={
-                    <span style={{ fontSize: 14, fontWeight: 500 }}>
-                      {item.kp_name || '未开始'}
-                      {item.session_id === state.sessionId && (
-                        <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>当前</Tag>
-                      )}
-                    </span>
-                  }
-                  description={
-                    <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
-                      <div>第 {item.current_round} 轮 · {item.total_messages} 条消息</div>
-                      <div>{item.created_at ? new Date(item.created_at).toLocaleString('zh-CN') : ''}</div>
-                    </div>
-                  }
-                />
-              </List.Item>
-            )}
-          />
+                <div style={{ fontSize: 14, fontWeight: 500 }}>
+                  {item.kp_name || '未开始'}
+                  {item.session_id === state.sessionId && (
+                    <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>当前</Tag>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
+                  <div>第 {item.current_round} 轮 · {item.total_messages} 条消息</div>
+                  <div>{item.created_at ? new Date(item.created_at).toLocaleString('zh-CN') : ''}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </Drawer>
     </div>

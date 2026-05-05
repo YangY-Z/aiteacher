@@ -4,6 +4,7 @@ import json
 import logging
 import sys
 from contextlib import asynccontextmanager
+from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -16,12 +17,27 @@ from app.core.config import settings
 from app.core.exceptions import AppException
 from app.utils.data_loader import load_assessment_data
 
+
 # 配置日志
 def setup_logging():
-    """配置应用日志"""
+    """配置应用日志，同时输出到控制台和文件（按天轮转）"""
     log_format = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
     date_format = "%Y-%m-%d %H:%M:%S"
-    
+
+    # 确保日志目录存在
+    log_dir = Path(settings.log_dir)
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    # 文件处理器：按天轮转，保留设定天数
+    file_handler = TimedRotatingFileHandler(
+        filename=log_dir / "app.log",
+        when="midnight",
+        interval=1,
+        backupCount=settings.log_retention_days,
+        encoding="utf-8",
+    )
+    file_handler.setFormatter(logging.Formatter(log_format, date_format))
+
     # 设置根日志级别
     logging.basicConfig(
         level=logging.INFO,
@@ -29,16 +45,18 @@ def setup_logging():
         datefmt=date_format,
         handlers=[
             logging.StreamHandler(sys.stdout),  # 输出到控制台
+            file_handler,                        # 输出到文件（按天轮转）
         ]
     )
-    
+
     # 设置第三方库日志级别（减少噪音）
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
-    
+
     # 设置应用日志级别
     logging.getLogger("app").setLevel(logging.DEBUG if settings.debug else logging.INFO)
+
 
 # 初始化日志
 setup_logging()
@@ -54,9 +72,6 @@ async def lifespan(app: FastAPI):
     logger.info(f"LLM Provider: {settings.llm_provider}")
     logger.info(f"Debug模式: {settings.debug}")
     logger.info("=" * 50)
-    
-    # Note: Course data is already initialized in memory_db.__post_init__
-    # Only load assessment questions here
 
     # Load assessment questions
     assessment_path = Path(settings.data_dir) / "评估题库_一次函数.json"

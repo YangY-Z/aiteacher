@@ -4,7 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { Button, Input } from 'antd';
+import Button from 'antd/es/button';
+import Input from 'antd/es/input';
 import './StructuredChat.css';
 
 const { TextArea } = Input;

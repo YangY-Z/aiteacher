@@ -1,6 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layout, Avatar, Progress, Dropdown } from 'antd';
+import Layout from 'antd/es/layout';
+import Avatar from 'antd/es/avatar';
+import Progress from 'antd/es/progress';
+import Dropdown from 'antd/es/dropdown';
 import { UserOutlined, LogoutOutlined, BookOutlined } from '@ant-design/icons';
 import { useAuthStore, useLearningStore, useCourseStore } from '../../store';
 import './Header.css';

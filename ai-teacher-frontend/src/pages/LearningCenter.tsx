@@ -105,16 +105,13 @@ const LearningCenter: React.FC<{
   const earnedBadgeCount = badges.filter(b => b.earned).length;
 
   const handleSelectModule = (kp: KnowledgePointProgress) => {
-    if (kp.status === 'locked') {
-      alert('请先完成前置知识点');
-    } else {
-      navigate(`/learn?kp_id=${kp.id}`);
-    }
+    navigate(`/learn?kp_id=${kp.id}&kp_name=${encodeURIComponent(kp.name)}`);
   };
 
   const handleContinueLearning = () => {
     if (progress?.current_kp_id) {
-      navigate(`/learn?kp_id=${progress.current_kp_id}`);
+      const kpName = progress.current_kp_name || '';
+      navigate(`/learn?kp_id=${progress.current_kp_id}&kp_name=${encodeURIComponent(kpName)}`);
     } else {
       navigate('/learn');
     }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
+import ConfigProvider from 'antd/es/config-provider';
 import zhCN from 'antd/locale/zh_CN';
 import Login from './pages/Login';
 import MinimalLearning from './pages/MinimalLearning';

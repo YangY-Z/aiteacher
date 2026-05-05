@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Form, Input, Button, Card, message } from 'antd';
+import Form from 'antd/es/form';
+import Input from 'antd/es/input';
+import Button from 'antd/es/button';
+import Card from 'antd/es/card';
+import message from 'antd/es/message';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { adminApi } from '../api/admin';
 import './AdminLogin.css';

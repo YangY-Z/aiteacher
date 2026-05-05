@@ -11,6 +11,7 @@ from sse_starlette.sse import EventSourceResponse
 from app.core.security import get_current_student_id
 from app.core.init_tools import initialize_system
 from app.schemas.common import APIResponse
+from app.schemas.learning import ChatRequest
 from app.repositories.learning_repository import learning_session_repository
 from app.services.student_service import student_service
 from app.services.teaching_flow import teaching_flow
@@ -36,32 +37,34 @@ def ensure_system_initialized():
 async def teach_with_layered_agent(
     session_id: str,
     student_id: Annotated[int, Depends(get_current_student_id)],
+    request: Optional[ChatRequest] = None,
     use_tools: bool = True,  # 是否使用工具增强
 ) -> EventSourceResponse:
     """Teaching endpoint using layered Agent architecture.
-    
+
     This endpoint integrates:
     - Student context loading (历史信息、学习速度、困难领域)
     - Tool selection based on rules (规则映射选择工具)
     - Tool context preparation (准备工具上下文给LLM)
     - LLM streaming with tool references (LLM自决策使用工具)
     - Tool result processing (工具结果处理和输出)
-    
+
     Args:
         session_id: Session ID.
         student_id: Authenticated student ID.
+        request: Optional chat request with student message.
         use_tools: Whether to use tool enhancement.
-        
+
     Returns:
         SSE stream with teaching content enriched with tools.
     """
     # Ensure system is initialized
     ensure_system_initialized()
-    
+
     trace_id = f"teach-v2-{uuid.uuid4().hex[:12]}"
     logger.info(f"[{trace_id}] ========== V2教学流开始 ==========")
     logger.info(f"[{trace_id}] session_id={session_id}, student_id={student_id}, use_tools={use_tools}")
-    
+
     # Get session
     session = learning_session_repository.get_by_id(session_id)
     if not session:
@@ -70,14 +73,14 @@ async def teach_with_layered_agent(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="会话不存在",
         )
-    
+
     if session.student_id != student_id:
         logger.warning(f"[{trace_id}] 权限校验失败")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="无权访问此会话",
         )
-    
+
     # Get student
     student = student_service.get_by_id(student_id)
     if not student:
@@ -86,11 +89,22 @@ async def teach_with_layered_agent(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="学生不存在",
         )
-    
-    logger.info(f"[{trace_id}] 学生: {student.name}, 知识点: {session.kp_id}")
-    
+
+    # Extract message from request
+    message = request.message if request else ""
+    is_first_input = request.is_first_input if request else True
+
+    logger.info(f"[{trace_id}] 学生: {student.name}, 知识点: {session.kp_id}, has_message={bool(message)}, is_first_input={is_first_input}")
+
+    # 保存学生消息到对话历史（非首次输入的消息才保存）
+    if message and not is_first_input:
+        session.add_message("student", message)
+        learning_session_repository.update(session)
+        logger.info(f"[{trace_id}] 学生消息已保存到对话历史")
+
     async def event_generator():
         event_count = 0
+        ai_content_parts = []
         try:
             # Execute teaching flow
             async for sse_event in teaching_flow.execute_teaching_phase(
@@ -98,21 +112,39 @@ async def teach_with_layered_agent(
                 student_name=student.name,
                 trace_id=trace_id,
                 use_tools=use_tools,
+                student_message=message,
             ):
                 event_count += 1
-                
+
+                # 收集 AI 输出内容用于保存到对话历史
+                if sse_event.get("event") in ["segment", "msg_intro", "msg_def", "msg_example", "msg_summary", "msg_question"]:
+                    try:
+                        data = json.loads(sse_event.get("data", "{}"))
+                        content = data.get("message") or data.get("content", "")
+                        if content:
+                            ai_content_parts.append(content)
+                    except (json.JSONDecodeError, KeyError):
+                        pass
+
                 # sse_event is already in SSE format {"event": ..., "data": ...}
                 yield sse_event
-            
+
+            # 保存 AI 输出到对话历史
+            if ai_content_parts:
+                ai_content = "\n".join(ai_content_parts)
+                session.add_message("ai", ai_content)
+                learning_session_repository.update(session)
+                logger.info(f"[{trace_id}] 教学内容已保存到对话历史, 共{len(ai_content_parts)}条")
+
             logger.info(f"[{trace_id}] ========== V2教学流完成, 共{event_count}个事件 ==========")
-        
+
         except Exception as e:
             logger.error(f"[{trace_id}] V2教学流失败: {e}", exc_info=True)
             yield {
                 "event": "error",
                 "data": json.dumps({"error": str(e)}, ensure_ascii=False),
             }
-    
+
     return EventSourceResponse(event_generator())
 
 

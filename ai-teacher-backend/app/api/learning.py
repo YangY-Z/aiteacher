@@ -56,12 +56,19 @@ async def start_session(
         kp_id=request.kp_id,
     )
 
+    # 获取知识点名称
+    kp_name = None
+    if session.kp_id:
+        kp = db._knowledge_points.get(session.kp_id)
+        kp_name = kp.name if kp else None
+
     return APIResponse(
         success=True,
         data=SessionResponse(
             session_id=session.id,
             course_id=session.course_id,
             kp_id=session.kp_id,
+            kp_name=kp_name,
             status=session.status.value,
         ),
         message="学习会话已创建",

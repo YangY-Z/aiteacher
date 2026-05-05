@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Form, Input, Button, Card, message, Tabs, Select } from 'antd';
+import Form from 'antd/es/form';
+import Input from 'antd/es/input';
+import Button from 'antd/es/button';
+import Card from 'antd/es/card';
+import message from 'antd/es/message';
+import Tabs from 'antd/es/tabs';
+import Select from 'antd/es/select';
 import { UserOutlined, LockOutlined, PhoneOutlined } from '@ant-design/icons';
 import { authApi } from '../api';
 import { useAuthStore } from '../store';

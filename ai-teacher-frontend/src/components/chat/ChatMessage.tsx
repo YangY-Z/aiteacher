@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Avatar } from 'antd';
+import Avatar from 'antd/es/avatar';
 import { UserOutlined, RobotOutlined, CheckOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import type { Message } from '../../types';
 import './ChatMessage.css';

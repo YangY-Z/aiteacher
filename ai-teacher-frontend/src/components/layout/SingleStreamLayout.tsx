@@ -4,7 +4,8 @@
  */
 
 import React from 'react';
-import { Button, Drawer } from 'antd';
+import Button from 'antd/es/button';
+import Drawer from 'antd/es/drawer';
 import { MenuOutlined, BookOutlined, PauseCircleOutlined, ForwardOutlined } from '@ant-design/icons';
 import './SingleStreamLayout.css';
 

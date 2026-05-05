@@ -4,7 +4,9 @@
  */
 
 import React from 'react';
-import { Progress, Tag, Empty } from 'antd';
+import Progress from 'antd/es/progress';
+import Tag from 'antd/es/tag';
+import Empty from 'antd/es/empty';
 import { CheckCircleOutlined, LockOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import './LearningMap.css';
 

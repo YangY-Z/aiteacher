@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Spin } from 'antd';
+import Spin from 'antd/es/spin';
 import ChatMessage from './ChatMessage';
 import { useLearningStore } from '../../store';
 import './ChatList.css';

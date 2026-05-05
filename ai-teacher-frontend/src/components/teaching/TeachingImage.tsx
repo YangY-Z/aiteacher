@@ -4,7 +4,8 @@
  */
 
 import React from 'react';
-import { Spin, Alert } from 'antd';
+import Spin from 'antd/es/spin';
+import Alert from 'antd/es/alert';
 import { useTeachingImage } from '../../hooks/useTeachingImage';
 import './TeachingImage.css';
 

@@ -41,12 +41,25 @@ from app.prompts.teaching_prompt import (
     generate_teaching_prompt,
     get_teaching_mode_for_kp,
 )
-from app.services.teaching_mode_service import teaching_mode_service
 from app.prompts.question_prompt import CHAT_RESPONSE_PROMPT
 
 
 class LearningService:
     """Service for learning session management."""
+
+    def _ensure_kp_id(
+        self, session: LearningSession, student_id: int, course_id: str
+    ) -> None:
+        """Ensure the session has a kp_id, resolving from profile or first KP."""
+        profile = student_profile_repository.get_by_student_and_course(
+            student_id, course_id
+        )
+        if profile and profile.current_kp_id:
+            session.kp_id = profile.current_kp_id
+        else:
+            first_kp = course_service.get_first_knowledge_point(course_id)
+            session.kp_id = first_kp.id
+        learning_session_repository.update(session)
 
     def start_session(
         self,
@@ -64,19 +77,14 @@ class LearningService:
         Returns:
             Created learning session.
         """
-        # Check for existing active session
+        # Check for existing active session (scoped by kp_id when provided)
         existing = learning_session_repository.get_active_by_student(
-            student_id, course_id
+            student_id, course_id, kp_id
         )
         if existing:
-            # Update session's kp_id to current progress if not specified
-            if not kp_id:
-                profile = student_profile_repository.get_by_student_and_course(
-                    student_id, course_id
-                )
-                if profile and profile.current_kp_id:
-                    existing.kp_id = profile.current_kp_id
-                    learning_session_repository.update(existing)
+            # 复用已有的同知识点session，无需更新
+            if not existing.kp_id:
+                self._ensure_kp_id(existing, student_id, course_id)
             return existing
 
         # Get or create student profile
@@ -624,7 +632,7 @@ class LearningService:
             # 判断知识点状态
             status = "locked"  # 默认未解锁
             progress = 0.0
-            
+
             # 首先检查学生档案中的知识点状态
             if profile:
                 if kp.id in profile.mastered_kp_ids:
@@ -656,6 +664,16 @@ class LearningService:
                             if record.attempts:
                                 last_score = record.attempts[-1].score if record.attempts else 0
                                 progress = min(100, int(last_score * 100))
+
+            # 如果仍然是 locked，检查前置依赖是否全部完成来决定是否解锁
+            if status == "locked":
+                dependencies = knowledge_point_dependency_repository.get_dependencies(kp.id)
+                completed_ids = set()
+                if profile:
+                    completed_ids = set(profile.mastered_kp_ids + profile.completed_kp_ids + profile.skipped_kp_ids)
+                if not dependencies or all(dep in completed_ids for dep in dependencies):
+                    status = "in_progress"
+                    progress = 0
             
             # 获取知识点依赖关系
             dependencies = knowledge_point_dependency_repository.get_dependencies(kp.id)

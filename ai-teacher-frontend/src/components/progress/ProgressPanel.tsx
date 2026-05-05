@@ -1,5 +1,7 @@
 import React from 'react';
-import { Progress, Button, Divider } from 'antd';
+import Progress from 'antd/es/progress';
+import Button from 'antd/es/button';
+import Divider from 'antd/es/divider';
 import { FastForwardOutlined, ReloadOutlined, PauseCircleOutlined } from '@ant-design/icons';
 import { useLearningStore } from '../../store';
 import './ProgressPanel.css';

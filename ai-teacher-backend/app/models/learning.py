@@ -644,6 +644,7 @@ class LearningSession:
     def advance_phase(self) -> int:
         """推进到下一个教学阶段"""
         self.current_round.current_phase += 1
+        self.current_phase = self.current_round.current_phase
         return self.current_round.current_phase
 
     def complete_phase(self) -> None:

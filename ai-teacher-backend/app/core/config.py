@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     bailian_model: str = "qwen-plus"  # qwen-plus, qwen-turbo, qwen3.5-35b-a3b
     bailian_enable_thinking: bool = False  # Enable thinking mode for supported models
 
+    # Logging
+    log_dir: str = "logs"
+    log_retention_days: int = 30
+
     # CORS - allow all origins in development
     cors_origins: list[str] = ["*"]
 

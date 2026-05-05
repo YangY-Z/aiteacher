@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Input, Button, Tooltip } from 'antd';
+import Input from 'antd/es/input';
+import Button from 'antd/es/button';
+import Tooltip from 'antd/es/tooltip';
 import { SendOutlined, AudioOutlined, StopOutlined } from '@ant-design/icons';
 import './ChatInput.css';
 

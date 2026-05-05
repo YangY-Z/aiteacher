@@ -4,7 +4,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Button, Progress, message, Result, Spin } from 'antd';
+import Button from 'antd/es/button';
+import Progress from 'antd/es/progress';
+import message from 'antd/es/message';
+import Result from 'antd/es/result';
+import Spin from 'antd/es/spin';
 import { LoadingOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import './DiagnosticTest.css';
 

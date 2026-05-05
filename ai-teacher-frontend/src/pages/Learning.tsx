@@ -1,5 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Modal, Select, message, Button, Drawer } from 'antd';
+import Modal from 'antd/es/modal';
+import Select from 'antd/es/select';
+import message from 'antd/es/message';
+import Button from 'antd/es/button';
+import Drawer from 'antd/es/drawer';
 import { useNavigate } from 'react-router-dom';
 import SingleStreamLayout from '../components/layout/SingleStreamLayout';
 import LearningMap from '../components/layout/LearningMap';

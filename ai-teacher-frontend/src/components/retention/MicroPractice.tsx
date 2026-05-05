@@ -4,7 +4,10 @@
  */
 
 import React, { useState } from 'react';
-import { Button, Progress, Result, Spin } from 'antd';
+import Button from 'antd/es/button';
+import Progress from 'antd/es/progress';
+import Result from 'antd/es/result';
+import Spin from 'antd/es/spin';
 import { CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import './MicroPractice.css';
 

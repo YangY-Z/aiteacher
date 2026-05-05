@@ -21,6 +21,7 @@ class SessionResponse(BaseModel):
     session_id: str = Field(..., description="会话ID")
     course_id: str = Field(..., description="课程ID")
     kp_id: Optional[str] = Field(None, description="当前知识点ID")
+    kp_name: Optional[str] = Field(None, description="当前知识点名称")
     status: str = Field(..., description="会话状态")
 
 
