@@ -4,11 +4,11 @@ import message from 'antd/es/message';
 import Drawer from 'antd/es/drawer';
 import Tag from 'antd/es/tag';
 import Empty from 'antd/es/empty';
-import { LogoutOutlined, ArrowLeftOutlined, ToolOutlined, HistoryOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons';
+import { LogoutOutlined, ArrowLeftOutlined, ToolOutlined, HistoryOutlined, CloseOutlined, PlusOutlined, ExpandOutlined, CompressOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-import FloatingWhiteboard from '../components/whiteboard/FloatingWhiteboard';
+import Whiteboard from '../components/whiteboard/Whiteboard';
 import TeachingImage from '../components/teaching/TeachingImage';
 import { useAuthStore, useLearningStore } from '../store';
 import type { SessionListItem, SessionHistoryResponse } from '../types';
@@ -188,7 +188,8 @@ const MinimalLearning: React.FC = () => {
     addWhiteboardPoint, 
     addWhiteboardFormula, 
     addWhiteboardExample, 
-    addWhiteboardNote 
+    addWhiteboardNote,
+    setWhiteboardImage
   } = useLearningStore();
   
   const [state, setState] = useState<LearningState>({
@@ -220,6 +221,69 @@ const MinimalLearning: React.FC = () => {
 
   // 防止评估接口重复调用
   const isLoadingAssessmentRef = useRef(false);
+
+  // 浮动聊天面板状态
+  const [chatPanelExpanded, setChatPanelExpanded] = useState(false);
+  const [chatPanelPos, setChatPanelPos] = useState({ x: 0, y: 0 });
+  const [isDraggingChat, setIsDraggingChat] = useState(false);
+  const isDraggingRef = useRef(false); // ref for synchronous drag check in click handler
+  const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
+  const chatPanelRef = useRef<HTMLDivElement>(null);
+
+  // 拖拽聊天面板
+  const handleChatDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = false; // reset on mousedown, will be set true on mousemove
+    setIsDraggingChat(true);
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      posX: chatPanelPos.x,
+      posY: chatPanelPos.y,
+    };
+  }, [chatPanelPos]);
+
+  useEffect(() => {
+    if (!isDraggingChat) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const dx = e.clientX - dragStartRef.current.x;
+      const dy = dragStartRef.current.y - e.clientY; // screen Y is inverted (top-down)
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        isDraggingRef.current = true;
+      }
+      const newX = dragStartRef.current.posX + dx;
+      const newY = dragStartRef.current.posY + dy;
+
+      // Clamp: keep panel within reasonable viewport bounds
+      const maxX = Math.max(0, window.innerWidth - 340 - 16);
+      const maxY = Math.max(0, window.innerHeight - 150); // don't go above viewport
+      const minY = -16; // bottom edge at minimum
+      const minX = -200; // allow partial off-screen left
+
+      setChatPanelPos({
+        x: Math.max(0, Math.min(newX, Math.max(0, maxX))),
+        y: Math.max(minY, Math.min(newY, Math.max(0, maxY))),
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingChat(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingChat]);
+
+  // 展开/收起时重置位置
+  const handleToggleChatPanel = useCallback(() => {
+    setChatPanelExpanded(prev => !prev);
+    setChatPanelPos({ x: 0, y: 0 });
+  }, []);
 
   // 历史会话相关状态
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -356,6 +420,13 @@ const MinimalLearning: React.FC = () => {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
   }, [state.messages]);
+
+  // 当 AI 开始流式输出时自动展开聊天面板
+  useEffect(() => {
+    if (state.isStreaming) {
+      setChatPanelExpanded(true);
+    }
+  }, [state.isStreaming]);
 
   // 直接添加消息到状态
   const addMessageNow = useCallback((role: 'ai' | 'student', content: string, phase: LearningPhase, imageId?: string, image?: MediaResource, video?: MediaResource) => {
@@ -630,17 +701,19 @@ const MinimalLearning: React.FC = () => {
         if (done) break;
         
         buffer += decoder.decode(value, { stream: true });
+        buffer = buffer.replace(/\r\n/g, '\n');
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
         
         for (const line of lines) {
-          if (line.startsWith('event:')) {
-            currentEventType = line.slice(6).trim();
+          const trimmedLine = line.trim();
+          if (trimmedLine.startsWith('event:')) {
+            currentEventType = trimmedLine.slice(6).trim();
             continue;
           }
           
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim();
+          if (trimmedLine.startsWith('data:')) {
+            const data = trimmedLine.slice(5).trim();
             if (!data || data === '[DONE]') continue;
             
             try {
@@ -660,6 +733,25 @@ const MinimalLearning: React.FC = () => {
                     if (json.whiteboard.points) {
                       json.whiteboard.points.forEach((p: string) => addWhiteboardPoint(p));
                     }
+                    if (json.whiteboard.formulas) {
+                      json.whiteboard.formulas.forEach((f: string) => addWhiteboardFormula(f));
+                    }
+                    if (json.whiteboard.examples) {
+                      json.whiteboard.examples.forEach((e: string) => addWhiteboardExample(e));
+                    }
+                    if (json.whiteboard.notes) {
+                      json.whiteboard.notes.forEach((n: string) => addWhiteboardNote(n));
+                    }
+                  }
+                  if (json.image && json.image.type === 'image') {
+                    setWhiteboardImage({
+                      id: json.image.id,
+                      url: json.image.url,
+                      svg_code: json.image.svg_code,
+                      title: json.image.title,
+                      description: json.image.description,
+                      type: json.image.type,
+                    });
                   }
                   break;
                 
@@ -776,17 +868,19 @@ const MinimalLearning: React.FC = () => {
       if (done) break;
       
       buffer += decoder.decode(value, { stream: true });
+      buffer = buffer.replace(/\r\n/g, '\n');
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
       
       for (const line of lines) {
-        if (line.startsWith('event:')) {
-          currentEventType = line.slice(6).trim();
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith('event:')) {
+          currentEventType = trimmedLine.slice(6).trim();
           continue;
         }
         
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6).trim();
+        if (trimmedLine.startsWith('data:')) {
+          const data = trimmedLine.slice(5).trim();
           if (!data || data === '[DONE]') continue;
           
           try {
@@ -813,6 +907,25 @@ const MinimalLearning: React.FC = () => {
                   if (json.whiteboard.points) {
                     json.whiteboard.points.forEach((p: string) => addWhiteboardPoint(p));
                   }
+                  if (json.whiteboard.formulas) {
+                    json.whiteboard.formulas.forEach((f: string) => addWhiteboardFormula(f));
+                  }
+                  if (json.whiteboard.examples) {
+                    json.whiteboard.examples.forEach((e: string) => addWhiteboardExample(e));
+                  }
+                  if (json.whiteboard.notes) {
+                    json.whiteboard.notes.forEach((n: string) => addWhiteboardNote(n));
+                  }
+                }
+                if (json.image && json.image.type === 'image') {
+                  setWhiteboardImage({
+                    id: json.image.id,
+                    url: json.image.url,
+                    svg_code: json.image.svg_code,
+                    title: json.image.title,
+                    description: json.image.description,
+                    type: json.image.type,
+                  });
                 }
                 break;
               
@@ -983,6 +1096,12 @@ const MinimalLearning: React.FC = () => {
 
   return (
     <div className="minimal-learning">
+      {/* Full-screen whiteboard as background */}
+      <div className="whiteboard-main">
+        <Whiteboard loading={state.isStreaming} />
+      </div>
+
+      {/* Overlay header */}
       <header className="minimal-header">
         <div className="header-content">
           <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} className="back-btn">
@@ -990,16 +1109,13 @@ const MinimalLearning: React.FC = () => {
           </Button>
           <div className="header-right">
             <span className="header-topic">{state.currentTopic}</span>
-            {/* 历史会话按钮 */}
             <Button
               type="text"
               size="small"
               icon={<HistoryOutlined />}
               onClick={() => { fetchSessionList(); setHistoryOpen(true); }}
               title="历史会话"
-              style={{ marginRight: 4 }}
             />
-            {/* 新开会话按钮 */}
             <Button
               type="text"
               size="small"
@@ -1027,16 +1143,13 @@ const MinimalLearning: React.FC = () => {
                 }));
               }}
               title="新开会话"
-              style={{ marginRight: 4 }}
             />
-            {/* 工具增强开关 */}
-            <Button 
+            <Button
               type={state.useTools ? 'primary' : 'default'}
               size="small"
               icon={<ToolOutlined />}
               onClick={() => setState(prev => ({ ...prev, useTools: !prev.useTools }))}
               title={state.useTools ? '工具增强已启用' : '工具增强已禁用'}
-              style={{ marginRight: 12 }}
             >
               {state.useTools ? '工具增强' : '标准模式'}
             </Button>
@@ -1048,173 +1161,197 @@ const MinimalLearning: React.FC = () => {
         </div>
       </header>
 
-      <main className="minimal-main">
-        <div className="chat-container" ref={chatRef}>
-          {state.messages.map((msg) => (
-            <div key={msg.id} className={`message ${msg.role}`}>
-              <div className="message-avatar">
-                {msg.role === 'ai' ? '👨‍🏫' : '👨‍🎓'}
-              </div>
-              <div className="message-content">
-                {renderContentWithFormula(msg.content)}
-                {/* 完整媒体资源：视频 */}
-                {msg.video && (
-                  <div className="message-media" style={{ marginTop: 8 }}>
-                    <div style={{ background: '#000', borderRadius: 8, overflow: 'hidden' }}>
-                      <video
-                        style={{ maxWidth: '100%', maxHeight: 360, display: 'block' }}
-                        src={msg.video.url}
-                        controls
-                        poster={msg.video.thumbnail_url}
-                      />
+      {/* Floating chat panel - bottom left, draggable */}
+      <div
+        ref={chatPanelRef}
+        className={`floating-chat-panel ${chatPanelExpanded ? 'expanded' : 'collapsed'} ${isDraggingChat ? 'dragging' : ''}`}
+        style={{
+          left: 16 + chatPanelPos.x,
+          bottom: 16 + chatPanelPos.y,
+        }}
+      >
+        <div
+          className="chat-panel-header"
+          onMouseDown={handleChatDragStart}
+          onClick={() => {
+            if (!isDraggingRef.current) {
+              handleToggleChatPanel();
+            }
+            isDraggingRef.current = false;
+          }}
+        >
+          <span className="chat-panel-title">💬 对话</span>
+          {state.messages.length > 0 && (
+            <span className="chat-msg-count">{state.messages.length}</span>
+          )}
+          <Button
+            type="text"
+            size="small"
+            icon={chatPanelExpanded ? <CompressOutlined /> : <ExpandOutlined />}
+            className="chat-panel-toggle"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleChatPanel();
+            }}
+          />
+        </div>
+
+        {chatPanelExpanded && (
+          <div className="chat-panel-messages" ref={chatRef}>
+            {state.messages.map((msg) => (
+              <div key={msg.id} className={`message ${msg.role}`}>
+                <div className="message-avatar">
+                  {msg.role === 'ai' ? '👨‍🏫' : '👨‍🎓'}
+                </div>
+                <div className="message-content">
+                  {renderContentWithFormula(msg.content)}
+                  {msg.video && (
+                    <div className="message-media" style={{ marginTop: 8 }}>
+                      <div style={{ background: '#000', borderRadius: 8, overflow: 'hidden' }}>
+                        <video
+                          style={{ maxWidth: '100%', maxHeight: 200, display: 'block' }}
+                          src={msg.video.url}
+                          controls
+                          poster={msg.video.thumbnail_url}
+                        />
+                      </div>
+                      {msg.video.title && (
+                        <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>{msg.video.title}</div>
+                      )}
                     </div>
-                    {msg.video.title && (
-                      <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{msg.video.title}</div>
-                    )}
-                  </div>
-                )}
-                {/* 完整媒体资源：图片 */}
-                {msg.image && !msg.video && (
-                  <div className="message-media" style={{ marginTop: 8 }}>
-                    <div style={{ borderRadius: 8, overflow: 'hidden' }}>
-                      <img
-                        style={{ maxWidth: '100%', maxHeight: 360, display: 'block' }}
-                        src={msg.image.url}
-                        alt={msg.image.title || '教学图片'}
-                      />
+                  )}
+                  {msg.image && !msg.video && (
+                    <div className="message-media" style={{ marginTop: 8 }}>
+                      <div style={{ borderRadius: 8, overflow: 'hidden' }}>
+                        <img
+                          style={{ maxWidth: '100%', maxHeight: 200, display: 'block' }}
+                          src={msg.image.url}
+                          alt={msg.image.title || '教学图片'}
+                        />
+                      </div>
+                      {msg.image.title && (
+                        <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>{msg.image.title}</div>
+                      )}
                     </div>
-                    {msg.image.title && (
-                      <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{msg.image.title}</div>
-                    )}
-                  </div>
-                )}
-                {/* 兼容旧版：通过 imageId 加载图片 */}
-                {msg.imageId && !msg.image && !msg.video && (
-                  <TeachingImage 
-                    imageId={msg.imageId}
-                    alt="教学图片"
-                    showDescription={true}
-                  />
-                )}
-                {/* 展示评估结果详情 */}
-                {msg.questionResults && msg.questionResults.length > 0 && (
-                  <div className="assessment-results">
-                    {msg.questionResults.map((qr, idx) => (
-                      <div key={qr.question_id} className={`result-item ${qr.is_correct ? 'correct' : 'incorrect'}`}>
-                        <div className="result-header">
-                          <span className="result-index">第 {idx + 1} 题</span>
-                          <span className={`result-status ${qr.is_correct ? 'correct' : 'incorrect'}`}>
-                            {qr.is_correct ? '✓ 正确' : '✗ 错误'}
-                          </span>
-                        </div>
-                        <div className="result-question">{renderContentWithFormula(qr.content)}</div>
-                        <div className="result-answer">
-                          <div className="answer-row">
-                            <span className="answer-label">你的答案：</span>
-                            <span className={qr.is_correct ? 'answer-correct' : 'answer-wrong'}>
-                              {qr.student_answer}
+                  )}
+                  {msg.imageId && !msg.image && !msg.video && (
+                    <TeachingImage
+                      imageId={msg.imageId}
+                      alt="教学图片"
+                      showDescription={true}
+                    />
+                  )}
+                  {msg.questionResults && msg.questionResults.length > 0 && (
+                    <div className="assessment-results">
+                      {msg.questionResults.map((qr, idx) => (
+                        <div key={qr.question_id} className={`result-item ${qr.is_correct ? 'correct' : 'incorrect'}`}>
+                          <div className="result-header">
+                            <span className="result-index">第 {idx + 1} 题</span>
+                            <span className={`result-status ${qr.is_correct ? 'correct' : 'incorrect'}`}>
+                              {qr.is_correct ? '✓ 正确' : '✗ 错误'}
                             </span>
                           </div>
-                          {!qr.is_correct && (
+                          <div className="result-question">{renderContentWithFormula(qr.content)}</div>
+                          <div className="result-answer">
                             <div className="answer-row">
-                              <span className="answer-label">正确答案：</span>
-                              <span className="answer-correct">
-                                {Array.isArray(qr.correct_answer) ? qr.correct_answer.join('、') : qr.correct_answer}
+                              <span className="answer-label">你的答案：</span>
+                              <span className={qr.is_correct ? 'answer-correct' : 'answer-wrong'}>
+                                {qr.student_answer}
                               </span>
+                            </div>
+                            {!qr.is_correct && (
+                              <div className="answer-row">
+                                <span className="answer-label">正确答案：</span>
+                                <span className="answer-correct">
+                                  {Array.isArray(qr.correct_answer) ? qr.correct_answer.join('、') : qr.correct_answer}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          {qr.explanation && (
+                            <div className="result-explanation">
+                              <span className="explanation-label">💡 解题思路：</span>
+                              <div className="explanation-content">{renderContentWithFormula(qr.explanation)}</div>
                             </div>
                           )}
                         </div>
-                        {qr.explanation && (
-                          <div className="result-explanation">
-                            <span className="explanation-label">💡 解题思路：</span>
-                            <div className="explanation-content">{renderContentWithFormula(qr.explanation)}</div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-          
-          {/* AI正在输入的加载指示器 */}
-          {(state.isStreaming || isRestoring) && (
-            <div className="message ai">
-              <div className="message-avatar">👨‍🏫</div>
-              <div className="message-content">
-                <div className="typing-indicator">
-                  <span></span><span></span><span></span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
-          
-          {/* 评估题目显示 */}
-          {state.phase === 'assessment' && state.assessmentQuestions.length > 0 && (
-            <div className="assessment-panel">
-              {state.assessmentQuestions.map((q, idx) => {
-                // 判断题处理：如果没有选项，自动生成"正确"和"错误"两个选项
-                const displayOptions = q.type === '判断题' && (!q.options || q.options.length === 0)
-                  ? ['正确', '错误']
-                  : q.options;
-                
-                return (
-                  <div key={q.id} className="assessment-question">
-                    <div className="question-header">第 {idx + 1} 题</div>
-                    <div className="question-content">{renderContentWithFormula(q.content)}</div>
-                    
-                    {/* 选择题/判断题：显示选项按钮 */}
-                    {displayOptions && displayOptions.length > 0 ? (
-                      <div className="question-options">
-                        {displayOptions.map((opt, optIdx) => {
-                          // 检查选项是否已经包含字母前缀（如 "A. xxx" 或 "A、xxx"）
-                          const hasPrefix = /^[A-D][\.、\s]/.test(opt);
-                          const displayText = hasPrefix ? opt : `${String.fromCharCode(65 + optIdx)}. ${opt}`;
-                          
-                          return (
-                            <button
-                              key={optIdx}
-                              className={`option-btn ${state.selectedAnswers[q.id] === opt ? 'selected' : ''}`}
-                              onClick={() => selectAnswer(q.id, opt)}
-                            >
-                              {displayText}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      /* 填空题：显示输入框 */
-                      <div className="question-input">
-                        <input
-                          type="text"
-                          className="answer-input"
-                          placeholder="请输入答案"
-                          value={state.selectedAnswers[q.id] || ''}
-                          onChange={(e) => inputAnswer(q.id, e.target.value)}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              <button
-                className="submit-assessment-btn"
-                onClick={submitAssessment}
-                disabled={Object.keys(state.selectedAnswers).length < state.assessmentQuestions.length}
-              >
-                提交答案
-              </button>
-            </div>
-          )}
-        </div>
-      </main>
+            ))}
 
-      <footer className="minimal-footer">
-        <div className="input-container">
+            {(state.isStreaming || isRestoring) && (
+              <div className="message ai">
+                <div className="message-avatar">👨‍🏫</div>
+                <div className="message-content">
+                  <div className="typing-indicator">
+                    <span></span><span></span><span></span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {state.phase === 'assessment' && state.assessmentQuestions.length > 0 && (
+              <div className="assessment-panel">
+                {state.assessmentQuestions.map((q, idx) => {
+                  const displayOptions = q.type === '判断题' && (!q.options || q.options.length === 0)
+                    ? ['正确', '错误']
+                    : q.options;
+
+                  return (
+                    <div key={q.id} className="assessment-question">
+                      <div className="question-header">第 {idx + 1} 题</div>
+                      <div className="question-content">{renderContentWithFormula(q.content)}</div>
+
+                      {displayOptions && displayOptions.length > 0 ? (
+                        <div className="question-options">
+                          {displayOptions.map((opt, optIdx) => {
+                            const hasPrefix = /^[A-D][\.、\s]/.test(opt);
+                            const displayText = hasPrefix ? opt : `${String.fromCharCode(65 + optIdx)}. ${opt}`;
+
+                            return (
+                              <button
+                                key={optIdx}
+                                className={`option-btn ${state.selectedAnswers[q.id] === opt ? 'selected' : ''}`}
+                                onClick={() => selectAnswer(q.id, opt)}
+                              >
+                                {displayText}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="question-input">
+                          <input
+                            type="text"
+                            className="answer-input"
+                            placeholder="请输入答案"
+                            value={state.selectedAnswers[q.id] || ''}
+                            onChange={(e) => inputAnswer(q.id, e.target.value)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <button
+                  className="submit-assessment-btn"
+                  onClick={submitAssessment}
+                  disabled={Object.keys(state.selectedAnswers).length < state.assessmentQuestions.length}
+                >
+                  提交答案
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="chat-panel-input">
           <textarea
             className="input-field"
-            placeholder={state.phase === 'explain' ? '请输入你的问题...' : '请输入你的回答...'}
+            placeholder={state.phase === 'explain' ? '输入问题...' : '输入回答...'}
             disabled={state.isStreaming}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -1241,9 +1378,7 @@ const MinimalLearning: React.FC = () => {
             发送
           </button>
         </div>
-      </footer>
-      
-      <FloatingWhiteboard loading={state.isStreaming} />
+      </div>
 
       {/* 历史会话抽屉 */}
       <Drawer

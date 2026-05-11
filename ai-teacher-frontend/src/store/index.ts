@@ -48,6 +48,7 @@ interface WhiteboardState {
   formulas: string[];
   examples: string[];
   notes: string[];
+  image: import('../types').WhiteboardImage | null;
 }
 
 // 白板显示状态
@@ -89,6 +90,7 @@ interface LearningState {
   addWhiteboardFormula: (formula: string) => void;
   addWhiteboardExample: (example: string) => void;
   addWhiteboardNote: (note: string) => void;
+  setWhiteboardImage: (image: import('../types').WhiteboardImage) => void;
   commitWhiteboard: () => void;
   // 白板显示模式控制
   setWhiteboardMode: (mode: WhiteboardViewMode) => void;
@@ -102,6 +104,7 @@ const initialWhiteboardState: WhiteboardState = {
   formulas: [],
   examples: [],
   notes: [],
+  image: null,
 };
 
 const initialLearningState = {
@@ -223,7 +226,6 @@ export const useLearningStore = create<LearningState>()((set) => ({
     };
   }),
   addWhiteboardNote: (note) => set((state) => {
-    // 如果注意事项已存在，不重复添加
     if (state.currentWhiteboard.notes.includes(note)) return state;
     return {
       currentWhiteboard: {
@@ -232,29 +234,34 @@ export const useLearningStore = create<LearningState>()((set) => ({
       },
     };
   }),
-  // 将当前白板状态提交到 whiteboardBlocks
+  setWhiteboardImage: (image) => set((state) => {
+    return {
+      currentWhiteboard: {
+        ...state.currentWhiteboard,
+        image,
+      },
+    };
+  }),
   commitWhiteboard: () => set((state) => {
     const wb = state.currentWhiteboard;
-    // 防御性检查，确保数组存在
     const keyPoints = wb.key_points || [];
     const formulas = wb.formulas || [];
     const examples = wb.examples || [];
     const notes = wb.notes || [];
+    const image = wb.image || null;
     
     const hasContent = wb.title || 
       keyPoints.length > 0 || 
       formulas.length > 0 || 
       examples.length > 0 || 
-      notes.length > 0;
+      notes.length > 0 ||
+      image;
     if (!hasContent) return state;
     
-    // 如果当前白板是隐藏状态，自动切换到 mini 模式
     const newMode = state.whiteboardMode === 'hidden' ? 'mini' : state.whiteboardMode;
     
-    // 检查是否已存在相同的白板块（避免重复）
     const existingBlock = state.whiteboardBlocks.find(b => b.title === wb.title);
     if (existingBlock) {
-      // 更新现有块
       const blocks = state.whiteboardBlocks.map(b => 
         b.title === wb.title 
           ? { 
@@ -263,10 +270,10 @@ export const useLearningStore = create<LearningState>()((set) => ({
               formulas: [...(b.formulas || []), ...formulas],
               examples: [...(b.examples || []), ...examples],
               notes: [...(b.notes || []), ...notes],
+              image: image || b.image,
             } 
           : b
       );
-      // 清空 currentWhiteboard
       return { 
         whiteboardBlocks: blocks, 
         currentWhiteboard: initialWhiteboardState,
@@ -281,8 +288,8 @@ export const useLearningStore = create<LearningState>()((set) => ({
         formulas: formulas,
         examples: examples,
         notes: notes,
+        image: image || undefined,
       }],
-      // 清空 currentWhiteboard
       currentWhiteboard: initialWhiteboardState,
       whiteboardMode: newMode,
     };

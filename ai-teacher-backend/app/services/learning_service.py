@@ -1351,6 +1351,17 @@ class LearningService:
                 if event_type == "msg_feedback":
                     has_feedback = True
 
+                # 处理 segment 事件（边讲边写模式，包含白板内容）
+                if event_type == "segment":
+                    message_content = data.get("message", "")
+                    whiteboard = data.get("whiteboard", {})
+                    segment_data = {
+                        "message": message_content,
+                        "whiteboard": whiteboard
+                    }
+                    yield {"event": "segment", "data": json.dumps(segment_data, ensure_ascii=False)}
+                    continue
+
                 # 生成并输出事件
                 event = self._yield_chat_event(event_type, content, next_action)
                 if event:

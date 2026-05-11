@@ -145,13 +145,22 @@ export interface ChatResponse {
   next_action: string;
 }
 
+export interface WhiteboardImage {
+  id?: string;
+  url?: string;
+  svg_code?: string;
+  title?: string;
+  description?: string;
+  type?: string;
+}
+
 export interface WhiteboardContent {
   title?: string;
   key_points?: string[];
   formulas?: string[];
   examples?: string[];
   notes?: string[];
-  // 兼容旧格式
+  image?: WhiteboardImage;
   diagrams?: string[];
 }
 

@@ -221,6 +221,28 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
             </div>
           </div>
         )}
+        
+        {block.image && (
+          <div className="block-section">
+            <div className="section-label">图片</div>
+            <div className="images-container">
+              <div className="image-item">
+                {block.image.svg_code ? (
+                  <div dangerouslySetInnerHTML={{ __html: block.image.svg_code }} />
+                ) : block.image.url ? (
+                  <img
+                    src={block.image.url}
+                    alt={block.image.description || block.image.title || '教学图片'}
+                    className="whiteboard-image"
+                  />
+                ) : null}
+                {(block.image.title || block.image.description) && (
+                  <div className="image-caption">{block.image.title || block.image.description}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -253,7 +275,14 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
           {/* 装饰性网格 */}
           <div className="canvas-grid" />
           
-          {whiteboardBlocks.length === 0 && !currentWhiteboard.title && !loading && (
+          {whiteboardBlocks.length === 0 &&
+            !currentWhiteboard.title &&
+            currentWhiteboard.key_points.length === 0 &&
+            currentWhiteboard.formulas.length === 0 &&
+            currentWhiteboard.examples.length === 0 &&
+            currentWhiteboard.notes.length === 0 &&
+            !currentWhiteboard.image &&
+            !loading && (
             <div className="whiteboard-empty">
               <div className="empty-icon">📝</div>
               <div className="empty-text">等待讲解开始</div>
@@ -269,7 +298,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
             currentWhiteboard.key_points.length > 0 || 
             currentWhiteboard.formulas.length > 0 || 
             currentWhiteboard.examples.length > 0 || 
-            currentWhiteboard.notes.length > 0) && (
+            currentWhiteboard.notes.length > 0 ||
+            currentWhiteboard.image) && (
             <div className="whiteboard-block streaming">
               {currentWhiteboard.title && (
                 <div className="block-title">
@@ -322,6 +352,28 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
                         {renderMixedContent(note, `note-${i}`)}
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+              
+              {currentWhiteboard.image && (
+                <div className="block-section">
+                  <div className="section-label">图片</div>
+                  <div className="images-container">
+                    <div className="image-item">
+                      {currentWhiteboard.image.svg_code ? (
+                        <div dangerouslySetInnerHTML={{ __html: currentWhiteboard.image.svg_code! }} />
+                      ) : currentWhiteboard.image.url ? (
+                        <img
+                          src={currentWhiteboard.image.url}
+                          alt={currentWhiteboard.image.description || currentWhiteboard.image.title || '教学图片'}
+                          className="whiteboard-image"
+                        />
+                      ) : null}
+                      {(currentWhiteboard.image.title || currentWhiteboard.image.description) && (
+                        <div className="image-caption">{currentWhiteboard.image.title || currentWhiteboard.image.description}</div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

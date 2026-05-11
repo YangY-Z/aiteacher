@@ -403,16 +403,20 @@ next_action 选项：
 【返回格式】
 请严格按照以下JSONL格式输出,每行一个独立的JSON对象:
 
+{"type":"segment","message":"教学内容...","whiteboard":{"title":"核心概念"}}
+{"type":"segment","message":"教学讲解...","whiteboard":{"points":["要点1：...","要点2：..."]}}
 {"type":"segment","message":"教学内容...","image_id":"IMG_001"}
 {"type":"segment","message":"教学内容...","video_id":"VID_002"}
 {"type":"segment","message":"提问内容...","is_question":true}
 {"type":"complete","next_action":"wait_for_student"}
 
 【重要规则】
-1. 每个 segment 最多只能引用一个资源(图片/视频/演示)
-2. 如果需要多个资源,请分成多个 segment 输出
-3. 必须包含提问环节
-4. next_action 设为 "wait_for_student"（系统会根据LLM响应自动决定是否推进）
+1. 讲解关键概念时，必须在 segment 中包含 whiteboard，帮助学生在白板上看到知识要点
+2. whiteboard 支持: title(标题), points(要点列表), formulas(公式列表), examples(示例), notes(注意事项)
+3. 每个 segment 最多只能引用一个资源(图片/视频/演示)
+4. 如果需要多个资源,请分成多个 segment 输出
+5. 必须包含提问环节
+6. next_action 设为 "wait_for_student"（系统会根据LLM响应自动决定是否推进）
 
 请开始输出:
 """
@@ -509,7 +513,13 @@ next_action 选项：
             "message": original_data.get("message", ""),
         }
 
-        # Add resource attachments
+        whiteboard = original_data.get("whiteboard")
+        if whiteboard:
+            response_data["whiteboard"] = whiteboard
+            logger.debug(f"[whiteboard] segment包含白板数据: {list(whiteboard.keys())}")
+        elif original_data.get("type") == "segment":
+            logger.debug(f"[whiteboard] segment无白板数据, original_data keys: {list(original_data.keys())}")
+
         if event.image:
             response_data["image"] = event.image
         if event.video:

@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -10,6 +9,14 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8008',
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            if (proxyRes.headers['content-type']?.includes('text/event-stream')) {
+              proxyRes.headers['content-encoding'] = 'identity';
+              delete proxyRes.headers['content-length'];
+            }
+          });
+        },
       },
       '/media': {
         target: 'http://localhost:8008',
