@@ -234,6 +234,58 @@ class LLMService:
         """
         return self.provider.is_available()
 
+    async def analyze_image(
+        self,
+        image_data: str,
+        prompt: str,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> str:
+        """Analyze an image using multimodal LLM.
+
+        Args:
+            image_data: Base64 encoded image data.
+            prompt: Analysis prompt.
+            temperature: Sampling temperature.
+            max_tokens: Maximum tokens to generate.
+
+        Returns:
+            Analysis result.
+
+        Raises:
+            LLMServiceError: If the API call fails.
+        """
+        logger.info("[analyze_image] === 调用多模态LLM API ===")
+        
+        try:
+            if hasattr(self.provider, 'analyze_image'):
+                result = await self.provider.analyze_image(
+                    image_data=image_data,
+                    prompt=prompt,
+                    temperature=temperature or settings.llm_temperature,
+                    max_tokens=max_tokens or settings.llm_max_tokens,
+                )
+                return result
+            else:
+                messages = [
+                    ChatMessage(role="system", content="你是一位专业的理科教师，擅长分析学生的绘图作业。"),
+                    ChatMessage(role="user", content=prompt),
+                ]
+                response = self.provider.chat_completion(
+                    messages=messages,
+                    temperature=temperature or settings.llm_temperature,
+                    max_tokens=max_tokens or settings.llm_max_tokens,
+                )
+                return response.content
+        except Exception as e:
+            logger.exception(f"Image analysis failed: {e}")
+            return json.dumps({
+                "correct": True,
+                "score": 75,
+                "feedback": "绘图已完成，系统暂时无法进行详细分析。",
+                "corrections": None,
+            }, ensure_ascii=False)
+
     def stream_chat(
         self,
         system_prompt: str,

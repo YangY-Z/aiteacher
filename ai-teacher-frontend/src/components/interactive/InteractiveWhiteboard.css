@@ -1,0 +1,225 @@
+.interactive-whiteboard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.mode-tabs {
+  display: flex;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e8e8e8;
+  padding: 0 16px;
+}
+
+.mode-tab {
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.mode-tab:hover {
+  color: #1890ff;
+}
+
+.mode-tab.active {
+  color: #1890ff;
+  border-bottom-color: #1890ff;
+  background: #fff;
+}
+
+.whiteboard-body {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+/* 展示模式 */
+.whiteboard-display {
+  padding: 24px;
+  height: 100%;
+  overflow: auto;
+}
+
+.whiteboard-header {
+  margin-bottom: 16px;
+}
+
+.whiteboard-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.whiteboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.whiteboard-section {
+  background: #fafafa;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.whiteboard-section h4 {
+  font-size: 14px;
+  color: #1890ff;
+  margin: 0 0 8px 0;
+}
+
+.whiteboard-section ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.whiteboard-section li {
+  margin: 4px 0;
+  color: #333;
+}
+
+.formula-item,
+.example-item,
+.note-item {
+  padding: 8px 12px;
+  background: #fff;
+  border-radius: 4px;
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.note-item {
+  background: #fffbe6;
+  border-left: 3px solid #faad14;
+}
+
+.whiteboard-image {
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 互动模式 */
+.whiteboard-interactive {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.task-instruction {
+  padding: 12px 16px;
+  background: #e6f7ff;
+  border-bottom: 1px solid #91d5ff;
+  font-size: 14px;
+}
+
+.task-label {
+  font-weight: 600;
+  color: #1890ff;
+}
+
+.canvas-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  padding: 16px;
+  overflow: auto;
+}
+
+/* 标注模式 */
+.whiteboard-annotate {
+  height: 100%;
+  position: relative;
+}
+
+.annotate-content {
+  position: relative;
+  height: 100%;
+}
+
+.annotate-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.annotate-overlay canvas {
+  pointer-events: auto;
+}
+
+/* AI反馈 */
+.ai-feedback {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  max-width: 300px;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-feedback.correct {
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+}
+
+.ai-feedback.incorrect {
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+}
+
+.feedback-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.ai-feedback.correct .feedback-header {
+  color: #52c41a;
+}
+
+.ai-feedback.incorrect .feedback-header {
+  color: #ff4d4f;
+}
+
+.feedback-score {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.feedback-content {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.6;
+}

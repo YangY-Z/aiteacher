@@ -1,0 +1,150 @@
+.floating-interactive-panel {
+  position: fixed;
+  z-index: 1000;
+  width: 480px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.floating-interactive-panel.dragging {
+  opacity: 0.9;
+  cursor: move;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  cursor: move;
+  user-select: none;
+}
+
+.panel-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.panel-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.panel-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.panel-content {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 180px);
+  overflow: hidden;
+}
+
+.task-instruction {
+  padding: 10px 16px;
+  background: #e6f7ff;
+  border-bottom: 1px solid #91d5ff;
+  font-size: 13px;
+}
+
+.task-label {
+  font-weight: 600;
+  color: #1890ff;
+}
+
+.canvas-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  padding: 12px;
+  overflow: auto;
+  min-height: 200px;
+}
+
+.ai-feedback {
+  margin: 12px 16px;
+  padding: 12px;
+  border-radius: 8px;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-feedback.correct {
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+}
+
+.ai-feedback.incorrect {
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+}
+
+.feedback-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.ai-feedback.correct .feedback-header {
+  color: #52c41a;
+}
+
+.ai-feedback.incorrect .feedback-header {
+  color: #ff4d4f;
+}
+
+.feedback-score {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.feedback-content {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* 响应式 */
+@media (max-width: 600px) {
+  .floating-interactive-panel {
+    width: calc(100vw - 32px);
+    left: 16px !important;
+    right: 16px !important;
+  }
+}

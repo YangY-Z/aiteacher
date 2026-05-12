@@ -12,9 +12,11 @@
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
     "@types/d3": "^7.4.3",
+    "@types/fabric": "^5.3.11",
     "antd": "^6.3.2",
     "axios": "^1.13.6",
     "d3": "^7.9.0",
+    "fabric": "^7.3.1",
     "html2canvas": "^1.4.1",
     "katex": "^0.16.38",
     "react": "^19.2.4",

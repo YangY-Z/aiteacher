@@ -1,0 +1,11 @@
+export { default as InteractiveWhiteboard } from './InteractiveWhiteboard';
+export type { InteractiveWhiteboardRef } from './InteractiveWhiteboard';
+export { default as DrawingCanvas } from './DrawingCanvas';
+export type { DrawingCanvasRef } from './DrawingCanvas';
+export { default as ToolBar } from './ToolBar';
+export { default as TemplateSelector } from './TemplateSelector';
+export { default as FloatingInteractiveWhiteboard } from './FloatingInteractiveWhiteboard';
+export type { FloatingInteractiveWhiteboardRef } from './FloatingInteractiveWhiteboard';
+export { useInteractiveStore } from './interactiveStore';
+export * from './types';
+export * from './templates';

@@ -10,11 +10,14 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import Whiteboard from '../components/whiteboard/Whiteboard';
 import TeachingImage from '../components/teaching/TeachingImage';
+import { FloatingInteractiveWhiteboard } from '../components/interactive';
+import type { FloatingInteractiveWhiteboardRef } from '../components/interactive';
+import type { InteractiveTask, AIFeedback } from '../components/interactive/types';
 import { useAuthStore, useLearningStore } from '../store';
 import type { SessionListItem, SessionHistoryResponse } from '../types';
 import './MinimalLearning.css';
 
-type LearningPhase = 'explain' | 'question' | 'feedback' | 'assessment';
+type LearningPhase = 'explain' | 'question' | 'interactive' | 'feedback' | 'assessment';
 
 interface Question {
   id: string;
@@ -76,6 +79,11 @@ interface LearningState {
   selectedAnswers: Record<string, string>;
   // 工具增强相关
   useTools: boolean;  // 是否启用工具增强
+  // 互动白板相关
+  interactiveTask: InteractiveTask | null;
+  aiDrawingFeedback: AIFeedback | null;
+  showInteractivePanel: boolean;
+  isSubmittingDrawing: boolean;
 }
 
 // 渲染带有公式的内容
@@ -210,10 +218,15 @@ const MinimalLearning: React.FC = () => {
     currentQuestionIndex: 0,
     selectedAnswers: {},
     useTools: true,  // 默认启用工具增强
+    interactiveTask: null,
+    aiDrawingFeedback: null,
+    showInteractivePanel: false,
+    isSubmittingDrawing: false,
   });
   
   const chatRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const floatingInteractiveRef = useRef<FloatingInteractiveWhiteboardRef>(null);
 
   // 消息队列和显示控制
   const messageQueueRef = useRef<Array<{content: string, phase: LearningPhase, imageId?: string, image?: MediaResource, video?: MediaResource}>>([]);
@@ -1094,12 +1107,67 @@ const MinimalLearning: React.FC = () => {
     }
   }, [state.sessionId, state.isStreaming, state.phase, state.isFirstInput, state.useTools, addMessageNow, getAuthHeaders, queueMessage, saveSessionId, waitForQueueDrain]);
 
+  const handleSubmitDrawing = useCallback(async (imageData: string) => {
+    if (!state.sessionId || !state.interactiveTask) return;
+
+    setState(prev => ({ ...prev, isSubmittingDrawing: true }));
+
+    try {
+      const res = await fetch(`/api/v1/interactive/session/${state.sessionId}/submit-drawing`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          task_id: state.interactiveTask.id,
+          image_data: imageData,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`提交失败: ${res.status}`);
+
+      const data = await res.json();
+
+      if (data.success) {
+        const feedback: AIFeedback = data.data;
+        setState(prev => ({
+          ...prev,
+          aiDrawingFeedback: feedback,
+          whiteboardMode: 'display',
+          interactiveTask: null,
+        }));
+
+        addMessageNow('ai', feedback.feedback, 'feedback');
+      }
+    } catch (error) {
+      console.error('提交绘图失败:', error);
+      message.error('提交失败，请重试');
+    } finally {
+      setState(prev => ({ ...prev, isSubmittingDrawing: false }));
+    }
+  }, [state.sessionId, state.interactiveTask, getAuthHeaders, addMessageNow]);
+
+  const handleToggleInteractivePanel = useCallback(() => {
+    setState(prev => ({ ...prev, showInteractivePanel: !prev.showInteractivePanel }));
+  }, []);
+
+  const handleCloseInteractivePanel = useCallback(() => {
+    setState(prev => ({ ...prev, showInteractivePanel: false }));
+  }, []);
+
   return (
     <div className="minimal-learning">
       {/* Full-screen whiteboard as background */}
       <div className="whiteboard-main">
         <Whiteboard loading={state.isStreaming} />
       </div>
+
+      {/* Floating interactive whiteboard panel */}
+      <FloatingInteractiveWhiteboard
+        ref={floatingInteractiveRef}
+        visible={state.showInteractivePanel}
+        onClose={handleCloseInteractivePanel}
+        onSubmit={handleSubmitDrawing}
+        isSubmitting={state.isSubmittingDrawing}
+      />
 
       {/* Overlay header */}
       <header className="minimal-header">
@@ -1152,6 +1220,14 @@ const MinimalLearning: React.FC = () => {
               title={state.useTools ? '工具增强已启用' : '工具增强已禁用'}
             >
               {state.useTools ? '工具增强' : '标准模式'}
+            </Button>
+            <Button
+              type={state.showInteractivePanel ? 'primary' : 'default'}
+              size="small"
+              onClick={handleToggleInteractivePanel}
+              title={state.showInteractivePanel ? '关闭互动白板' : '打开互动白板'}
+            >
+              🎨 互动白板
             </Button>
             <div className="user-info">
               <span className="user-name">{user?.name || '学生'}</span>
