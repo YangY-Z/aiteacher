@@ -821,6 +821,7 @@ class LearningService:
                         # 边讲边写模式：同时发送消息和白板内容
                         message_content = data.get("message", "")
                         whiteboard = data.get("whiteboard", {})
+                        whiteboard_html = data.get("whiteboard_html", "")
                         need_image = data.get("need_image")
                         
                         # 处理图片/视频生成请求
@@ -836,7 +837,8 @@ class LearningService:
                         # 构建SSE数据
                         segment_data = {
                             "message": message_content,
-                            "whiteboard": whiteboard
+                            "whiteboard": whiteboard,
+                            "whiteboard_html": whiteboard_html
                         }
                         
                         # 附加媒体资源
@@ -1352,14 +1354,16 @@ class LearningService:
                     has_feedback = True
 
                 # 处理 segment 事件（边讲边写模式，包含白板内容）
-                if event_type == "segment":
-                    message_content = data.get("message", "")
-                    whiteboard = data.get("whiteboard", {})
+                if event_type == 'segment':
+                    message_content = data.get('message', '')
+                    whiteboard = data.get('whiteboard', {})
+                    whiteboard_html = data.get('whiteboard_html', '')
                     segment_data = {
-                        "message": message_content,
-                        "whiteboard": whiteboard
+                        'message': message_content,
+                        'whiteboard': whiteboard,
+                        'whiteboard_html': whiteboard_html
                     }
-                    yield {"event": "segment", "data": json.dumps(segment_data, ensure_ascii=False)}
+                    yield {'event': 'segment', 'data': json.dumps(segment_data, ensure_ascii=False)}
                     continue
 
                 # 生成并输出事件

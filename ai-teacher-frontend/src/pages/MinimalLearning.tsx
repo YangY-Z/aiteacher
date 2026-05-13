@@ -6,10 +6,11 @@ import Tag from 'antd/es/tag';
 import Empty from 'antd/es/empty';
 import { LogoutOutlined, ArrowLeftOutlined, ToolOutlined, HistoryOutlined, CloseOutlined, PlusOutlined, ExpandOutlined, CompressOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import Whiteboard from '../components/whiteboard/Whiteboard';
+import WhiteboardHTML from '../components/whiteboard/WhiteboardHTML';
 import TeachingImage from '../components/teaching/TeachingImage';
+import MarkdownContent from '../components/MarkdownContent';
 import { FloatingInteractiveWhiteboard } from '../components/interactive';
 import type { FloatingInteractiveWhiteboardRef } from '../components/interactive';
 import type { InteractiveTask, AIFeedback } from '../components/interactive/types';
@@ -86,104 +87,76 @@ interface LearningState {
   isSubmittingDrawing: boolean;
 }
 
-// 渲染带有公式的内容
-const renderContentWithFormula = (content: string): React.ReactNode => {
-  // 清理内容：移除开头结尾的空白，将连续换行符合并为一个
-  let cleanContent = content.trim().replace(/\n{3,}/g, '\n\n');
+// 渲染带有公式 + Markdown 格式的内容 — 改用 MarkdownContent 组件
+
+/** 转义 HTML 特殊字符，防止 XSS 和格式错乱 */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * 自动从教学消息文本生成 whiteboard_html 组件
+ * 根据消息内容智能选择组件类型
+ */
+function autoGenerateWhiteboardHtml(message: string): string {
+  const text = message;
+  const escaped = escapeHtml(text);
+  const titleText = text.length > 30 ? text.substring(0, 28) + '...' : text;
   
-  const parts: React.ReactNode[] = [];
-  let key = 0;
-  
-  // 匹配模式：$$...$$（块级）、$...$（行内）、\[...\]（块级）、\(...\)（行内）
-  const formulaPatterns = [
-    { regex: /\$\$([\s\S]*?)\$\$/g, isBlock: true },
-    { regex: /\\\[([\s\S]*?)\\\]/g, isBlock: true },
-    { regex: /\$([^$\n]+?)\$/g, isBlock: false },
-    { regex: /\\\(([^)]+?)\\\)/g, isBlock: false },
-  ];
-  
-  // 收集所有公式位置
-  const allFormulas: { start: number; end: number; formula: string; isBlock: boolean }[] = [];
-  
-  for (const pattern of formulaPatterns) {
-    pattern.regex.lastIndex = 0; // 重置 regex 状态
-    let match;
-    while ((match = pattern.regex.exec(cleanContent)) !== null) {
-      // 检查是否已被其他公式包含
-      const isOverlapping = allFormulas.some(
-        f => match!.index >= f.start && match!.index < f.end
-      );
-      if (!isOverlapping) {
-        allFormulas.push({
-          start: match.index,
-          end: match.index + match[0].length,
-          formula: match[1].trim(),
-          isBlock: pattern.isBlock,
-        });
-      }
-    }
+  // 检测是否为提问
+  if (/[？?]/.test(text) && text.length < 100) {
+    return `<div class="interactive-reveal">
+  <div class="reveal-question">🤔 ${escaped}</div>
+  <div class="reveal-hint">💡 点击上方查看提示</div>
+</div>`;
   }
   
-  // 如果没有匹配到公式，检查是否整个内容就是公式（包含 LaTeX 命令）
-  if (allFormulas.length === 0 && /\\[a-zA-Z]+\{/.test(cleanContent)) {
-    // 整个内容可能是公式，尝试渲染
-    try {
-      const html = katex.renderToString(cleanContent, {
-        throwOnError: false,
-        displayMode: false,
-      });
-      return (
-        <span
-          className="formula-inline"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      );
-    } catch {
-      // 渲染失败，返回原始内容
-      return cleanContent;
-    }
+  // 检测是否涉及定义/概念/定理
+  if (/定义|概念|定理|核心|本质/.test(text)) {
+    return `<div class="hero-teach">
+  <span class="ht-number">✦</span>
+  <div class="ht-overline">核心概念</div>
+  <div class="ht-title" style="font-size:1.1em">${escaped}</div>
+</div>`;
   }
   
-  // 按位置排序
-  allFormulas.sort((a, b) => a.start - b.start);
-  
-  // 构建渲染结果
-  let lastIndex = 0;
-  for (const formula of allFormulas) {
-    // 添加公式前的文本
-    if (formula.start > lastIndex) {
-      parts.push(
-        <span key={key++}>{cleanContent.slice(lastIndex, formula.start)}</span>
-      );
-    }
-    
-    // 渲染公式
-    try {
-      const html = katex.renderToString(formula.formula, {
-        throwOnError: false,
-        displayMode: formula.isBlock,
-      });
-      parts.push(
-        <span
-          key={key++}
-          className={formula.isBlock ? 'formula-block' : 'formula-inline'}
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      );
-    } catch {
-      parts.push(<span key={key++}>{formula.formula}</span>);
-    }
-    
-    lastIndex = formula.end;
+  // 检测是否为步骤/指南
+  if (/步骤|首先|然后|最后|第一步|第二步/.test(text)) {
+    return `<div class="knowledge-steps">
+  <div class="steps-header">📋 学习步骤</div>
+  <div class="step"><div class="step-num">→</div><div class="step-text">${escaped}</div></div>
+</div>`;
   }
   
-  // 添加剩余文本
-  if (lastIndex < cleanContent.length) {
-    parts.push(<span key={key++}>{cleanContent.slice(lastIndex)}</span>);
+  // 检测是否有数字模式（关键数字）
+  const numMatch = text.match(/\d+/);
+  if (numMatch && text.length < 80) {
+    return `<div class="key-number">
+  <div class="kn-value">${numMatch[0]}</div>
+  <div class="kn-label">${escaped}</div>
+</div>`;
   }
   
-  return parts.length > 0 ? parts : cleanContent;
-};
+  // 检测是否为对比/比较
+  if (/对比|比较|区别|不同|差异|vs/i.test(text)) {
+    return `<div class="split-knowledge">
+  <div class="sk-side"><div class="sk-label">🔍</div><div class="sk-concept">${escaped}</div></div>
+  <div class="sk-divider"></div>
+  <div class="sk-side"><div class="sk-label">💡</div><div class="sk-concept">思考一下</div></div>
+</div>`;
+  }
+  
+  // 默认：使用 teach-rule（通用的教学强调）
+  return `<div class="teach-rule">
+  <div class="tr-ornament">💡</div>
+  <div class="tr-text">${escaped}</div>
+</div>`;
+}
 
 const MinimalLearning: React.FC = () => {
   const navigate = useNavigate();
@@ -200,6 +173,8 @@ const MinimalLearning: React.FC = () => {
     setWhiteboardImage,
     setWhiteboardHtml,
     commitWhiteboardHtmlBlock,
+    whiteboardBlocks,
+    currentWhiteboard,
   } = useLearningStore();
   
   const [state, setState] = useState<LearningState>({
@@ -747,6 +722,8 @@ const MinimalLearning: React.FC = () => {
                   if (json.whiteboard_html) {
                     setWhiteboardHtml(json.whiteboard_html);
                     if (json.whiteboard?.title) setWhiteboardTitle(json.whiteboard.title);
+                    // 提交当前 HTML 为持久块，防止被后续 segment 覆盖
+                    commitWhiteboardHtmlBlock();
                   }
                   if (json.whiteboard) {
                     if (json.whiteboard.title) setWhiteboardTitle(json.whiteboard.title);
@@ -925,9 +902,18 @@ const MinimalLearning: React.FC = () => {
                   queueMessage(json.image.title || '', 'explain', { image: imageResource, video: videoResource });
                 }
                 // 处理 whiteboard_html（语义 HTML 白板内容）
+                // LLM 有时输出 whiteboard_html，有时不输出（推理模型行为不一致）
+                // 当 LLM 输出时直接用，未输出时自动从 message 文本生成
                 if (json.whiteboard_html) {
                   setWhiteboardHtml(json.whiteboard_html);
                   if (json.whiteboard?.title) setWhiteboardTitle(json.whiteboard.title);
+                  commitWhiteboardHtmlBlock();
+                } else if (json.message) {
+                  // 自动从消息文本生成 whiteboard_html（智能选择组件类型）
+                  const autoHtml = autoGenerateWhiteboardHtml(json.message);
+                  setWhiteboardHtml(autoHtml);
+                  if (json.whiteboard?.title) setWhiteboardTitle(json.whiteboard.title);
+                  commitWhiteboardHtmlBlock();
                 }
                 if (json.whiteboard) {
                   if (json.whiteboard.title) setWhiteboardTitle(json.whiteboard.title);
@@ -1034,6 +1020,7 @@ const MinimalLearning: React.FC = () => {
 
   // 发送消息
   const handleSend = useCallback(async (content: string) => {
+    console.log('[SEND] handleSend, content=' + content.substring(0, 40) + ', isStreaming=' + state.isStreaming + ', isFirstInput=' + state.isFirstInput + ', sessionId=' + state.sessionId);
     if (state.isStreaming) return;
     
     addMessageNow('student', content, state.phase);
@@ -1172,6 +1159,21 @@ const MinimalLearning: React.FC = () => {
       {/* Full-screen whiteboard as background */}
       <div className="whiteboard-main">
         <Whiteboard loading={state.isStreaming} />
+        {/* ✅ Direct WhiteboardHTML rendering from store blocks */}
+        {whiteboardBlocks.length > 0 && (
+          <div className="whiteboard-html-overlay">
+            {whiteboardBlocks.map((block, i) => (
+              <div key={i} className="whiteboard-block html-block">
+                <WhiteboardHTML html={block.html || ''} title={block.title} />
+              </div>
+            ))}
+            {currentWhiteboard.html && (
+              <div className="whiteboard-block html-block streaming">
+                <WhiteboardHTML html={currentWhiteboard.html} title={currentWhiteboard.title} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Floating interactive whiteboard panel */}
@@ -1294,7 +1296,7 @@ const MinimalLearning: React.FC = () => {
                   {msg.role === 'ai' ? '👨‍🏫' : '👨‍🎓'}
                 </div>
                 <div className="message-content">
-                  {renderContentWithFormula(msg.content)}
+                  <MarkdownContent content={msg.content} />
                   {msg.video && (
                     <div className="message-media" style={{ marginTop: 8 }}>
                       <div style={{ background: '#000', borderRadius: 8, overflow: 'hidden' }}>
@@ -1341,7 +1343,7 @@ const MinimalLearning: React.FC = () => {
                               {qr.is_correct ? '✓ 正确' : '✗ 错误'}
                             </span>
                           </div>
-                          <div className="result-question">{renderContentWithFormula(qr.content)}</div>
+                          <div className="result-question"><MarkdownContent content={qr.content} /></div>
                           <div className="result-answer">
                             <div className="answer-row">
                               <span className="answer-label">你的答案：</span>
@@ -1361,7 +1363,7 @@ const MinimalLearning: React.FC = () => {
                           {qr.explanation && (
                             <div className="result-explanation">
                               <span className="explanation-label">💡 解题思路：</span>
-                              <div className="explanation-content">{renderContentWithFormula(qr.explanation)}</div>
+                              <div className="explanation-content"><MarkdownContent content={qr.explanation} /></div>
                             </div>
                           )}
                         </div>
@@ -1393,7 +1395,7 @@ const MinimalLearning: React.FC = () => {
                   return (
                     <div key={q.id} className="assessment-question">
                       <div className="question-header">第 {idx + 1} 题</div>
-                      <div className="question-content">{renderContentWithFormula(q.content)}</div>
+                      <div className="question-content"><MarkdownContent content={q.content} /></div>
 
                       {displayOptions && displayOptions.length > 0 ? (
                         <div className="question-options">

@@ -267,16 +267,18 @@ def generate_teaching_prompt(
 【返回格式 - 边讲边写模式 + HTML增强】
 请严格按照以下JSONL格式输出，每行一个独立的JSON对象：
 
-{{"type":"segment","message":"教学内容...","whiteboard":{{"title":"标题"}}}}
-{{"type":"segment","message":"教学内容...","whiteboard":{{"points":["要点1","要点2"]}}}}
+{{"type":"segment","message":"教学内容...","whiteboard":{{"title":"标题"}},"whiteboard_html":"<div class='hero-teach'>...</div>"}}
+{{"type":"segment","message":"教学内容...","whiteboard":{{"points":["要点1","要点2"]}},"whiteboard_html":"<div class='split-knowledge'>...</div>"}}
 {{"type":"segment","message":"需要配图说明的内容","whiteboard":{{}},"need_image":{{"concept":"精确描述你想要画什么样的图片，不要产出模糊的描述，例如：y=2x+1的图片，要展示截距/斜率等重要信息","animation_type":"auto","output_format":"image"}}}}
 {{"type":"segment","message":"需要动画演示的内容","whiteboard":{{}},"need_image":{{"concept":"精确描述你想要画什么样的动画，不要产出模糊的描述，例如：希望展示函数变换的过程，对y=2x+1的图像先左右再上下平移3个单位","animation_type":"auto","output_format":"video"}}}}
-{{"type":"segment","message":"提问内容...","whiteboard":{{}},"is_question":true}}
+{{"type":"segment","message":"提问内容...","whiteboard":{{}},"whiteboard_html":"<div class='interactive-quiz'>...</div>","is_question":true}}
 {{"type":"complete","next_action":"wait_for_student"}}
 
-【HTML增强输出（强烈推荐使用）】
-这是本系统的核心特色。对于每个教学segment，强烈推荐同时输出whiteboard_html字段，
+【HTML增强输出（必须使用）】
+这是本系统的核心特色。**每个 segment 必须同时输出 whiteboard_html 字段**，
 用语义HTML实现丰富、美观的视觉呈现。
+
+**注意：whiteboard_html 不是可选的，是强制的！每个 segment 都要有！**
 
 **设计风格：Dark Academia · 编辑式排版**
 - 教育性、庄重、有质感的视觉风格
@@ -567,24 +569,10 @@ def generate_teaching_prompt(
   <div class="ht-overline">核心定理</div>
   <div class="ht-title">平移不改变斜率</div>
   <div class="ht-body">无论图像如何移动，直线的倾斜程度——斜率 k——始终是平移变换下的不变量。</div>
-  <div class="ht-formula">$y = kx + b \rightarrow y = k(x \pm m) + (b \pm n)$</div>
+  <div class="ht-formula">$y = kx + b \\rightarrow y = k(x \\pm m) + (b \\pm n)$</div>
 </div>
 
--- 示例21：双色块对比（大面积色块替代边框）--
-<div class="color-block">
-  <div class="cb-side">
-    <div class="cb-label">平移前</div>
-    <div class="cb-title">$y = 2x + 1$</div>
-    <div class="cb-body">斜率 k = 2 · 截距 b = 1</div>
-  </div>
-  <div class="cb-side">
-    <div class="cb-label">平移后</div>
-    <div class="cb-title">$y = 2x - 3$</div>
-    <div class="cb-body">右移 2 单位 · 斜率不变</div>
-  </div>
-</div>
-
--- 示例22：教学规则（超大引号起首）--
+-- 示例21：教学规则（超大引号起首）--
 <div class="teach-rule">
   <div class="tr-ornament">"</div>
   <div class="tr-text">平移变换的本质是坐标系的重新定位，而非函数本身的改变。直线的品格——斜率——因此永恒不变。</div>
@@ -613,9 +601,8 @@ def generate_teaching_prompt(
 </div>
 
 【编辑式组件速查】
-示例20-24 遵循杂志排版逻辑，而非 UI 卡片逻辑：
+示例20-23 遵循杂志排版逻辑，而非 UI 卡片逻辑：
 - hero-teach：超大背景编号 + 上标线 + 衬线标题 + 85%宽度留白 → 适合核心定理/概念
-- color-block：左半完全填充主色块 → 适合对比性内容
 - teach-rule：巨型引号装饰 + 斜体衬线规则文字 → 适合需要强调的规律
 - split-knowledge：中间渐变分割线 + 左右布局 → 适合对比两个概念
 - key-number：3rem 超大数字 + 小写说明 → 适合统计/量化信息
@@ -623,7 +610,7 @@ def generate_teaching_prompt(
 【编辑式 vs 卡片式选择指南】
 - 核心定理/关键概念 → hero-teach（别用 knowledge-card）
 - 需要强调的规律 → teach-rule 或 pull-quote（别用 callout）
-- 左右对比 → color-block 或 split-knowledge（别用 comparison）
+- 左右对比 → split-knowledge（别用 comparison）
 - 数字统计 → key-number（别用 stat-item）
 - 多个要点 → magazine-grid（别用 card-grid）
 - 递进步骤 → knowledge-steps（别用 step-list）
@@ -730,23 +717,23 @@ TEACHING_PROMPT = """【教学任务】
 【返回格式 - 边讲边写模式】
 请严格按照以下JSONL格式输出，实现"边说边展示"的效果。每行一个独立的JSON对象：
 
-{{"type":"segment","message":"引入内容（20-30字，联系已学知识或生活实例）","whiteboard":{{"title":"知识点标题"}}}}
+{{"type":"segment","message":"引入内容（20-30字，联系已学知识或生活实例）","whiteboard":{{"title":"知识点标题"}},"whiteboard_html":"<编辑式HTML组件>"}}
 
-{{"type":"segment","message":"定义/概念解释（40-60字）","whiteboard":{{"points":["核心要点1","核心要点2"]}}}}
+{{"type":"segment","message":"定义/概念解释（40-60字）","whiteboard":{{"points":["核心要点1","核心要点2"]}},"whiteboard_html":"<编辑式HTML组件>"}}
 
-{{"type":"segment","message":"公式或关键内容说明（30-50字）","whiteboard":{{"formulas":["公式（LaTeX格式）"]}}}}
+{{"type":"segment","message":"公式或关键内容说明（30-50字）","whiteboard":{{"formulas":["公式（LaTeX格式）"]}},"whiteboard_html":"<编辑式HTML组件>"}}
 
-{{"type":"segment","message":"示例讲解（40-60字，结合公式演示）","whiteboard":{{"examples":["示例1","示例2"]}}}}
+{{"type":"segment","message":"示例讲解（40-60字，结合公式演示）","whiteboard":{{"examples":["示例1","示例2"]}},"whiteboard_html":"<编辑式HTML组件>"}}
 
-{{"type":"segment","message":"总结归纳（20-30字）","whiteboard":{{"notes":["注意事项"]}}}}
+{{"type":"segment","message":"总结归纳（20-30字）","whiteboard":{{"notes":["注意事项"]}},"whiteboard_html":"<编辑式HTML组件>"}}
 
-{{"type":"segment","message":"提问（15-25字，检查学生理解）","whiteboard":{{}},"is_question":true}}
+{{"type":"segment","message":"提问（15-25字，检查学生理解）","whiteboard":{{}},"whiteboard_html":"<交互式HTML组件>","is_question":true}}
 
 {{"type":"complete","next_action":"wait_for_student"}}
 
 【输出规则】
 1. 必须使用"边讲边写"模式：每句话搭配相应的白板内容
-2. whiteboard字段可以包含：title, points, formulas, examples, notes；也可用 whiteboard_html 字段输出语义HTML版本
+2. 【强制】每个 segment 必须同时输出 whiteboard_html 字段！用语义HTML组件实现视觉呈现
 3. points/formulas/examples/notes 都是数组格式，可以添加多个
 4. 每个segment只包含当前段话相关的白板内容，不要重复之前的内容
 5. 公式使用纯LaTeX格式，不要加$符号，例如：y = kx + b
@@ -1010,14 +997,14 @@ def generate_personalized_teaching_prompt(
 【返回格式 - 边讲边写模式】
 请严格按照以下JSONL格式输出，每行一个独立的JSON对象：
 
-{{"type":"segment","message":"教学内容...","whiteboard":{{"title":"标题"}}}}
-{{"type":"segment","message":"教学内容...","whiteboard":{{"points":["要点1","要点2"]}}}}
-{{"type":"segment","message":"提问内容...","whiteboard":{{}},"is_question":true}}
+{{"type":"segment","message":"教学内容...","whiteboard":{{"title":"标题"}},"whiteboard_html":"<编辑式HTML组件>"}}
+{{"type":"segment","message":"教学内容...","whiteboard":{{"points":["要点1","要点2"]}},"whiteboard_html":"<编辑式HTML组件>"}}
+{{"type":"segment","message":"提问内容...","whiteboard":{{}},"whiteboard_html":"<交互式HTML组件>","is_question":true}}
 {{"type":"complete","next_action":"wait_for_student"}}
 
 【输出规则】
 1. 必须使用"边讲边写"模式：每句话搭配相应的白板内容
-2. whiteboard字段可以包含：title, points, formulas, examples, notes；也可用 whiteboard_html 字段输出语义HTML版本
+2. 【强制】每个 segment 必须同时输出 whiteboard_html 字段！用语义HTML组件实现视觉呈现
 3. 每个segment只包含当前段话相关的白板内容，不要重复之前的内容
 4. 公式使用纯LaTeX格式，例如：y = kx + b
 5. 【必须】每个阶段结尾要有提问，next_action 设为 "wait_for_student"
