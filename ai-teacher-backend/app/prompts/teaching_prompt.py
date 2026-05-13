@@ -435,6 +435,67 @@ def generate_teaching_prompt(
   <div class="quiz-opt">$y=2(x-2)+3$</div>
 </div>
 
+-- 示例9：交互选择题（点击选项看反馈）--
+<div class="interactive-quiz">
+  <div class="quiz-question">直线 $y=3x-2$ 向右平移4个单位后的解析式是？</div>
+  <div class="quiz-option" data-correct>$y=3(x-4)-2$</div>
+  <div class="quiz-option">$y=3(x+4)-2$</div>
+  <div class="quiz-option">$y=3x+2$</div>
+</div>
+
+-- 示例10：点击揭示答案 --
+<div class="interactive-reveal">
+  <div class="reveal-question">将 $y=-2x+5$ 先向左平移3个单位，再向下平移1个单位</div>
+  <div class="reveal-hint">💡 先处理左右平移（对x操作），再处理上下平移（对常数操作）</div>
+  <div class="reveal-answer"><div class="reveal-answer-content">$y = -2(x+3) + 5 - 1 = -2x - 6 + 4 = -2x - 2$</div></div>
+</div>
+
+-- 示例11：逐步揭示解题步骤 --
+<div class="interactive-steps">
+  <div class="step-header">📋 解题步骤（点击每步可展开下一步）</div>
+  <div class="step" data-step="1">第一步：判断平移方向 → 左移3，下移1</div>
+  <div class="step" data-step="2" data-hidden>第二步：左移对x操作 → x变成(x+3)</div>
+  <div class="step" data-step="3" data-hidden>第三步：下移对b操作 → b变成5-1=4</div>
+  <div class="step" data-step="4" data-hidden>第四步：代入化简 → y = -2(x+3) + 4 = -2x - 2</div>
+</div>
+
+-- 示例12：翻转卡片 --
+<div class="interactive-flip">
+  <div class="flip-inner">
+    <div class="flip-front">
+      <div class="flip-icon">❓</div>
+      <div class="flip-label">点击翻转</div>
+      <div class="flip-text">一次函数平移的口诀是？</div>
+    </div>
+    <div class="flip-back">
+      <div class="flip-icon">💡</div>
+      <div class="flip-label">答案</div>
+      <div class="flip-text">上加下减，左加右减（对x操作）</div>
+    </div>
+  </div>
+</div>
+
+-- 示例13：选项卡 --
+<div class="interactive-tabs">
+  <div class="tab-bar">
+    <span class="tab-trigger active" data-tab="concept">📖 概念</span>
+    <span class="tab-trigger" data-tab="rule">📐 规律</span>
+    <span class="tab-trigger" data-tab="example">📝 示例</span>
+  </div>
+  <div class="tab-panel active" data-tab="concept">平移是指函数图像在坐标系中沿某个方向移动，不改变图像的形状和倾斜程度。</div>
+  <div class="tab-panel" data-tab="rule" data-hidden>上移+b、下移-b、左移对x加、右移对x减。平移不改变斜率k。</div>
+  <div class="tab-panel" data-tab="example" data-hidden>$y=2x+1$ 右移2 → $y=2(x-2)+1=2x-3$</div>
+</div>
+
+【交互组件使用说明】
+以上示例（9-13）中的组件是真正的交互式组件，学生可以在白板上点击操作：
+- interactive-quiz：点击选项 → 自动判断对错，显示反馈文字 ✓/✗
+- interactive-reveal：点击方块 → 平滑展开显示隐藏答案，再点击收回
+- interactive-steps：点击每一步 → 展开下一步，逐步引导思考
+- interactive-flip：点击卡片 → 3D翻转显示背面答案
+- interactive-tabs：点击标签 → 切换不同面板内容
+推荐在"提问"或"练习"环节使用这些交互组件来增强学生的参与感。
+
 【组件组合技巧】
 - 可以将多个组件自由组合：card-grid + callout + table + formula-spotlight
 - 同一segment的HTML应围绕同一知识点组织
