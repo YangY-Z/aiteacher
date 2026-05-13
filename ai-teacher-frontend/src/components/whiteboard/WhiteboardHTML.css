@@ -1,9 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════
-   WhiteboardHTML.css — Dark Slate · Editorial Teaching
-   美学方向：冷调暗石色系 × 编辑式排版
+   WhiteboardHTML.css — Monochrome Editorial
+   美学方向：纯黑白灰 × 排版驱动
    字体：Playfair Display（标题）+ DM Sans（正文）+ JetBrains Mono（代码）
-   色彩：深黑底 + 石板蓝绿强调 + 暖石辅助
-   设计特点：噪点纹理 | 3D透视悬停 | 几何装饰 | 方向性入场 | 多层次阴影
+   色彩：无彩色，只有黑白灰的层次
    ═══════════════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap');
@@ -23,27 +22,27 @@
 
 /* ── 色彩变量 ── */
 .whiteboard-html-wrapper {
-  --wb-bg-deep: #0a0a12;
-  --wb-bg-surface: #12121e;
-  --wb-bg-elevated: #1a1a26;
-  --wb-bg-card: #141420;
-  --wb-bg-hover: #1e1e2e;
-  --wb-primary: #7a9a8a;
-  --wb-primary-soft: #9abaaa;
-  --wb-primary-dim: #5a7a6a;
-  --wb-accent: #8a9aaa;
-  --wb-accent-soft: #aabaca;
-  --wb-warm: #9a8a7a;
-  --wb-warm-soft: #baaa9a;
-  --wb-teal: #5a8a7a;
-  --wb-teal-soft: #7aaa9a;
-  --wb-text: #e8e8e0;
-  --wb-text-dim: #b0b0a0;
-  --wb-text-muted: #8a8a78;
-  --wb-border: #22222e;
-  --wb-border-light: #2e2e3a;
-  --wb-shadow: rgba(122, 154, 138, 0.08);
-  --wb-shadow-lg: rgba(122, 154, 138, 0.15);
+  --wb-bg-deep: #0a0a0a;
+  --wb-bg-surface: #141414;
+  --wb-bg-elevated: #1e1e1e;
+  --wb-bg-card: #181818;
+  --wb-bg-hover: #222222;
+  --wb-primary: #e0e0e0;
+  --wb-primary-soft: #f0f0f0;
+  --wb-primary-dim: #aaaaaa;
+  --wb-accent: #cccccc;
+  --wb-accent-soft: #dddddd;
+  --wb-warm: #bbbbbb;
+  --wb-warm-soft: #d0d0d0;
+  --wb-teal: #c0c0c0;
+  --wb-teal-soft: #d8d8d8;
+  --wb-text: #f0f0f0;
+  --wb-text-dim: #c0c0c0;
+  --wb-text-muted: #909090;
+  --wb-border: #2a2a2a;
+  --wb-border-light: #3a3a3a;
+  --wb-shadow: rgba(255, 255, 255, 0.04);
+  --wb-shadow-lg: rgba(255, 255, 255, 0.08);
   --wb-radius: 8px;
   --wb-radius-lg: 12px;
   padding: 0.25rem 0;
@@ -1474,21 +1473,21 @@
   margin-bottom: 0.3rem;
   opacity: 0.7;
 }
-.color-block .cb-side:first-child .cb-label { color: #fff; }
+.color-block .cb-side:first-child .cb-label { color: #666666; }
 .color-block .cb-side:last-child .cb-label { color: var(--wb-text-muted); }
 .color-block .cb-title {
   font-family: 'Playfair Display', Georgia, serif;
   font-weight: 600;
   font-size: 1rem;
 }
-.color-block .cb-side:first-child .cb-title { color: #fff; }
+.color-block .cb-side:first-child .cb-title { color: #1a1a1a; }
 .color-block .cb-side:last-child .cb-title { color: var(--wb-text); }
 .color-block .cb-body {
   font-size: 0.82rem;
   line-height: 1.6;
   margin-top: 0.3rem;
 }
-.color-block .cb-side:first-child .cb-body { color: rgba(255,255,255,0.85); }
+.color-block .cb-side:first-child .cb-body { color: #444444; }
 .color-block .cb-side:last-child .cb-body { color: var(--wb-text-dim); }
 
 /* ── 35. 教学规则 — 超大引号起首 ── */
