@@ -37,9 +37,9 @@
   --wb-warm-soft: #baaa9a;
   --wb-teal: #5a8a7a;
   --wb-teal-soft: #7aaa9a;
-  --wb-text: #d8d8d0;
-  --wb-text-dim: #9a9a8a;
-  --wb-text-muted: #7a7a6a;
+  --wb-text: #e8e8e0;
+  --wb-text-dim: #b0b0a0;
+  --wb-text-muted: #8a8a78;
   --wb-border: #22222e;
   --wb-border-light: #2e2e3a;
   --wb-shadow: rgba(122, 154, 138, 0.08);
@@ -1370,16 +1370,253 @@
 .knowledge-steps .ks-title { font-weight: 500; color: var(--wb-text); font-size: 0.85rem; }
 .knowledge-steps .ks-desc { color: var(--wb-text-muted); font-size: 0.75rem; margin-top: 0.05rem; }
 
-/* ── 入场动画 ── */
-.magazine-grid { animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-.pull-quote { animation: fadeSlideInLeft 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-.slant-box { animation: fadeSlideInUp 0.35s ease forwards; }
-.overlap-stats { animation: fadeSlideInUp 0.4s ease forwards; }
-.overlap-stats .os-item:nth-child(1) { animation: fadeSlideInUp 0.3s ease forwards; }
-.overlap-stats .os-item:nth-child(2) { animation: fadeSlideInUp 0.3s ease 0.08s both; }
-.overlap-stats .os-item:nth-child(3) { animation: fadeSlideInUp 0.3s ease 0.16s both; }
-.diagonal-compare { animation: scaleIn 0.35s ease forwards; }
-.knowledge-steps .ks-step:nth-child(1) { animation: fadeSlideInLeft 0.3s ease forwards; }
-.knowledge-steps .ks-step:nth-child(2) { animation: fadeSlideInLeft 0.3s ease 0.06s both; }
-.knowledge-steps .ks-step:nth-child(3) { animation: fadeSlideInLeft 0.3s ease 0.12s both; }
-.knowledge-steps .ks-step:nth-child(4) { animation: fadeSlideInLeft 0.3s ease 0.18s both; }
+/* ═══════════════════════════════════════════════════════════════
+   Editorial Components — 编辑式/杂志式视觉语言
+   不再是"卡片 UI"，而是"排版设计"
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 33. 教学主视觉 — 超大编号 + 杂志式文字层次 ── */
+.hero-teach {
+  position: relative;
+  padding: 2rem 1.5rem;
+  margin: 1.5rem 0;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--wb-bg-card), var(--wb-bg-surface));
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius-lg);
+}
+.hero-teach .ht-number {
+  position: absolute;
+  top: -0.15em;
+  right: -0.05em;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 6rem;
+  font-weight: 700;
+  color: var(--wb-primary);
+  opacity: 0.06;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+.hero-teach .ht-overline {
+  font-size: 0.6rem;
+  color: var(--wb-primary-dim);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: 0.3rem;
+  position: relative;
+  display: inline-block;
+}
+.hero-teach .ht-overline::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 8px);
+  width: 24px;
+  height: 1px;
+  background: var(--wb-primary-dim);
+}
+.hero-teach .ht-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--wb-primary);
+  line-height: 1.25;
+  margin-bottom: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+.hero-teach .ht-body {
+  color: var(--wb-text-dim);
+  font-size: 0.88rem;
+  line-height: 1.7;
+  max-width: 85%;
+  position: relative;
+  z-index: 1;
+}
+.hero-teach .ht-formula {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.92rem;
+  color: var(--wb-primary-soft);
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.6rem;
+  background: var(--wb-bg-deep);
+  border: 1px solid var(--wb-border-light);
+  border-radius: var(--wb-radius);
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── 34. 双色块 — 用大面积色块替代边框 ── */
+.color-block {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 0.8rem 0;
+  border-radius: var(--wb-radius-lg);
+  overflow: hidden;
+}
+.color-block .cb-side {
+  padding: 1rem 1.2rem;
+}
+.color-block .cb-side:first-child {
+  background: var(--wb-primary);
+}
+.color-block .cb-side:last-child {
+  background: var(--wb-bg-surface);
+  border: 1px solid var(--wb-border);
+  border-left: none;
+}
+.color-block .cb-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 0.3rem;
+  opacity: 0.7;
+}
+.color-block .cb-side:first-child .cb-label { color: #fff; }
+.color-block .cb-side:last-child .cb-label { color: var(--wb-text-muted); }
+.color-block .cb-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 600;
+  font-size: 1rem;
+}
+.color-block .cb-side:first-child .cb-title { color: #fff; }
+.color-block .cb-side:last-child .cb-title { color: var(--wb-text); }
+.color-block .cb-body {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  margin-top: 0.3rem;
+}
+.color-block .cb-side:first-child .cb-body { color: rgba(255,255,255,0.85); }
+.color-block .cb-side:last-child .cb-body { color: var(--wb-text-dim); }
+
+/* ── 35. 教学规则 — 超大引号起首 ── */
+.teach-rule {
+  margin: 1.2rem 0;
+  position: relative;
+}
+.teach-rule .tr-ornament {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 4rem;
+  line-height: 0.8;
+  color: var(--wb-primary);
+  opacity: 0.12;
+  margin-bottom: -0.8rem;
+  user-select: none;
+}
+.teach-rule .tr-text {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.15rem;
+  font-style: italic;
+  color: var(--wb-primary-soft);
+  line-height: 1.5;
+  padding-left: 0.5rem;
+  position: relative;
+}
+.teach-rule .tr-attribution {
+  font-size: 0.72rem;
+  color: var(--wb-text-muted);
+  text-align: right;
+  margin-top: 0.3rem;
+  padding-right: 0.5rem;
+}
+
+/* ── 36. 知识点分裂布局 — 左右对比 + 中间装饰 ── */
+.split-knowledge {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0;
+  align-items: center;
+  margin: 1rem 0;
+  position: relative;
+}
+.split-knowledge .sk-side {
+  padding: 1rem 1.2rem;
+}
+.split-knowledge .sk-side:first-child {
+  text-align: right;
+  background: var(--wb-bg-surface);
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius-lg) 0 0 var(--wb-radius-lg);
+}
+.split-knowledge .sk-side:last-child {
+  text-align: left;
+  background: var(--wb-bg-surface);
+  border: 1px solid var(--wb-border);
+  border-left: none;
+  border-radius: 0 var(--wb-radius-lg) var(--wb-radius-lg) 0;
+}
+.split-knowledge .sk-divider {
+  width: 2px;
+  height: 60%;
+  background: linear-gradient(180deg, transparent, var(--wb-primary-dim), transparent);
+  flex-shrink: 0;
+}
+.split-knowledge .sk-label {
+  font-size: 0.6rem;
+  color: var(--wb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.split-knowledge .sk-concept {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--wb-primary);
+  margin-top: 0.15rem;
+}
+.split-knowledge .sk-desc {
+  font-size: 0.82rem;
+  color: var(--wb-text-dim);
+  margin-top: 0.3rem;
+  line-height: 1.5;
+}
+
+/* ── 37. 关键数字 — 超大字号 + 说明文字 ── */
+.key-number {
+  text-align: center;
+  padding: 1.2rem 1rem;
+  margin: 0.6rem 0;
+  background: var(--wb-bg-surface);
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius-lg);
+  position: relative;
+  overflow: hidden;
+}
+.key-number::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--wb-primary), transparent);
+  opacity: 0.3;
+}
+.key-number .kn-value {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--wb-primary);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.key-number .kn-unit {
+  font-size: 0.9rem;
+  color: var(--wb-primary-dim);
+  vertical-align: super;
+  margin-left: 2px;
+}
+.key-number .kn-label {
+  font-size: 0.72rem;
+  color: var(--wb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-top: 0.15rem;
+}
+
+/* ── 动画 ── */
+.hero-teach { animation: fadeSlideInUp 0.35s ease forwards; }
+.color-block { animation: scaleIn 0.35s ease forwards; }
+.teach-rule { animation: fadeSlideInLeft 0.4s ease forwards; }
+.split-knowledge { animation: scaleIn 0.35s ease forwards; }
+.key-number { animation: fadeSlideInUp 0.35s ease forwards; }
