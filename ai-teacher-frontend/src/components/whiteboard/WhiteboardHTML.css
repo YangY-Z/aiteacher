@@ -908,3 +908,319 @@
 .whiteboard-html-content > * {
   animation: fadeSlideIn 0.3s ease forwards;
 }
+
+/* ═══════════════════════════════════════════════════════
+   交互组件 — React 后挂事件，纯 class 切换控制
+   ═══════════════════════════════════════════════════════ */
+
+/* ── 21. 点击揭示 (interactive-reveal) ── */
+.interactive-reveal {
+  background: linear-gradient(135deg, #1a1a30, #141428);
+  border: 1px solid #2a2a5a;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin: 0.5rem 0;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+}
+.interactive-reveal::after {
+  content: '👆 点击显示答案';
+  display: block;
+  font-size: 0.7rem;
+  color: #4a6aff;
+  text-align: right;
+  margin-top: 0.3rem;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.interactive-reveal:hover {
+  border-color: #4a6aff;
+  box-shadow: 0 2px 8px rgba(74, 106, 255, 0.1);
+}
+.interactive-reveal.revealed::after {
+  content: '👆 点击隐藏答案';
+  opacity: 0.4;
+}
+.reveal-question {
+  font-weight: 500;
+  color: #c0d0ff;
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+.reveal-hint {
+  font-size: 0.8rem;
+  color: #8a9ab0;
+  font-style: italic;
+  margin-bottom: 0.25rem;
+}
+.reveal-answer {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+  margin-top: 0;
+}
+.revealed .reveal-answer {
+  max-height: 300px;
+  opacity: 1;
+  margin-top: 0.5rem;
+}
+.reveal-answer-content {
+  background: #0a0a20;
+  border: 1px solid #2a3a5a;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: #a0d0a0;
+  border-left: 3px solid #50a050;
+}
+
+/* ── 22. 逐步揭示 (interactive-steps) ── */
+.interactive-steps {
+  background: #141428;
+  border: 1px solid #2a2a4a;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+}
+.step-header {
+  font-weight: 500;
+  color: #c0d0ff;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #2a2a4a;
+}
+.interactive-steps .step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  margin: 0.2rem 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+  color: #b0c0d0;
+  background: #1a1a30;
+  border: 1px solid #2a2a4a;
+}
+.interactive-steps .step:hover {
+  border-color: #4a6aff;
+  background: #1a1a3a;
+}
+.interactive-steps .step::before {
+  content: attr(data-step);
+  width: 20px;
+  height: 20px;
+  background: #4a6aff;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.interactive-steps .step[data-hidden] {
+  display: none;
+}
+.step-enter {
+  animation: stepSlideIn 0.3s ease forwards;
+}
+@keyframes stepSlideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ── 23. 交互式选择题 (interactive-quiz) ── */
+.interactive-quiz {
+  background: #141428;
+  border: 1px solid #2a2a5a;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin: 0.5rem 0;
+}
+.interactive-quiz .quiz-question {
+  font-weight: 500;
+  color: #c0d0ff;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+.interactive-quiz .quiz-question::before {
+  content: '❓ ';
+}
+.interactive-quiz .quiz-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: #1a1a2e;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.35rem 0;
+  font-size: 0.85rem;
+  color: #b0c0d0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.interactive-quiz .quiz-option:hover {
+  background: #222240;
+  border-color: #4a6aff;
+  transform: translateX(3px);
+}
+.interactive-quiz .quiz-option.correct {
+  background: #1a2a1a;
+  border-color: #50a050;
+  color: #a0d0a0;
+}
+.interactive-quiz .quiz-option.correct::after {
+  content: ' ✓ 正确！';
+  color: #50a050;
+  font-weight: 600;
+}
+.interactive-quiz .quiz-option.wrong {
+  background: #2a1a1a;
+  border-color: #d05050;
+  color: #d0a0a0;
+}
+.interactive-quiz .quiz-option.wrong::after {
+  content: ' ✗ 再想想';
+  color: #d05050;
+  font-weight: 600;
+}
+.interactive-quiz .quiz-option.selected {
+  box-shadow: 0 0 12px rgba(74, 106, 255, 0.3);
+}
+.quiz-feedback {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+  display: none;
+}
+.quiz-feedback.show {
+  display: block;
+  animation: fadeSlideIn 0.3s ease;
+}
+
+/* ── 24. 翻转卡片 (interactive-flip) ── */
+.interactive-flip {
+  perspective: 800px;
+  margin: 0.6rem 0;
+  cursor: pointer;
+}
+.interactive-flip .flip-inner {
+  position: relative;
+  width: 100%;
+  min-height: 120px;
+  transition: transform 0.5s ease;
+  transform-style: preserve-3d;
+}
+.interactive-flip.flipped .flip-inner {
+  transform: rotateY(180deg);
+}
+.flip-front, .flip-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 120px;
+  backface-visibility: hidden;
+  border-radius: 10px;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.flip-front {
+  background: linear-gradient(135deg, #1a1a3a, #141428);
+  border: 1px solid #2a2a4a;
+  z-index: 2;
+}
+.flip-back {
+  background: linear-gradient(135deg, #2a1a3a, #1a1a2e);
+  border: 1px solid #4a2a5a;
+  transform: rotateY(180deg);
+}
+.flip-icon {
+  font-size: 1.8rem;
+  margin-bottom: 0.4rem;
+}
+.flip-label {
+  font-size: 0.75rem;
+  color: #6a7a9a;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.3rem;
+}
+.flip-text {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #c0d0ff;
+}
+.flip-back .flip-text {
+  color: #d0b0e0;
+}
+/* 提示点击翻转 */
+.interactive-flip::after {
+  content: '🔄 点击翻转';
+  display: block;
+  text-align: center;
+  font-size: 0.7rem;
+  color: #4a6aff;
+  opacity: 0.5;
+  margin-top: 0.5rem;
+}
+
+/* ── 25. 选项卡 (interactive-tabs) ── */
+.interactive-tabs {
+  background: #141428;
+  border: 1px solid #2a2a4a;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 0.5rem 0;
+}
+.tab-bar {
+  display: flex;
+  background: #1a1a30;
+  border-bottom: 1px solid #2a2a4a;
+}
+.tab-trigger {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #8a9ab0;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+  user-select: none;
+}
+.tab-trigger:hover {
+  color: #c0d0ff;
+  background: #222240;
+}
+.tab-trigger.active {
+  color: #c0d0ff;
+  border-bottom-color: #4a6aff;
+  background: #1a1a3a;
+  font-weight: 500;
+}
+.tab-panel {
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  color: #b0c0d0;
+  line-height: 1.6;
+  display: none;
+}
+.tab-panel.active {
+  display: block;
+  animation: fadeSlideIn 0.25s ease;
+}
