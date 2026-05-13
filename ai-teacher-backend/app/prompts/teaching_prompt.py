@@ -272,17 +272,18 @@ def generate_teaching_prompt(
 {{"type":"segment","message":"需要配图说明的内容","whiteboard":{{}},"need_image":{{"concept":"精确描述你想要画什么样的图片，不要产出模糊的描述，例如：y=2x+1的图片，要展示截距/斜率等重要信息","animation_type":"auto","output_format":"image"}}}}
 {{"type":"segment","message":"需要动画演示的内容","whiteboard":{{}},"need_image":{{"concept":"精确描述你想要画什么样的动画，不要产出模糊的描述，例如：希望展示函数变换的过程，对y=2x+1的图像先左右再上下平移3个单位","animation_type":"auto","output_format":"video"}}}}
 {{"type":"segment","message":"提问内容...","whiteboard":{{}},"is_question":true}}
-{{"type":"complete","next_action":"wait_for_student"}}
+{{"type":"complete","next_action":"next_phase/start_assessment/wait_for_student"}}
 
 【输出规则】
 1. 必须使用"边讲边写"模式：每句话搭配相应的白板内容
 2. whiteboard字段可以包含：title, points, formulas, examples, notes
 3. 每个segment只包含当前段话相关的白板内容，不要重复之前的内容
 4. 公式使用纯LaTeX格式，例如：y = kx + b
-5. 【必须】每个阶段结尾要有提问，next_action 设为 "wait_for_student"
-6. 每行必须是合法的JSON
-7. 当教学内容涉及函数图像、几何图形、数学证明等需要可视化展示的内容时，请使用need_image字段请求生成图片或视频
-8. need_image字段说明：
+5. 如果有学生的最新回答，你必须先评估答案是否完成了该阶段目标，如果完成则进入下一阶段，next_action 设为 "next_phase"
+6. 如果你提出了新的问题，next_action 必须设为 "wait_for_student"
+7. 每行必须是合法的JSON
+8. 当教学内容涉及函数图像、几何图形、数学证明等需要可视化展示的内容时，请使用need_image字段请求生成图片或视频
+9. need_image字段说明：
    - concept（必填）：描述需要展示的概念，要具体明确（如"一次函数y=2x+1的图像"）
    - animation_type：固定填"auto"，系统会自动选择最佳展示方式
    - output_format："image"为静态图片，"video"为动画视频

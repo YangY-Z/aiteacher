@@ -110,6 +110,15 @@ export interface RoundMessage {
   content: string;
 }
 
+export interface WhiteboardState {
+  title: string;
+  key_points: string[];
+  formulas: string[];
+  examples: string[];
+  notes: string[];
+  image: WhiteboardImage | null;
+}
+
 export interface SessionHistoryRound {
   round_number: number;
   status: string;
@@ -119,6 +128,7 @@ export interface SessionHistoryRound {
   teaching_mode: string | null;
   assessment_result: Record<string, unknown> | null;
   summary: Record<string, unknown> | null;
+  whiteboard_state: WhiteboardState | null;
 }
 
 export interface SessionHistoryResponse {
@@ -130,6 +140,7 @@ export interface SessionHistoryResponse {
   created_at: string | null;
   current_round_index: number;
   rounds: SessionHistoryRound[];
+  whiteboard_state: WhiteboardState | null;
 }
 
 // 聊天

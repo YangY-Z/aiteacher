@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.services.llm_providers.base import BaseLLMProvider
 from app.services.llm_providers.zhipu import ZhipuProvider
 from app.services.llm_providers.bailian import BailianProvider
+from app.services.llm_providers.deepseek import DeepSeekProvider
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +18,10 @@ class LLMProviderType(str, Enum):
 
     ZHIPU = "zhipu"
     BAILIAN = "bailian"
+    DEEPSEEK = "deepseek"
     # Future providers can be added here:
     # OPENAI = "openai"
     # ANTHROPIC = "anthropic"
-    # DEEPSEEK = "deepseek"
 
 
 class LLMProviderFactory:
@@ -106,6 +107,13 @@ class LLMProviderFactory:
                 default_model=kwargs.get("default_model", fresh_settings.bailian_model),
                 timeout=kwargs.get("timeout", fresh_settings.llm_timeout),
                 enable_thinking=kwargs.get("enable_thinking", fresh_settings.bailian_enable_thinking),
+            )
+        
+        elif provider_type == LLMProviderType.DEEPSEEK:
+            return DeepSeekProvider(
+                api_key=kwargs.get("api_key", fresh_settings.deepseek_api_key),
+                default_model=kwargs.get("default_model", fresh_settings.deepseek_model),
+                timeout=kwargs.get("timeout", fresh_settings.llm_timeout),
             )
 
         # Future providers can be added here:

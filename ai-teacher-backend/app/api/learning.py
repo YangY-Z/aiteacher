@@ -24,6 +24,7 @@ from app.schemas.learning import (
     SessionHistoryResponse,
     SessionHistoryRound,
     RoundMessage,
+    WhiteboardStateResponse,
 )
 from app.schemas.common import APIResponse
 from app.services.learning_service import learning_service
@@ -706,6 +707,18 @@ async def get_session_history(
             RoundMessage(role=m.get("role", "assistant"), content=m.get("content", ""))
             for m in round_data.messages
         ]
+        
+        whiteboard_state = None
+        if round_data.whiteboard_state:
+            whiteboard_state = WhiteboardStateResponse(
+                title=round_data.whiteboard_state.title,
+                key_points=round_data.whiteboard_state.key_points,
+                formulas=round_data.whiteboard_state.formulas,
+                examples=round_data.whiteboard_state.examples,
+                notes=round_data.whiteboard_state.notes,
+                image=round_data.whiteboard_state.image,
+            )
+        
         rounds_detail.append(SessionHistoryRound(
             round_number=round_data.round_number,
             status=round_data.status.value if isinstance(round_data.status, type(round_data.status)) else str(round_data.status),
@@ -715,7 +728,20 @@ async def get_session_history(
             teaching_mode=round_data.teaching_mode,
             assessment_result=round_data.assessment_result.to_dict() if round_data.assessment_result else None,
             summary=round_data.summary.to_dict() if round_data.summary else None,
+            whiteboard_state=whiteboard_state,
         ))
+
+    # Session级别的白板状态
+    session_whiteboard = None
+    if session.whiteboard_state:
+        session_whiteboard = WhiteboardStateResponse(
+            title=session.whiteboard_state.title,
+            key_points=session.whiteboard_state.key_points,
+            formulas=session.whiteboard_state.formulas,
+            examples=session.whiteboard_state.examples,
+            notes=session.whiteboard_state.notes,
+            image=session.whiteboard_state.image,
+        )
 
     return APIResponse(
         success=True,
@@ -728,5 +754,6 @@ async def get_session_history(
             created_at=session.created_at.isoformat() if session.created_at else None,
             current_round_index=session.current_round_index,
             rounds=rounds_detail,
+            whiteboard_state=session_whiteboard,
         ),
     )

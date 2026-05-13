@@ -119,6 +119,38 @@ class RoundSummary:
 
 
 @dataclass
+class WhiteboardState:
+    """白板状态"""
+    title: str = ""
+    key_points: list[str] = field(default_factory=list)
+    formulas: list[str] = field(default_factory=list)
+    examples: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+    image: Optional[dict[str, Any]] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "title": self.title,
+            "key_points": self.key_points,
+            "formulas": self.formulas,
+            "examples": self.examples,
+            "notes": self.notes,
+            "image": self.image,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "WhiteboardState":
+        return cls(
+            title=data.get("title", ""),
+            key_points=data.get("key_points", []),
+            formulas=data.get("formulas", []),
+            examples=data.get("examples", []),
+            notes=data.get("notes", []),
+            image=data.get("image"),
+        )
+
+
+@dataclass
 class LearningRound:
     """单个学习轮次"""
     round_number: int
@@ -140,6 +172,9 @@ class LearningRound:
 
     # 总结（完成后生成）
     summary: Optional[RoundSummary] = None
+
+    # 白板状态
+    whiteboard_state: Optional[WhiteboardState] = None
 
     def add_message(self, role: str, content: str) -> None:
         """添加消息到对话历史"""
@@ -182,6 +217,7 @@ class LearningRound:
             "phases_completed": self.phases_completed,
             "assessment_result": self.assessment_result.to_dict() if self.assessment_result else None,
             "summary": self.summary.to_dict() if self.summary else None,
+            "whiteboard_state": self.whiteboard_state.to_dict() if self.whiteboard_state else None,
         }
 
     @classmethod
@@ -198,6 +234,7 @@ class LearningRound:
             phases_completed=data.get("phases_completed", []),
             assessment_result=AssessmentResult.from_dict(data["assessment_result"]) if data.get("assessment_result") else None,
             summary=RoundSummary.from_dict(data["summary"]) if data.get("summary") else None,
+            whiteboard_state=WhiteboardState.from_dict(data["whiteboard_state"]) if data.get("whiteboard_state") else None,
         )
 
 
@@ -470,6 +507,9 @@ class LearningSession:
     # 当前轮次索引
     current_round_index: int = 0
     
+    # 会话级别的白板状态（跨轮次累积）
+    whiteboard_state: Optional[WhiteboardState] = None
+    
     # === 以下属性为兼容现有代码，代理到当前轮次 ===
     
     @property
@@ -667,6 +707,7 @@ class LearningSession:
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "rounds": [r.to_dict() for r in self.rounds],
             "current_round_index": self.current_round_index,
+            "whiteboard_state": self.whiteboard_state.to_dict() if self.whiteboard_state else None,
         }
 
     @classmethod
@@ -700,5 +741,9 @@ class LearningSession:
                 current_phase=data.get("current_phase", 1),
             )
             session.rounds.append(old_round)
+        
+        # 解析白板状态
+        if data.get("whiteboard_state"):
+            session.whiteboard_state = WhiteboardState.from_dict(data["whiteboard_state"])
         
         return session

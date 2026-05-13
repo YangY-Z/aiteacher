@@ -126,6 +126,17 @@ class SessionListItem(BaseModel):
     created_at: Optional[str] = Field(None, description="创建时间")
 
 
+class WhiteboardStateResponse(BaseModel):
+    """白板状态响应"""
+
+    title: str = Field("", description="标题")
+    key_points: list[str] = Field(default_factory=list, description="要点列表")
+    formulas: list[str] = Field(default_factory=list, description="公式列表")
+    examples: list[str] = Field(default_factory=list, description="示例列表")
+    notes: list[str] = Field(default_factory=list, description="注意事项列表")
+    image: Optional[dict[str, Any]] = Field(None, description="图片信息")
+
+
 class SessionHistoryRound(BaseModel):
     """会话历史中的轮次详情"""
 
@@ -137,6 +148,7 @@ class SessionHistoryRound(BaseModel):
     teaching_mode: Optional[str] = Field(None, description="教学模式")
     assessment_result: Optional[dict[str, Any]] = Field(None, description="评估结果")
     summary: Optional[dict[str, Any]] = Field(None, description="轮次总结")
+    whiteboard_state: Optional[WhiteboardStateResponse] = Field(None, description="白板状态")
 
 
 class SessionHistoryResponse(BaseModel):
@@ -150,3 +162,4 @@ class SessionHistoryResponse(BaseModel):
     created_at: Optional[str] = Field(None, description="创建时间")
     current_round_index: int = Field(0, description="当前轮次索引")
     rounds: list[SessionHistoryRound] = Field(default_factory=list, description="所有轮次详情")
+    whiteboard_state: Optional[WhiteboardStateResponse] = Field(None, description="会话级别白板状态（跨轮次累积）")

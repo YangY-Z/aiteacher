@@ -366,6 +366,34 @@ const MinimalLearning: React.FC = () => {
             isFirstInput: false,
             currentTopic: history.kp_name || '一次函数',
           }));
+
+          // 恢复会话级别的白板状态（跨轮次累积）
+          console.log('[恢复会话] whiteboard_state:', history.whiteboard_state);
+          if (history.whiteboard_state) {
+            const wb = history.whiteboard_state;
+            console.log('[恢复会话] 白板内容:', wb.title, wb.key_points, wb.image);
+            
+            // 直接设置整个白板状态，而不是逐个字段添加
+            useLearningStore.setState({
+              currentWhiteboard: {
+                title: wb.title || '',
+                key_points: wb.key_points || [],
+                formulas: wb.formulas || [],
+                examples: wb.examples || [],
+                notes: wb.notes || [],
+                image: wb.image || null,
+              }
+            });
+            
+            // 如果有内容，设置白板为可见
+            if (wb.title || (wb.key_points && wb.key_points.length > 0) || (wb.formulas && wb.formulas.length > 0) || wb.image) {
+              console.log('[恢复会话] 设置白板模式为 mini');
+              useLearningStore.getState().setWhiteboardMode('mini');
+            }
+            
+            // 打印恢复后的状态
+            console.log('[恢复会话] 恢复后白板状态:', useLearningStore.getState().currentWhiteboard);
+          }
         } else {
           setState(prev => ({
             ...prev,

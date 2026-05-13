@@ -6,7 +6,7 @@ import re
 from typing import Any, AsyncGenerator, Optional
 
 from app.models.tool import TeachingEvent, StudentContext
-from app.models.learning import LearningSession
+from app.models.learning import LearningSession, WhiteboardState
 from app.services.tools.registry import ToolRegistry, tool_registry as global_tool_registry
 from app.services.student_context_loader import student_context_loader
 from app.services.tool_selection_engine import (
@@ -236,6 +236,62 @@ class TeachingFlow:
                     event_count += 1
                     if event_type == "complete":
                         last_next_action = event_data.get("next_action", "wait_for_student")
+                    
+                    # 保存白板状态到会话（session级别，跨轮次累积）
+                    whiteboard_data = event_data.get("whiteboard")
+                    
+                    # 从 SSE 响应中获取图片数据（图片是在 _process_tool_references 中处理的）
+                    sse_response_data = json.loads(sse_dict.get("data", "{}"))
+                    image_data = sse_response_data.get("image")
+                    
+                    if whiteboard_data or image_data:
+                        # 获取或创建会话级别的白板状态
+                        if not session.whiteboard_state:
+                            session.whiteboard_state = WhiteboardState()
+                        
+                        wb_state = session.whiteboard_state
+                        
+                        # 增量更新白板内容
+                        if whiteboard_data:
+                            if whiteboard_data.get("title"):
+                                wb_state.title = whiteboard_data["title"]
+                            if whiteboard_data.get("points"):
+                                for point in whiteboard_data["points"]:
+                                    if point not in wb_state.key_points:
+                                        wb_state.key_points.append(point)
+                            if whiteboard_data.get("key_points"):
+                                for point in whiteboard_data["key_points"]:
+                                    if point not in wb_state.key_points:
+                                        wb_state.key_points.append(point)
+                            if whiteboard_data.get("formulas"):
+                                for formula in whiteboard_data["formulas"]:
+                                    if formula not in wb_state.formulas:
+                                        wb_state.formulas.append(formula)
+                            if whiteboard_data.get("examples"):
+                                for example in whiteboard_data["examples"]:
+                                    if example not in wb_state.examples:
+                                        wb_state.examples.append(example)
+                            if whiteboard_data.get("notes"):
+                                for note in whiteboard_data["notes"]:
+                                    if note not in wb_state.notes:
+                                        wb_state.notes.append(note)
+                            if whiteboard_data.get("image"):
+                                wb_state.image = whiteboard_data["image"]
+                        
+                        # 保存图片信息
+                        if image_data and image_data.get("type") == "image":
+                            wb_state.image = {
+                                "id": image_data.get("id"),
+                                "url": image_data.get("url"),
+                                "svg_code": image_data.get("svg_code"),
+                                "title": image_data.get("title"),
+                                "description": image_data.get("description"),
+                                "type": image_data.get("type"),
+                            }
+                        
+                        learning_session_repository.update(session)
+                        logger.debug(f"[{trace_id}] 白板状态已更新: {wb_state.title}, points: {len(wb_state.key_points)}, image: {bool(wb_state.image)}")
+                    
                     yield sse_dict
             except Exception as e:
                 logger.error(f"[{trace_id}] LLM调用失败: {e}", exc_info=True)
