@@ -561,14 +561,73 @@ def generate_teaching_prompt(
   <div class="ks-step"><div class="ks-num">4</div><div class="ks-body"><div class="ks-title">化简验证</div><div class="ks-desc">检查斜率k不变</div></div></div>
 </div>
 
-【新布局组件速查】
-以上示例（14-19）展示了全新的非矩形、非对称的排版模式：
-- magazine-grid：左大右小的杂志式不对称网格，适合"主概念+辅助要点"
-- pull-quote：大号引文排版，适合核心规律的强调展示
-- slant-box：clip-path 斜角卡片，hover 时还原为矩形
-- overlap-stats：元素重叠的统计面板，有 Z 轴层次感
-- diagonal-compare：斜线分割的对比面板，比垂直分割更有动感
-- knowledge-steps：台阶式布局，每级递增左缩进，适合递进式内容
+-- 示例20：教学主视觉（超大编号 + 杂志排版）--
+<div class="hero-teach">
+  <span class="ht-number">01</span>
+  <div class="ht-overline">核心定理</div>
+  <div class="ht-title">平移不改变斜率</div>
+  <div class="ht-body">无论图像如何移动，直线的倾斜程度——斜率 k——始终是平移变换下的不变量。</div>
+  <div class="ht-formula">$y = kx + b \rightarrow y = k(x \pm m) + (b \pm n)$</div>
+</div>
+
+-- 示例21：双色块对比（大面积色块替代边框）--
+<div class="color-block">
+  <div class="cb-side">
+    <div class="cb-label">平移前</div>
+    <div class="cb-title">$y = 2x + 1$</div>
+    <div class="cb-body">斜率 k = 2 · 截距 b = 1</div>
+  </div>
+  <div class="cb-side">
+    <div class="cb-label">平移后</div>
+    <div class="cb-title">$y = 2x - 3$</div>
+    <div class="cb-body">右移 2 单位 · 斜率不变</div>
+  </div>
+</div>
+
+-- 示例22：教学规则（超大引号起首）--
+<div class="teach-rule">
+  <div class="tr-ornament">"</div>
+  <div class="tr-text">平移变换的本质是坐标系的重新定位，而非函数本身的改变。直线的品格——斜率——因此永恒不变。</div>
+  <div class="tr-attribution">解析几何基本原理</div>
+</div>
+
+-- 示例23：分裂知识点（中分线布局）--
+<div class="split-knowledge">
+  <div class="sk-side">
+    <div class="sk-label">上下平移</div>
+    <div class="sk-concept">对 b 操作</div>
+    <div class="sk-desc">$y = kx + (b \pm n)$</div>
+  </div>
+  <div class="sk-divider"></div>
+  <div class="sk-side">
+    <div class="sk-label">左右平移</div>
+    <div class="sk-concept">对 x 操作</div>
+    <div class="sk-desc">$y = k(x \mp m) + b$</div>
+  </div>
+</div>
+
+-- 示例24：关键数字 --
+<div class="key-number">
+  <div class="kn-value">4</div>
+  <div class="kn-label">平移方向</div>
+</div>
+
+【编辑式组件速查】
+示例20-24 遵循杂志排版逻辑，而非 UI 卡片逻辑：
+- hero-teach：超大背景编号 + 上标线 + 衬线标题 + 85%宽度留白 → 适合核心定理/概念
+- color-block：左半完全填充主色块 → 适合对比性内容
+- teach-rule：巨型引号装饰 + 斜体衬线规则文字 → 适合需要强调的规律
+- split-knowledge：中间渐变分割线 + 左右布局 → 适合对比两个概念
+- key-number：3rem 超大数字 + 小写说明 → 适合统计/量化信息
+
+【编辑式 vs 卡片式选择指南】
+- 核心定理/关键概念 → hero-teach（别用 knowledge-card）
+- 需要强调的规律 → teach-rule 或 pull-quote（别用 callout）
+- 左右对比 → color-block 或 split-knowledge（别用 comparison）
+- 数字统计 → key-number（别用 stat-item）
+- 多个要点 → magazine-grid（别用 card-grid）
+- 递进步骤 → knowledge-steps（别用 step-list）
+- 前面的组件仍然可以用，但优先使用编辑式组件
 
 【组件组合技巧】
 - 可以将多个组件自由组合：card-grid + callout + table + formula-spotlight
