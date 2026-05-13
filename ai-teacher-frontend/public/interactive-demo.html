@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI 教师白板 — Dark Academia 风格展示</title>
+<title>AI 教师白板 — Dark Slate 风格展示</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
@@ -12,48 +12,47 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:#0a0a12; font-family:'DM Sans',-apple-system,sans-serif; padding:1.5rem; min-height:100vh; }
 .header { max-width:800px; margin:0 auto 1rem; }
-.header h1 { font-family:'Playfair Display',Georgia,serif; color:#c8a84a; font-size:1.1rem; font-weight:600; border-left:3px solid #c8a84a; padding-left:0.75rem; }
-.header p { color:#7a7060; font-size:0.8rem; margin-top:0.3rem; padding-left:calc(0.75rem + 3px); font-family:'DM Sans',sans-serif; }
+.header h1 { font-family:'Playfair Display',Georgia,serif; color:#7a9a8a; font-size:1.1rem; font-weight:600; border-left:3px solid #7a9a8a; padding-left:0.75rem; }
+.header p { color:#7a7a6a; font-size:0.8rem; margin-top:0.3rem; padding-left:calc(0.75rem + 3px); font-family:'DM Sans',sans-serif; }
 
-
-/* ── 全新 CSS — Dark Academia / 编辑式排版 ── */
-.whiteboard-html-content { font-size:0.9rem; line-height:1.75; color:#e8e0d4; font-family:'DM Sans',-apple-system,sans-serif; }
-.whiteboard-html-content h2 { font-family:'Playfair Display',Georgia,serif; color:#c8a84a; font-size:1.05rem; margin:1.2rem 0 0.5rem; font-weight:600; border-bottom:1px solid #2a2530; padding-bottom:0.3rem; }
-.whiteboard-html-content p { margin:0.4rem 0; color:#a09880; font-size:0.85rem; }
+/* ── 全新 CSS — Dark Slate / 冷调暗石色系 ── */
+.whiteboard-html-content { font-size:0.9rem; line-height:1.75; color:#d8d8d0; font-family:'DM Sans',-apple-system,sans-serif; }
+.whiteboard-html-content h2 { font-family:'Playfair Display',Georgia,serif; color:#7a9a8a; font-size:1.05rem; margin:1.2rem 0 0.5rem; font-weight:600; border-bottom:1px solid #22222e; padding-bottom:0.3rem; }
+.whiteboard-html-content p { margin:0.4rem 0; color:#9a9a8a; font-size:0.85rem; }
 .tag { display:inline-block; padding:0.1rem 0.45rem; border-radius:3px; font-size:0.7rem; font-weight:500; margin:0.12rem; font-family:'DM Sans',sans-serif; }
-.tag.gold { background:#2a2210; color:#c8a84a; border:1px solid #3a3220; }
-.tag.green { background:#10221a; color:#4a9d8f; border:1px solid #1a322a; }
+.tag.slate { background:#121220; color:#7a9a8a; border:1px solid #222a2a; }
+.tag.green { background:#10221a; color:#7aaa9a; border:1px solid #1a2a22; }
 
 /* Interactive Quiz */
-.interactive-quiz { background:#12121e; border:1px solid #2a2530; border-radius:12px; padding:0.85rem 1rem; margin:0.5rem 0; }
-.interactive-quiz .quiz-question { font-weight:500; color:#c8a84a; margin-bottom:0.5rem; font-size:0.88rem; }
+.interactive-quiz { background:#12121e; border:1px solid #22222e; border-radius:12px; padding:0.85rem 1rem; margin:0.5rem 0; }
+.interactive-quiz .quiz-question { font-weight:500; color:#7a9a8a; margin-bottom:0.5rem; font-size:0.88rem; }
 .interactive-quiz .quiz-question::before { content:'❓ '; }
-.interactive-quiz .quiz-option { display:block; width:100%; text-align:left; background:#1a1a2a; border:1px solid #2a2530; border-radius:8px; padding:0.45rem 0.75rem; margin:0.3rem 0; font-size:0.82rem; color:#a09880; cursor:pointer; transition:all 0.2s; user-select:none; }
-.interactive-quiz .quiz-option:hover { background:#1e1e32; border-color:#8a7a4a; transform:translateX(3px); }
-.interactive-quiz .quiz-option.correct { background:#0a2018; border-color:#2a7d6f; color:#4a9d8f; }
-.interactive-quiz .quiz-option.correct::after { content:' ✓'; color:#4a9d8f; font-weight:600; }
-.interactive-quiz .quiz-option.wrong { background:#201010; border-color:#4a2020; color:#c07060; }
-.interactive-quiz .quiz-option.wrong::after { content:' ✗'; color:#c07060; font-weight:600; }
-.quiz-feedback { margin-top:0.5rem; padding:0.35rem 0.7rem; border-radius:8px; font-size:0.82rem; font-weight:500; text-align:center; display:none; background:#1a1a2a; border:1px solid #2a2530; }
+.interactive-quiz .quiz-option { display:block; width:100%; text-align:left; background:#1a1a26; border:1px solid #22222e; border-radius:8px; padding:0.45rem 0.75rem; margin:0.3rem 0; font-size:0.82rem; color:#9a9a8a; cursor:pointer; transition:all 0.2s; user-select:none; }
+.interactive-quiz .quiz-option:hover { background:#1e1e2e; border-color:#5a7a6a; transform:translateX(3px); }
+.interactive-quiz .quiz-option.correct { background:#0a1812; border-color:#5a8a7a; color:#7aaa9a; }
+.interactive-quiz .quiz-option.correct::after { content:' ✓'; color:#7aaa9a; font-weight:600; }
+.interactive-quiz .quiz-option.wrong { background:#1a0e0e; border-color:#4a2a2a; color:#b08070; }
+.interactive-quiz .quiz-option.wrong::after { content:' ✗'; color:#b08070; font-weight:600; }
+.quiz-feedback { margin-top:0.5rem; padding:0.35rem 0.7rem; border-radius:8px; font-size:0.82rem; font-weight:500; text-align:center; display:none; background:#1a1a26; border:1px solid #22222e; }
 .quiz-feedback.show { display:block; animation:fadeSlideIn 0.3s ease; }
 
 /* Interactive Reveal */
-.interactive-reveal { background:linear-gradient(135deg,#161625,#12121e); border:1px solid #2a2530; border-radius:12px; padding:0.85rem 1rem; margin:0.5rem 0; cursor:pointer; transition:all 0.25s; position:relative; }
-.interactive-reveal::after { content:'👆 点击揭示'; display:block; font-size:0.65rem; color:#8a7a4a; text-align:right; margin-top:0.3rem; opacity:0.5; }
-.interactive-reveal:hover { border-color:#8a7a4a; box-shadow:0 2px 12px rgba(200,168,74,0.08); }
+.interactive-reveal { background:linear-gradient(135deg,#141420,#12121e); border:1px solid #22222e; border-radius:12px; padding:0.85rem 1rem; margin:0.5rem 0; cursor:pointer; transition:all 0.25s; position:relative; }
+.interactive-reveal::after { content:'👆 点击揭示'; display:block; font-size:0.65rem; color:#5a7a6a; text-align:right; margin-top:0.3rem; opacity:0.5; }
+.interactive-reveal:hover { border-color:#5a7a6a; box-shadow:0 2px 12px rgba(122,154,138,0.08); }
 .interactive-reveal.revealed::after { content:'👆 点击收起'; opacity:0.3; }
-.reveal-question { font-weight:500; color:#c8a84a; font-size:0.88rem; margin-bottom:0.4rem; }
-.reveal-hint { font-size:0.78rem; color:#7a7060; font-style:italic; margin-bottom:0.25rem; }
+.reveal-question { font-weight:500; color:#7a9a8a; font-size:0.88rem; margin-bottom:0.4rem; }
+.reveal-hint { font-size:0.78rem; color:#7a7a6a; font-style:italic; margin-bottom:0.25rem; }
 .reveal-answer { max-height:0; overflow:hidden; opacity:0; transition:max-height 0.4s ease,opacity 0.35s ease,margin 0.3s ease; margin-top:0; }
 .revealed .reveal-answer { max-height:300px; opacity:1; margin-top:0.5rem; }
-.reveal-answer-content { background:#0a0a12; border:1px solid #2a2530; border-radius:8px; padding:0.5rem 0.75rem; font-size:0.82rem; color:#4a9d8f; border-left:3px solid #2a7d6f; }
+.reveal-answer-content { background:#0a0a12; border:1px solid #22222e; border-radius:8px; padding:0.5rem 0.75rem; font-size:0.82rem; color:#5a8a7a; border-left:3px solid #5a8a7a; }
 
 /* Interactive Steps */
-.interactive-steps { background:#12121e; border:1px solid #2a2530; border-radius:12px; padding:0.75rem 1rem; margin:0.5rem 0; }
-.step-header { font-weight:500; color:#c8a84a; font-size:0.88rem; margin-bottom:0.5rem; padding-bottom:0.3rem; border-bottom:1px solid #2a2530; }
-.interactive-steps .step { display:flex; align-items:flex-start; gap:0.6rem; padding:0.4rem 0.6rem; margin:0.2rem 0; border-radius:8px; cursor:pointer; font-size:0.82rem; color:#a09880; background:#1a1a2a; border:1px solid #2a2530; transition:all 0.2s; }
-.interactive-steps .step:hover { border-color:#8a7a4a; background:#1e1e32; }
-.interactive-steps .step::before { content:attr(data-step); width:20px; height:20px; background:#8a7a4a; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.65rem; font-weight:600; flex-shrink:0; }
+.interactive-steps { background:#12121e; border:1px solid #22222e; border-radius:12px; padding:0.75rem 1rem; margin:0.5rem 0; }
+.step-header { font-weight:500; color:#7a9a8a; font-size:0.88rem; margin-bottom:0.5rem; padding-bottom:0.3rem; border-bottom:1px solid #22222e; }
+.interactive-steps .step { display:flex; align-items:flex-start; gap:0.6rem; padding:0.4rem 0.6rem; margin:0.2rem 0; border-radius:8px; cursor:pointer; font-size:0.82rem; color:#9a9a8a; background:#1a1a26; border:1px solid #22222e; transition:all 0.2s; }
+.interactive-steps .step:hover { border-color:#5a7a6a; background:#1e1e2e; }
+.interactive-steps .step::before { content:attr(data-step); width:20px; height:20px; background:#5a7a6a; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.65rem; font-weight:600; flex-shrink:0; }
 .interactive-steps .step[data-hidden] { display:none; }
 
 /* Interactive Flip */
@@ -61,27 +60,27 @@ body { background:#0a0a12; font-family:'DM Sans',-apple-system,sans-serif; paddi
 .interactive-flip .flip-inner { position:relative; width:100%; min-height:110px; transition:transform 0.5s ease; transform-style:preserve-3d; }
 .interactive-flip.flipped .flip-inner { transform:rotateY(180deg); }
 .flip-front,.flip-back { position:absolute; top:0; left:0; width:100%; min-height:110px; backface-visibility:hidden; border-radius:12px; padding:1rem; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
-.flip-front { background:linear-gradient(145deg,#161625,#12121e); border:1px solid #2a2530; z-index:2; }
-.flip-back { background:linear-gradient(145deg,#1a1022,#12121e); border:1px solid #2a1a32; transform:rotateY(180deg); }
+.flip-front { background:linear-gradient(145deg,#141420,#12121e); border:1px solid #22222e; z-index:2; }
+.flip-back { background:linear-gradient(145deg,#1a1220,#12121e); border:1px solid #2a1a2e; transform:rotateY(180deg); }
 .flip-icon { font-size:1.6rem; margin-bottom:0.3rem; }
-.flip-label { font-size:0.7rem; color:#7a7060; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:0.25rem; }
-.flip-text { font-family:'Playfair Display',Georgia,serif; font-size:0.95rem; font-weight:500; color:#e8e0d4; }
-.flip-back .flip-text { color:#b090c0; }
-.interactive-flip::after { content:'🔄 点击翻转'; display:block; text-align:center; font-size:0.65rem; color:#8a7a4a; opacity:0.4; margin-top:0.4rem; }
+.flip-label { font-size:0.7rem; color:#7a7a6a; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:0.25rem; }
+.flip-text { font-family:'Playfair Display',Georgia,serif; font-size:0.95rem; font-weight:500; color:#d8d8d0; }
+.flip-back .flip-text { color:#a080b0; }
+.interactive-flip::after { content:'🔄 点击翻转'; display:block; text-align:center; font-size:0.65rem; color:#5a7a6a; opacity:0.4; margin-top:0.4rem; }
 
 /* Interactive Tabs */
-.interactive-tabs { background:#12121e; border:1px solid #2a2530; border-radius:12px; overflow:hidden; margin:0.5rem 0; }
-.tab-bar { display:flex; background:#1a1a2a; border-bottom:1px solid #2a2530; }
-.tab-trigger { flex:1; padding:0.5rem 0.75rem; text-align:center; font-size:0.78rem; color:#7a7060; cursor:pointer; transition:all 0.2s; border-bottom:2px solid transparent; user-select:none; }
-.tab-trigger:hover { color:#e8e0d4; background:#1e1e32; }
-.tab-trigger.active { color:#c8a84a; border-bottom-color:#c8a84a; background:#161625; font-weight:500; }
-.tab-panel { padding:0.75rem 1rem; font-size:0.82rem; color:#a09880; line-height:1.6; display:none; }
+.interactive-tabs { background:#12121e; border:1px solid #22222e; border-radius:12px; overflow:hidden; margin:0.5rem 0; }
+.tab-bar { display:flex; background:#1a1a26; border-bottom:1px solid #22222e; }
+.tab-trigger { flex:1; padding:0.5rem 0.75rem; text-align:center; font-size:0.78rem; color:#7a7a6a; cursor:pointer; transition:all 0.2s; border-bottom:2px solid transparent; user-select:none; }
+.tab-trigger:hover { color:#d8d8d0; background:#1e1e2e; }
+.tab-trigger.active { color:#7a9a8a; border-bottom-color:#7a9a8a; background:#141420; font-weight:500; }
+.tab-panel { padding:0.75rem 1rem; font-size:0.82rem; color:#9a9a8a; line-height:1.6; display:none; }
 .tab-panel.active { display:block; animation:fadeSlideIn 0.25s ease; }
 @keyframes fadeSlideIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 </style>
 </head>
 <body>
-<div class="header"><h1>🧑‍🏫 AI 教师白板 · 交互组件实机演示</h1><p>运行环境：localhost:3000 · <strong>Dark Academia</strong> 编辑式排版 · 暖调金系配色</p></div>
+<div class="header"><h1>🧑‍🏫 AI 教师白板 · 交互组件实机演示</h1><p>运行环境：localhost:3000 · <strong>Dark Slate</strong> 冷调暗石色系 · 沉稳学术风</p></div>
 
 <div style="max-width:800px;margin:0 auto" class="whiteboard-html-content">
 
