@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案对比：组件注册表 vs 直接输出语义 HTML</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans SC', 'Segoe UI', system-ui, sans-serif;
+    background: #f5f5f8;
+    color: #1a1a2e;
+    line-height: 1.7;
+    padding: 0;
+  }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a3e 100%);
+    color: #e0e0f0;
+    padding: 4rem 2rem;
+    text-align: center;
+  }
+  .hero h1 { font-size: 2.2rem; font-weight: 700; margin-bottom: 0.75rem; }
+  .hero p { font-size: 1rem; color: #999; max-width: 600px; margin: 0 auto; }
+
+  /* Question */
+  .question {
+    background: #fff;
+    border: 2px solid #e0e0ea;
+    border-radius: 12px;
+    max-width: 800px;
+    margin: -2rem auto 2rem;
+    padding: 2rem;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  }
+  .question h2 {
+    font-size: 1.1rem;
+    color: #4a6aff;
+    margin-bottom: 0.75rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .question blockquote {
+    border-left: 3px solid #4a6aff;
+    padding: 0.75rem 1rem;
+    background: #f0f2ff;
+    border-radius: 0 6px 6px 0;
+    color: #444;
+    font-style: italic;
+  }
+
+  /* Comparison */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+  .comparison { margin: 3rem 0; }
+  .comparison-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #333;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    border: 1px solid #e8e8f0;
+  }
+  .card-header {
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .card-header.plan-a { background: #f0f2ff; color: #4a6aff; border-bottom: 2px solid #4a6aff; }
+  .card-header.plan-b { background: #f0fff4; color: #2d8a4e; border-bottom: 2px solid #2d8a4e; }
+
+  .card-body { padding: 1.25rem; }
+  .card-body pre {
+    background: #1a1a2e;
+    color: #d0d8e0;
+    padding: 1rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+  }
+  .card-body pre .hl { color: #7ec8e3; }
+  .card-body pre .k { color: #c8a0ff; }
+  .card-body pre .s { color: #a0d080; }
+  .card-body pre .c { color: #666; font-style: italic; }
+  .card-body pre .pl { color: #f0d080; }
+  .card-body pre .err { color: #f06060; }
+
+  /* Flow diagram */
+  .flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem 1rem;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    background: #f0f2f8;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .flow-arrow { color: #aaa; font-size: 1.2rem; }
+  .flow-step.llm { background: #fff3e0; border-color: #ffb74d; }
+  .flow-step.parse { background: #e8f5e9; border-color: #81c784; }
+  .flow-step.render { background: #e3f2fd; border-color: #64b5f6; }
+
+  /* Verdict */
+  .verdict {
+    background: #fff;
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 3rem 0;
+    border: 1px solid #e0e0ea;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+  .verdict h2 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .verdict h2 .icon { font-size: 1.4rem; }
+
+  table.compare {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  table.compare th {
+    background: #f5f5f8;
+    text-align: left;
+    padding: 0.7rem 1rem;
+    border-bottom: 2px solid #ddd;
+  }
+  table.compare td {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+  }
+  table.compare td:first-child { font-weight: 500; color: #555; white-space: nowrap; }
+  table.compare tr:hover td { background: #fafafe; }
+  .tag {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  .tag.green { background: #e8f5e9; color: #2e7d32; }
+  .tag.red { background: #fce4ec; color: #c62828; }
+  .tag.yellow { background: #fff8e1; color: #f57f17; }
+  .tag.blue { background: #e3f2fd; color: #1565c0; }
+
+  /* Rendering demo */
+  .render-demo {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: #0f0f1a;
+    border-radius: 12px;
+    color: #e0e0e0;
+  }
+  .render-demo h3 { color: #8ab4ff; margin-bottom: 1rem; }
+
+  .sample-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    font-size: 0.9rem;
+  }
+  .sample-table caption {
+    font-weight: 600; padding: 0.5rem; color: #c0d0ff;
+  }
+  .sample-table th {
+    background: #1a1a3a;
+    color: #a0c0ff;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    border-bottom: 2px solid #2a3a5a;
+  }
+  .sample-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #1a1a2e;
+    color: #d0d8e0;
+  }
+  .highlight { background: #2a3a2a; border-left: 3px solid #4caf50; padding: 0.5rem 0.75rem; border-radius: 0 4px 4px 0; font-size: 0.85rem; margin: 0.5rem 0; }
+  .highlight.warn { background: #3a2a1a; border-left-color: #ff9800; }
+
+  ul.final { list-style: none; padding: 0; }
+  ul.final li {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #eee;
+    display: flex; align-items: flex-start; gap: 0.75rem;
+  }
+  ul.final li:last-child { border-bottom: none; }
+  ul.final li .mark { font-size: 1.2rem; flex-shrink: 0; }
+
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: #999;
+    font-size: 0.8rem;
+    border-top: 1px solid #eee;
+    margin-top: 3rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>🧱 组件注册表 vs 🌐 直接输出语义 HTML</h1>
+  <p>LLM 生成教学内容时，两种渲染方案的设计对比</p>
+</div>
+
+<div class="container">
+
+<div class="question">
+  <h2>💬 核心问题</h2>
+  <blockquote>
+    如何既保证前端 100% 正确渲染，又让 LLM 有最大的内容编排灵活性？
+  </blockquote>
+</div>
+
+<!-- ===== 方案对比 ===== -->
+<div class="comparison">
+  <h2 class="comparison-title">⬇ 两种方案的技术路线对比</h2>
+
+  <div class="grid-2">
+
+    <!-- 方案 A -->
+    <div class="card">
+      <div class="card-header plan-a">🧱 方案 A：组件注册表</div>
+      <div class="card-body">
+        <p style="font-size:0.9rem;color:#666;margin-bottom:0.75rem;">
+          LLM 输出语义化 JSON → 前端组件注册表匹配 → 渲染对应 React 组件
+        </p>
+        <div class="flow">
+          <span class="flow-step llm">LLM</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step parse">{component: "table", props: {...}}</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step render">&lt;Table /&gt;</span>
+        </div>
+        <pre>{
+  <span class="hl">"component"</span>: <span class="s">"table"</span>,
+  <span class="hl">"props"</span>: {
+    <span class="hl">"headers"</span>: [<span class="s">"方向"</span>, <span class="s">"解析式变化"</span>],
+    <span class="hl">"rows"</span>: [
+      [<span class="s">"上移 n"</span>, <span class="s">"y = kx + b + n"</span>],
+      [<span class="s">"右移 m"</span>, <span class="s">"y = k(x - m) + b"</span>]
+    ]
+  }
+}</pre>
+        <div style="border-top:1px solid #eee;padding-top:0.75rem;margin-top:0.75rem;">
+          <p style="font-size:0.85rem;color:#555;margin-bottom:0.5rem;font-weight:500;">注册表映射逻辑：</p>
+          <pre style="font-size:0.78rem;background:#f5f5f8;color:#333;">
+const components = {
+  heading: HeadingComponent,
+  table: TableComponent,
+  list: ListComponent,
+  formula: FormulaBlock,
+  note: NoteBlock,
+  step_list: StepList,
+  question: QuizQuestion,
+  definition: DefinitionBlock,
+  compare_table: CompareTable,
+};
+
+{data.map((c, i) => {
+  const Comp = components[c.component];
+  return Comp ? <Comp key={i} {...c.props} /> : null;
+})}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 方案 B -->
+    <div class="card">
+      <div class="card-header plan-b">🌐 方案 B：直接输出语义 HTML</div>
+      <div class="card-body">
+        <p style="font-size:0.9rem;color:#666;margin-bottom:0.75rem;">
+          LLM 输出语义化 HTML（无内联样式）→ 前端安全过滤 → 统一 CSS 渲染
+        </p>
+        <div class="flow">
+          <span class="flow-step llm">LLM</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step parse">DOMPurify 过滤</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step render">dangerouslySetInnerHTML + CSS</span>
+        </div>
+        <pre>&lt;table <span class="hl">class="data-table"</span>&gt;
+  &lt;caption&gt;平移变换规律&lt;/caption&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;方向&lt;/th&gt;
+      &lt;th&gt;解析式变化&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;&lt;td&gt;上移 n&lt;/td&gt;
+        &lt;td&gt;y = kx + b + n&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;td&gt;右移 m&lt;/td&gt;
+        &lt;td&gt;y = k(x - m) + b&lt;/td&gt;&lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;div <span class="hl">class="callout warn"</span>&gt;
+  平移不改变直线斜率 k
+&lt;/div&gt;</pre>
+        <div style="border-top:1px solid #eee;padding-top:0.75rem;margin-top:0.75rem;">
+          <p style="font-size:0.85rem;color:#555;margin-bottom:0.5rem;font-weight:500;">前端渲染：</p>
+          <pre style="font-size:0.78rem;background:#f5f5f8;color:#333;">
+import DOMPurify from 'dompurify';
+
+function WhiteboardHTML({ html }) {
+  const clean = DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'table','thead','tbody','tr','th','td',
+      'caption','div','span','p','blockquote',
+      'ul','ol','li','strong','em','code','pre',
+      'h1','h2','h3','h4','h5','h6',
+      'section','article','figure','figcaption',
+    ],
+    ALLOWED_ATTR: ['class'],
+  });
+  return <div
+    className="whiteboard-html"
+    dangerouslySetInnerHTML={{ __html: clean }}
+  />;
+}</pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== 渲染效果对比 ===== -->
+<h2 class="comparison-title">⬇ 同一教学内容，两种方案的渲染效果</h2>
+
+<div class="grid-2">
+
+  <!-- A: Component result -->
+  <div class="card">
+    <div class="card-header plan-a">方案 A：Component Registry 渲染</div>
+    <div class="card-body" style="background:#0f0f1a;color:#e0e0e0;">
+      <div style="padding:0.5rem 0;">
+        <h3 style="color:#8ab4ff;font-size:1rem;border-left:3px solid #4a6aff;padding-left:0.6rem;margin-bottom:0.75rem;">平移变换规律</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:0.75rem;">
+          <thead><tr style="background:#1a1a3a;"><th style="padding:0.4rem 0.6rem;border-bottom:2px solid #3a3a5a;text-align:left;color:#a0c0ff;">方向</th><th style="padding:0.4rem 0.6rem;border-bottom:2px solid #3a3a5a;text-align:left;color:#a0c0ff;">变化</th></tr></thead>
+          <tbody>
+            <tr><td style="padding:0.4rem 0.6rem;border-bottom:1px solid #2a2a3a;">上移 n</td><td style="padding:0.4rem 0.6rem;border-bottom:1px solid #2a2a3a;">y = kx + b + n</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;border-bottom:1px solid #2a2a3a;">下移 n</td><td style="padding:0.4rem 0.6rem;border-bottom:1px solid #2a2a3a;">y = kx + b - n</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;border-bottom:1px solid #2a2a3a;">左移 m</td><td style="padding:0.4rem 0.6rem;border-bottom:1px solid #2a2a3a;">y = k(x + m) + b</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;">右移 m</td><td style="padding:0.4rem 0.6rem;">y = k(x - m) + b</td></tr>
+          </tbody>
+        </table>
+        <div style="background:#2a3a2a;border-left:3px solid #4caf50;padding:0.5rem 0.75rem;border-radius:0 4px 4px 0;font-size:0.8rem;margin:0.5rem 0;">
+          💡 平移不改变直线斜率 k
+        </div>
+      </div>
+      <div style="border-top:1px solid #2a2a3a;margin-top:0.75rem;padding-top:0.5rem;">
+        <p style="font-size:0.75rem;color:#666;">渲染过程：LLM 输出 → 组件映射 → React 渲染 → 效果如上</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- B: HTML result -->
+  <div class="card">
+    <div class="card-header plan-b">方案 B：语义 HTML 渲染</div>
+    <div class="card-body" style="background:#0f0f1a;color:#e0e0e0;">
+      <div class="whiteboard-html" style="padding:0.5rem 0;">
+        <h3 style="color:#8ab4ff;font-size:1rem;border-left:3px solid #4a6aff;padding-left:0.6rem;margin-bottom:0.75rem;margin-top:0;">平移变换规律</h3>
+        <table class="sample-table" style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:0.75rem;">
+          <caption style="display:none;"></caption>
+          <thead><tr style="background:#1a1a3a;"><th style="padding:0.4rem 0.6rem;border-bottom:2px solid #3a3a5a;text-align:left;color:#a0c0ff;">方向</th><th style="padding:0.4rem 0.6rem;border-bottom:2px solid #3a3a5a;text-align:left;color:#a0c0ff;">变化</th></tr></thead>
+          <tbody>
+            <tr><td style="padding:0.4rem 0.6rem;border-bottom:1px solid #2a2a3a;">上移 n</td><td style="padding:0.4rem 0.6rem;border-bottom:1px solid #2a2a3a;">y = kx + b + n</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;border-bottom:1px solid #2a2a3a;">下移 n</td><td style="padding:0.4rem 0.6rem;border-bottom:1px solid #2a2a3a;">y = kx + b - n</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;border-bottom:1px solid #2a2a3a;">左移 m</td><td style="padding:0.4rem 0.6rem;border-bottom:1px solid #2a2a3a;">y = k(x + m) + b</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;">右移 m</td><td style="padding:0.4rem 0.6rem;">y = k(x - m) + b</td></tr>
+          </tbody>
+        </table>
+        <div style="background:#2a3a2a;border-left:3px solid #4caf50;padding:0.5rem 0.75rem;border-radius:0 4px 4px 0;font-size:0.8rem;">
+          💡 平移不改变直线斜率 k
+        </div>
+      </div>
+      <div style="border-top:1px solid #2a2a3a;margin-top:0.75rem;padding-top:0.5rem;">
+        <p style="font-size:0.75rem;color:#666;">实际运行时，end result 和方案 A 完全一致（因同一 CSS）</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== 对比表格 ===== -->
+<div class="verdict">
+  <h2><span class="icon">⚖️</span> 七维对比</h2>
+  <table class="compare">
+    <thead>
+      <tr>
+        <th>维度</th>
+        <th>方案 A：组件注册表</th>
+        <th>方案 B：语义 HTML</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>渲染正确性</td>
+        <td><span class="tag green">✅ 100%</span> 预先编码的组件</td>
+        <td><span class="tag yellow">⚠️ 依赖 CSS</span> 无内联style就不会错</td>
+      </tr>
+      <tr>
+        <td>灵活性</td>
+        <td><span class="tag red">❌ 有限</span> 只能组合已有组件</td>
+        <td><span class="tag green">✅ 无限</span> 任意的 HTML 树结构</td>
+      </tr>
+      <tr>
+        <td>LLM 输出难易度</td>
+        <td><span class="tag yellow">⚠️ 一般</span> 需要记住所有组件名和 props</td>
+        <td><span class="tag green">✅ 天然</span> LLM 训练数据里见过大量 HTML</td>
+      </tr>
+      <tr>
+        <td>安全性</td>
+        <td><span class="tag green">✅ 天然安全</span> 无原始 HTML</td>
+        <td><span class="tag yellow">⚠️ 需要过滤</span> DOMPurify 白名单</td>
+      </tr>
+      <tr>
+        <td>样式一致性</td>
+        <td><span class="tag green">✅ 统一</span> 组件自带样式</td>
+        <td><span class="tag green">✅ 统一</span> 外部 CSS 控制 class</td>
+      </tr>
+      <tr>
+        <td>扩展成本</td>
+        <td><span class="tag red">❌ 高</span> 新增布局需要写新组件</td>
+        <td><span class="tag green">✅ 零</span> LLM 直接输出即可</td>
+      </tr>
+      <tr>
+        <td>与现有系统兼容</td>
+        <td><span class="tag green">✅ 兼容</span> 可并存现有 JSON schema</td>
+        <td><span class="tag green">✅ 兼容</span> 加个 whiteboard_html 字段</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="margin-top:2rem;padding-top:1.5rem;border-top:2px solid #eee;">
+    <h2 style="margin-bottom:0.5rem;"><span class="icon">🎯</span> 我的判断</h2>
+    <ul class="final">
+      <li>
+        <span class="mark">✅</span>
+        <div><strong>方案 B（语义 HTML）在灵活性上完胜</strong> — LLM 可以自由编排表格、区块、列表、公式等任意组合，不用等我们加新组件</div>
+      </li>
+      <li>
+        <span class="mark">✅</span>
+        <div><strong>正确性不是问题</strong> — LLM 理解 HTML 的能力很强。限制它只能输出 <code>&lt;table class="data-table"&gt;</code> 这种无 style 的语义 HTML，加 DOMPurify 白名单过滤，就等于控制了渲染质量</div>
+      </li>
+      <li>
+        <span class="mark">✅</span>
+        <div><strong>渐进式引入</strong> — 作为 <code>whiteboard_html</code> 新增字段，和现有 JSON whiteboard 并存。简单内容走 JSON，复杂排版走 HTML</div>
+      </li>
+      <li>
+        <span class="mark">⚠️</span>
+        <div><strong>唯一注意</strong> — LaTeX 公式需要预处理：HTML 中的 <code>$...$</code> 仍然走 KaTeX 渲染，不能因为用 HTML 就丢失数学公式支持</div>
+      </li>
+    </ul>
+    <div style="background:#e8f5e9;border-radius:8px;padding:1rem;margin-top:1rem;font-size:0.9rem;color:#2e7d32;">
+      <strong>结论：</strong>方案 A（组件注册表）跟现有 JSON schema 本质相同，只是换了个名字，没有解决灵活性问题。<br>
+      方案 B（语义 HTML）才是真正继承自 "The Unreasonable Effectiveness of HTML" 论文精神的做法。
+    </div>
+  </div>
+</div>
+
+</div>
+
+<footer>
+  该文档由 Hermes Agent 生成 · 为 aiteacher 项目设计参考
+</footer>
+
+</body>
+</html>

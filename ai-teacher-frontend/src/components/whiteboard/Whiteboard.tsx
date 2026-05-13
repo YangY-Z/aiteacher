@@ -7,6 +7,7 @@ import { DownloadOutlined, ClearOutlined } from '@ant-design/icons';
 import html2canvas from 'html2canvas';
 import { useLearningStore } from '../../store';
 import type { WhiteboardContent } from '../../types';
+import WhiteboardHTML from './WhiteboardHTML';
 import './Whiteboard.css';
 
 interface WhiteboardProps {
@@ -165,6 +166,18 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
 
   // 渲染单个内容块
   const renderBlock = (block: WhiteboardContent, index: number) => {
+    // 如果有 HTML 内容，直接用 WhiteboardHTML 渲染
+    if (block.html) {
+      return (
+        <div key={index} className="whiteboard-block html-block">
+          <WhiteboardHTML
+            html={block.html}
+            title={block.title}
+          />
+        </div>
+      );
+    }
+
     return (
       <div key={index} className="whiteboard-block">
         {block.title && (
@@ -299,8 +312,16 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
             currentWhiteboard.formulas.length > 0 || 
             currentWhiteboard.examples.length > 0 || 
             currentWhiteboard.notes.length > 0 ||
-            currentWhiteboard.image) && (
+            currentWhiteboard.image ||
+            currentWhiteboard.html) && (
             <div className="whiteboard-block streaming">
+              {currentWhiteboard.html ? (
+                <WhiteboardHTML
+                  html={currentWhiteboard.html}
+                  title={currentWhiteboard.title}
+                />
+              ) : (
+                <div>{/* Structured content fallback */}
               {currentWhiteboard.title && (
                 <div className="block-title">
                   <span className="title-decoration">◆</span>
@@ -377,6 +398,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false }) => {
                   </div>
                 </div>
               )}
+                </div>
+              )} 
             </div>
           )}
         </div>

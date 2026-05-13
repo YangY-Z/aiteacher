@@ -49,6 +49,8 @@ interface WhiteboardState {
   examples: string[];
   notes: string[];
   image: import('../types').WhiteboardImage | null;
+  /** HTML 版本的白板内容（LLM 直接输出） */
+  html: string;
 }
 
 // 白板显示状态
@@ -91,6 +93,10 @@ interface LearningState {
   addWhiteboardExample: (example: string) => void;
   addWhiteboardNote: (note: string) => void;
   setWhiteboardImage: (image: import('../types').WhiteboardImage) => void;
+  /** 设置 HTML 白板内容（直接渲染语义 HTML） */
+  setWhiteboardHtml: (html: string) => void;
+  /** 将当前 HTML 白板提交为一个新块 */
+  commitWhiteboardHtmlBlock: () => void;
   commitWhiteboard: () => void;
   // 白板显示模式控制
   setWhiteboardMode: (mode: WhiteboardViewMode) => void;
@@ -105,6 +111,7 @@ const initialWhiteboardState: WhiteboardState = {
   examples: [],
   notes: [],
   image: null,
+  html: '',
 };
 
 const initialLearningState = {
@@ -240,6 +247,33 @@ export const useLearningStore = create<LearningState>()((set) => ({
         ...state.currentWhiteboard,
         image,
       },
+    };
+  }),
+  /** 设置 HTML 白板内容 */
+  setWhiteboardHtml: (html) => set((state) => {
+    if (state.currentWhiteboard.html === html) return state;
+    return {
+      currentWhiteboard: { ...state.currentWhiteboard, html },
+    };
+  }),
+  /** 将当前 HTML 提交为一个白板块 */
+  commitWhiteboardHtmlBlock: () => set((state) => {
+    const html = state.currentWhiteboard.html;
+    if (!html) return state;
+
+    const newMode = state.whiteboardMode === 'hidden' ? 'mini' : state.whiteboardMode;
+    return {
+      whiteboardBlocks: [...state.whiteboardBlocks, {
+        id: `wb-html-${Date.now()}`,
+        title: state.currentWhiteboard.title,
+        key_points: [],
+        formulas: [],
+        examples: [],
+        notes: [],
+        html,  // stores the HTML content
+      } as any],
+      currentWhiteboard: { ...initialWhiteboardState },
+      whiteboardMode: newMode,
     };
   }),
   commitWhiteboard: () => set((state) => {

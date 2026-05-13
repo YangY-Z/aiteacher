@@ -155,6 +155,7 @@ export interface WhiteboardImage {
 }
 
 export interface WhiteboardContent {
+  id?: string;
   title?: string;
   key_points?: string[];
   formulas?: string[];
@@ -162,6 +163,8 @@ export interface WhiteboardContent {
   notes?: string[];
   image?: WhiteboardImage;
   diagrams?: string[];
+  /** 语义 HTML 版本的白板内容 */
+  html?: string;
 }
 
 // 评估

@@ -264,7 +264,7 @@ def generate_teaching_prompt(
 
 {phase_output_guide}
 
-【返回格式 - 边讲边写模式】
+【返回格式 - 边讲边写模式 + HTML增强】
 请严格按照以下JSONL格式输出，每行一个独立的JSON对象：
 
 {{"type":"segment","message":"教学内容...","whiteboard":{{"title":"标题"}}}}
@@ -274,9 +274,35 @@ def generate_teaching_prompt(
 {{"type":"segment","message":"提问内容...","whiteboard":{{}},"is_question":true}}
 {{"type":"complete","next_action":"wait_for_student"}}
 
+【HTML增强输出（可选）】
+当教学内容需要复杂排版（如表格、步骤列表、对比分析、自定义排版）时，
+可以在segment中额外包含 whiteboard_html 字段，提供该段内容的语义HTML版本。
+
+whiteboard_html 字段的规则：
+1. 只使用纯语义HTML标签，不写内联style
+2. 系统会自动用统一CSS主题渲染，你只需要关注内容结构
+3. 支持的HTML标签：h1-h4, p, ul, ol, li, table, thead, tbody, th, td, caption, div, span, strong, em, blockquote, pre, code, hr, details, summary
+4. 数学公式使用 $...$（行内）或 $$...$$（块级）标记，系统会自动渲染为KaTeX
+5. 区块样式通过 class 控制，可用值：
+   - callout info / warn / tip / error — 提示块
+   - definition（含 .term 和 .meaning）— 定义块
+   - step-list / step-item / step-number / step-body / step-title / step-desc — 步骤列表
+   - highlight — 高亮
+6. 仍然需要保留 message 字段（纯文本版本）
+
+示例：
+{{"type":"segment","message":"一次函数平移规律如下表所示","whiteboard_html":"<table><caption>平移变换规律</caption><thead><tr><th>方向</th><th>解析式变化</th></tr></thead><tbody><tr><td>上移n单位</td><td>y = kx + b + n</td></tr><tr><td>右移m单位</td><td>y = k(x - m) + b</td></tr></tbody></table><div class=\\"callout tip\\">平移不改变直线的斜率k</div>"}}
+
+whiteboard_html 使用场景建议：
+- 需要表格展示对比数据 → 用 table
+- 需要分步骤讲解 → 用 step-list
+- 需要概念定义 → 用 definition
+- 需要突出提示 → 用 callout info/warn/tip
+- 简单要点 → 继续用 whiteboard.points
+
 【输出规则】
 1. 必须使用"边讲边写"模式：每句话搭配相应的白板内容
-2. whiteboard字段可以包含：title, points, formulas, examples, notes
+2. whiteboard字段可以包含：title, points, formulas, examples, notes；也可用 whiteboard_html 字段输出语义HTML版本
 3. 每个segment只包含当前段话相关的白板内容，不要重复之前的内容
 4. 公式使用纯LaTeX格式，例如：y = kx + b
 5. 【必须】每个阶段结尾要有提问，next_action 设为 "wait_for_student"
@@ -384,7 +410,7 @@ TEACHING_PROMPT = """【教学任务】
 
 【输出规则】
 1. 必须使用"边讲边写"模式：每句话搭配相应的白板内容
-2. whiteboard字段可以包含：title, points, formulas, examples, notes
+2. whiteboard字段可以包含：title, points, formulas, examples, notes；也可用 whiteboard_html 字段输出语义HTML版本
 3. points/formulas/examples/notes 都是数组格式，可以添加多个
 4. 每个segment只包含当前段话相关的白板内容，不要重复之前的内容
 5. 公式使用纯LaTeX格式，不要加$符号，例如：y = kx + b
@@ -655,7 +681,7 @@ def generate_personalized_teaching_prompt(
 
 【输出规则】
 1. 必须使用"边讲边写"模式：每句话搭配相应的白板内容
-2. whiteboard字段可以包含：title, points, formulas, examples, notes
+2. whiteboard字段可以包含：title, points, formulas, examples, notes；也可用 whiteboard_html 字段输出语义HTML版本
 3. 每个segment只包含当前段话相关的白板内容，不要重复之前的内容
 4. 公式使用纯LaTeX格式，例如：y = kx + b
 5. 【必须】每个阶段结尾要有提问，next_action 设为 "wait_for_student"

@@ -197,7 +197,9 @@ const MinimalLearning: React.FC = () => {
     addWhiteboardFormula, 
     addWhiteboardExample, 
     addWhiteboardNote,
-    setWhiteboardImage
+    setWhiteboardImage,
+    setWhiteboardHtml,
+    commitWhiteboardHtmlBlock,
   } = useLearningStore();
   
   const [state, setState] = useState<LearningState>({
@@ -741,6 +743,11 @@ const MinimalLearning: React.FC = () => {
                     if (json.video) videoResource = json.video;
                     queueMessage(json.message, 'explain', { imageId: json.image_id, image: imageResource, video: videoResource });
                   }
+                  // 处理 whiteboard_html（语义 HTML 白板内容）
+                  if (json.whiteboard_html) {
+                    setWhiteboardHtml(json.whiteboard_html);
+                    if (json.whiteboard?.title) setWhiteboardTitle(json.whiteboard.title);
+                  }
                   if (json.whiteboard) {
                     if (json.whiteboard.title) setWhiteboardTitle(json.whiteboard.title);
                     if (json.whiteboard.points) {
@@ -834,6 +841,8 @@ const MinimalLearning: React.FC = () => {
                   break;
                 
                 case 'complete':
+                  // 提交 HTML 白板内容（如果有）
+                  commitWhiteboardHtmlBlock();
                   if (json.next_action === 'start_assessment') {
                     setState(prev => ({ ...prev, phase: 'assessment' }));
                     waitForQueueDrain().then(() => {
@@ -914,6 +923,11 @@ const MinimalLearning: React.FC = () => {
                   let imageResource: MediaResource | undefined = json.image.type === 'image' ? json.image : undefined;
                   let videoResource: MediaResource | undefined = json.image.type === 'video' ? json.image : undefined;
                   queueMessage(json.image.title || '', 'explain', { image: imageResource, video: videoResource });
+                }
+                // 处理 whiteboard_html（语义 HTML 白板内容）
+                if (json.whiteboard_html) {
+                  setWhiteboardHtml(json.whiteboard_html);
+                  if (json.whiteboard?.title) setWhiteboardTitle(json.whiteboard.title);
                 }
                 if (json.whiteboard) {
                   if (json.whiteboard.title) setWhiteboardTitle(json.whiteboard.title);
