@@ -502,6 +502,74 @@ def generate_teaching_prompt(
 - interactive-tabs：点击标签 → 切换不同面板内容
 推荐在"提问"或"练习"环节使用这些交互组件来增强学生的参与感。
 
+-- 示例14：杂志式不对称网格 --
+<div class="magazine-grid">
+  <div class="mg-lead">
+    <div class="mg-label">核心概念</div>
+    <div class="mg-title">平移的本质：坐标变换</div>
+    <div class="mg-body">平移不是改变函数本身，而是改变自变量 x 或因变量 y 的"参照系"。就像在地图上移动一个点，点本身没变，但它的坐标变了。</div>
+  </div>
+  <div class="mg-secondary">
+    <div class="mg-subtitle">上下平移</div>
+    <div class="mg-subbody">对 y 操作：$y = kx + (b \pm n)$，直线上下滑动，斜率不变</div>
+  </div>
+  <div class="mg-secondary">
+    <div class="mg-subtitle">左右平移</div>
+    <div class="mg-subbody">对 x 操作：$y = k(x \mp m) + b$，注意方向与直觉相反</div>
+  </div>
+</div>
+
+-- 示例15：拉引文（大号排版元素）--
+<div class="pull-quote">
+  <span class="pq-mark">"</span>
+  <div class="pq-text">平移不改变直线的「倾斜程度」——斜率 k 是平移变换下的不变量</div>
+  <div class="pq-attribution">一次函数核心规律</div>
+</div>
+
+-- 示例16：斜角卡片 --
+<div class="slant-box">
+  <div class="s-title">💡 记忆技巧</div>
+  <div class="s-body">"左加右减"是针对 x 的变换——向左平移 x 要加上移动量，因为新位置在原位置的左边，需要加到原来的 x 上才能到达相同 y。</div>
+</div>
+
+-- 示例17：重叠统计 --
+<div class="overlap-stats">
+  <div class="os-item"><div class="os-value">4</div><div class="os-label">平移方向</div></div>
+  <div class="os-item"><div class="os-value">2</div><div class="os-label">操作对象</div></div>
+  <div class="os-item"><div class="os-value">1</div><div class="os-label">不变量(k)</div></div>
+</div>
+
+-- 示例18：斜线分割对比 --
+<div class="diagonal-compare">
+  <div class="dc-side">
+    <div class="dc-title">平移前 $y=2x+1$</div>
+    <div class="dc-item"><span class="dc-label">斜率</span><span class="dc-val">k=2</span></div>
+    <div class="dc-item"><span class="dc-label">y截距</span><span class="dc-val">b=1</span></div>
+  </div>
+  <div class="dc-side">
+    <div class="dc-title">右移2后</div>
+    <div class="dc-item"><span class="dc-label">斜率</span><span class="dc-val">k=2（不变）</span></div>
+    <div class="dc-item"><span class="dc-label">新解析式</span><span class="dc-val">$y=2x-3$</span></div>
+  </div>
+</div>
+
+-- 示例19：知识阶梯（台阶式布局）--
+<div class="knowledge-steps">
+  <div class="ks-step"><div class="ks-num">1</div><div class="ks-body"><div class="ks-title">判断方向</div><div class="ks-desc">上/下？左/右？</div></div></div>
+  <div class="ks-step"><div class="ks-num">2</div><div class="ks-body"><div class="ks-title">确定操作对象</div><div class="ks-desc">上下→b，左右→x</div></div></div>
+  <div class="ks-step"><div class="ks-num">3</div><div class="ks-body"><div class="ks-title">代入变换公式</div><div class="ks-desc">上加下减 / 左加右减</div></div></div>
+  <div class="ks-step"><div class="ks-num">4</div><div class="ks-body"><div class="ks-title">化简验证</div><div class="ks-desc">检查斜率k不变</div></div></div>
+</div>
+
+【新布局组件速查】
+以上示例（14-19）展示了全新的非矩形、非对称的排版模式：
+- magazine-grid：左大右小的杂志式不对称网格，适合"主概念+辅助要点"
+- pull-quote：大号引文排版，适合核心规律的强调展示
+- slant-box：clip-path 斜角卡片，hover 时还原为矩形
+- overlap-stats：元素重叠的统计面板，有 Z 轴层次感
+- diagonal-compare：斜线分割的对比面板，比垂直分割更有动感
+- knowledge-steps：台阶式布局，每级递增左缩进，适合递进式内容
+
 【组件组合技巧】
 - 可以将多个组件自由组合：card-grid + callout + table + formula-spotlight
 - 同一segment的HTML应围绕同一知识点组织

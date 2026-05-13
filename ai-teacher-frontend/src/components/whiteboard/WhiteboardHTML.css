@@ -1052,3 +1052,334 @@
 
 /* 公式聚光灯 — 缩放入场 */
 .formula-spotlight { animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+/* ═══════════════════════════════════════════════════════════════
+   WhiteboardHTML.css — 新增非对称/杂志式组件
+   目的：打破矩形盒子的"AI 感"，提供有空间张力的排版
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 26. 杂志式特色布局 — 不对称网格 ── */
+.magazine-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 14px;
+  margin: 0.6rem 0;
+}
+.magazine-grid .mg-lead {
+  grid-row: 1 / 3;
+  background: linear-gradient(160deg, var(--wb-bg-card), var(--wb-bg-surface));
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius-lg);
+  padding: 1.2rem;
+  position: relative;
+  overflow: hidden;
+}
+.magazine-grid .mg-lead::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--wb-primary), var(--wb-accent));
+  opacity: 0.5;
+}
+.magazine-grid .mg-lead .mg-label {
+  font-size: 0.6rem;
+  color: var(--wb-primary-dim);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 0.4rem;
+}
+.magazine-grid .mg-lead .mg-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--wb-primary);
+  line-height: 1.3;
+}
+.magazine-grid .mg-lead .mg-body {
+  color: var(--wb-text-dim);
+  font-size: 0.82rem;
+  margin-top: 0.4rem;
+  line-height: 1.7;
+}
+.magazine-grid .mg-secondary {
+  background: var(--wb-bg-surface);
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius);
+  padding: 0.8rem 1rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.magazine-grid .mg-secondary:hover {
+  transform: translateX(3px);
+  box-shadow: -4px 0 12px var(--wb-shadow);
+}
+.magazine-grid .mg-secondary .mg-subtitle {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 600;
+  color: var(--wb-primary-soft);
+  font-size: 0.88rem;
+  margin-bottom: 0.2rem;
+}
+.magazine-grid .mg-secondary .mg-subbody {
+  color: var(--wb-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+/* 响应式：窄屏转单列 */
+@media (max-width: 600px) {
+  .magazine-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+  .magazine-grid .mg-lead { grid-row: auto; }
+}
+
+/* ── 27. 拉引文 — 大号排版元素 ── */
+.pull-quote {
+  margin: 1rem 0;
+  padding: 1rem 1rem 1rem 2.5rem;
+  position: relative;
+  border-top: 1px solid var(--wb-border);
+  border-bottom: 1px solid var(--wb-border);
+}
+.pull-quote .pq-mark {
+  position: absolute;
+  top: -2px;
+  left: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 3.5rem;
+  line-height: 1;
+  color: var(--wb-primary);
+  opacity: 0.15;
+  user-select: none;
+  pointer-events: none;
+}
+.pull-quote .pq-text {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--wb-primary-soft);
+  line-height: 1.5;
+  margin-bottom: 0.3rem;
+}
+.pull-quote .pq-attribution {
+  font-size: 0.72rem;
+  color: var(--wb-text-muted);
+  text-align: right;
+  letter-spacing: 0.03em;
+}
+.pull-quote .pq-attribution::before {
+  content: '— ';
+}
+
+/* ── 28. 斜角卡片 — clip-path 非矩形 ── */
+.slant-box {
+  margin: 0.8rem 0;
+  background: linear-gradient(160deg, var(--wb-bg-card), var(--wb-bg-surface));
+  border: 1px solid var(--wb-border-light);
+  border-radius: 0;
+  padding: 1rem 1.2rem;
+  clip-path: polygon(0 0, 100% 0, 98% 100%, 2% 100%);
+  position: relative;
+  transition: clip-path 0.3s;
+}
+.slant-box:hover {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+.slant-box .s-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 600;
+  color: var(--wb-primary);
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+}
+.slant-box .s-body {
+  color: var(--wb-text-dim);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+/* 变体：左斜/右斜 */
+.slant-box.slant-left {
+  clip-path: polygon(2% 0, 100% 0, 100% 100%, 0 100%);
+}
+.slant-box.slant-left:hover {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* ── 29. 重叠统计 — 元素叠加 ── */
+.overlap-stats {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  margin: 1rem 0;
+  gap: 0;
+}
+.overlap-stats .os-item {
+  text-align: center;
+  padding: 0.8rem 1rem;
+  background: var(--wb-bg-surface);
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius);
+  position: relative;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), z-index 0s;
+}
+.overlap-stats .os-item:hover {
+  transform: translateY(-6px) scale(1.05);
+  z-index: 10;
+  box-shadow: 0 8px 24px var(--wb-shadow-lg);
+}
+.overlap-stats .os-item + .os-item {
+  margin-left: -12px;
+}
+.overlap-stats .os-item:first-child { z-index: 3; }
+.overlap-stats .os-item:nth-child(2) { z-index: 2; }
+.overlap-stats .os-item:last-child { z-index: 1; }
+.overlap-stats .os-value {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--wb-primary);
+  line-height: 1.1;
+}
+.overlap-stats .os-label {
+  font-size: 0.62rem;
+  color: var(--wb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 0.15rem;
+}
+
+/* ── 30. 斜线分割对比 — 非对称对比 ── */
+.diagonal-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 0.6rem 0;
+  border-radius: var(--wb-radius-lg);
+  overflow: hidden;
+  position: relative;
+}
+.diagonal-compare .dc-side {
+  padding: 0.85rem 1rem;
+  position: relative;
+}
+.diagonal-compare .dc-side:first-child {
+  background: linear-gradient(170deg, #12121e, #0e0e1a);
+  clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%);
+  padding-right: 1.5rem;
+}
+.diagonal-compare .dc-side:last-child {
+  background: linear-gradient(170deg, #16120e, #120e0a);
+  clip-path: polygon(12% 0, 100% 0, 100% 100%, 0 100%);
+  margin-left: -1px;
+  padding-left: 1.5rem;
+}
+.diagonal-compare .dc-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-align: center;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--wb-border);
+  margin-bottom: 0.4rem;
+}
+.diagonal-compare .dc-side:first-child .dc-title { color: var(--wb-primary-soft); }
+.diagonal-compare .dc-side:last-child .dc-title { color: var(--wb-warm-soft); }
+.diagonal-compare .dc-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0;
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--wb-border);
+}
+.diagonal-compare .dc-item:last-child { border-bottom: none; }
+.diagonal-compare .dc-label { color: var(--wb-text-muted); }
+.diagonal-compare .dc-side:first-child .dc-val { color: var(--wb-primary-soft); font-weight: 500; }
+.diagonal-compare .dc-side:last-child .dc-val { color: var(--wb-warm-soft); font-weight: 500; }
+
+/* ── 31. 重点标注条 — 杂志式侧标 ── */
+.inset-label {
+  margin: 0.7rem 0;
+  padding: 0.5rem 0 0.5rem 1rem;
+  border-left: none;
+  position: relative;
+}
+.inset-label::before {
+  content: attr(data-label);
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+  font-size: 0.58rem;
+  color: var(--wb-primary-dim);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+  opacity: 0.6;
+}
+.inset-label .il-content {
+  padding-left: 1.5rem;
+  border-left: 2px solid var(--wb-primary-dim);
+  padding-left: 1rem;
+  font-size: 0.88rem;
+  color: var(--wb-text-dim);
+  line-height: 1.6;
+}
+
+/* ── 32. 知识阶梯 — 台阶式布局 ── */
+.knowledge-steps {
+  display: flex;
+  flex-direction: column;
+  margin: 0.8rem 0;
+}
+.knowledge-steps .ks-step {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 1rem;
+  margin-bottom: 2px;
+  background: var(--wb-bg-surface);
+  border: 1px solid var(--wb-border);
+  border-radius: 0;
+  transition: all 0.2s;
+}
+.knowledge-steps .ks-step:hover {
+  background: var(--wb-bg-hover);
+  border-color: var(--wb-primary-dim);
+}
+/* 台阶错位 — 每级递增左内边距 */
+.knowledge-steps .ks-step:nth-child(1) { margin-left: 0; border-radius: var(--wb-radius) var(--wb-radius) 0 0; }
+.knowledge-steps .ks-step:nth-child(2) { margin-left: 1rem; }
+.knowledge-steps .ks-step:nth-child(3) { margin-left: 2rem; }
+.knowledge-steps .ks-step:nth-child(4) { margin-left: 3rem; border-radius: 0 0 var(--wb-radius) var(--wb-radius); }
+.knowledge-steps .ks-num {
+  width: 24px; height: 24px;
+  background: var(--wb-primary-dim);
+  color: #fff;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; font-weight: 600;
+  flex-shrink: 0;
+  transition: transform 0.2s, background 0.2s;
+}
+.knowledge-steps .ks-step:hover .ks-num {
+  transform: scale(1.15);
+  background: var(--wb-primary);
+}
+.knowledge-steps .ks-body { flex: 1; }
+.knowledge-steps .ks-title { font-weight: 500; color: var(--wb-text); font-size: 0.85rem; }
+.knowledge-steps .ks-desc { color: var(--wb-text-muted); font-size: 0.75rem; margin-top: 0.05rem; }
+
+/* ── 入场动画 ── */
+.magazine-grid { animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.pull-quote { animation: fadeSlideInLeft 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.slant-box { animation: fadeSlideInUp 0.35s ease forwards; }
+.overlap-stats { animation: fadeSlideInUp 0.4s ease forwards; }
+.overlap-stats .os-item:nth-child(1) { animation: fadeSlideInUp 0.3s ease forwards; }
+.overlap-stats .os-item:nth-child(2) { animation: fadeSlideInUp 0.3s ease 0.08s both; }
+.overlap-stats .os-item:nth-child(3) { animation: fadeSlideInUp 0.3s ease 0.16s both; }
+.diagonal-compare { animation: scaleIn 0.35s ease forwards; }
+.knowledge-steps .ks-step:nth-child(1) { animation: fadeSlideInLeft 0.3s ease forwards; }
+.knowledge-steps .ks-step:nth-child(2) { animation: fadeSlideInLeft 0.3s ease 0.06s both; }
+.knowledge-steps .ks-step:nth-child(3) { animation: fadeSlideInLeft 0.3s ease 0.12s both; }
+.knowledge-steps .ks-step:nth-child(4) { animation: fadeSlideInLeft 0.3s ease 0.18s both; }
