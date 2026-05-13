@@ -274,31 +274,173 @@ def generate_teaching_prompt(
 {{"type":"segment","message":"提问内容...","whiteboard":{{}},"is_question":true}}
 {{"type":"complete","next_action":"wait_for_student"}}
 
-【HTML增强输出（可选）】
-当教学内容需要复杂排版（如表格、步骤列表、对比分析、自定义排版）时，
-可以在segment中额外包含 whiteboard_html 字段，提供该段内容的语义HTML版本。
+【HTML增强输出（强烈推荐使用）】
+这是本系统的核心特色。对于每个教学segment，强烈推荐同时输出whiteboard_html字段，
+用语义HTML实现丰富、美观的视觉呈现。系统会自动应用统一的暗色主题CSS。
 
-whiteboard_html 字段的规则：
-1. 只使用纯语义HTML标签，不写内联style
-2. 系统会自动用统一CSS主题渲染，你只需要关注内容结构
-3. 支持的HTML标签：h1-h4, p, ul, ol, li, table, thead, tbody, th, td, caption, div, span, strong, em, blockquote, pre, code, hr, details, summary
-4. 数学公式使用 $...$（行内）或 $$...$$（块级）标记，系统会自动渲染为KaTeX
-5. 区块样式通过 class 控制，可用值：
-   - callout info / warn / tip / error — 提示块
-   - definition（含 .term 和 .meaning）— 定义块
-   - step-list / step-item / step-number / step-body / step-title / step-desc — 步骤列表
-   - highlight — 高亮
-6. 仍然需要保留 message 字段（纯文本版本）
+核心原则：**只写结构HTML（div/span/class），不写内联style，不写JS**。
 
-示例：
-{{"type":"segment","message":"一次函数平移规律如下表所示","whiteboard_html":"<table><caption>平移变换规律</caption><thead><tr><th>方向</th><th>解析式变化</th></tr></thead><tbody><tr><td>上移n单位</td><td>y = kx + b + n</td></tr><tr><td>右移m单位</td><td>y = k(x - m) + b</td></tr></tbody></table><div class=\\"callout tip\\">平移不改变直线的斜率k</div>"}}
+【可用视觉组件速查表】
+系统内置20+种CSS组件，LLM只需添加对应class名即可使用：
 
-whiteboard_html 使用场景建议：
-- 需要表格展示对比数据 → 用 table
-- 需要分步骤讲解 → 用 step-list
-- 需要概念定义 → 用 definition
-- 需要突出提示 → 用 callout info/warn/tip
-- 简单要点 → 继续用 whiteboard.points
+1. 知识卡片网格 — 展示多个相关概念/公式/示例
+   card-grid > knowledge-card (concept|formula|example|warning|tip)
+   > card-icon(emoji) + card-title + card-body + card-tag
+
+2. 对比面板 — 两个概念的并排对比
+   comparison > compare-a + compare-b
+   > compare-title + compare-item(> compare-label + compare-value-a/b)
+
+3. 进度条 — 展示掌握程度/进度
+   progress-container > progress-label + progress-bar > progress-fill (low|medium|high|full)
+
+4. 时间线 — 展示步骤/过程/历史
+   timeline > tl-item (active|done) > tl-title + tl-desc
+
+5. 标签系统
+   tag (blue|green|yellow|red|purple|cyan)
+
+6. 公式聚光灯 — 突出显示核心公式
+   formula-spotlight > formula-label + formula-main + formula-note
+
+7. 记忆口诀 — 助记技巧
+   mnemonic > mne-title + mne-text + mne-rhyme
+
+8. 流程图（水平）
+   flow-diagram > flow-step(> flow-label + flow-desc) + flow-arrow(→) ...
+
+9. 垂直流程图
+   vflow > vflow-step(> vflow-num + vflow-body(> vflow-title + vflow-desc))
+
+10. 迷你测验 — 选择题预览
+    quiz-box > quiz-q + quiz-opt (correct|wrong)
+
+11. 要点洞察框
+    key-insight > ki-icon(emoji) + ki-body(> ki-title + ki-text)
+
+12. 数字统计数据面板
+    stat-row > stat-item(> stat-value + stat-label)
+
+13. 示例框
+    example-box > ex-title + ex-body + ex-solution
+
+14. 错误诊断框
+    error-box > err-title + err-body + err-fix
+
+15. 基础：table / callout (info|warn|tip|error) / definition (term+meaning)
+    step-list (step-item > step-number + step-body(step-title+step-desc))
+    highlight / blockquote / details+summary / pre+code / h1-h4
+
+【组件使用示例 — 直接copy到whiteboard_html字段中】：
+
+-- 示例1：知识卡片网格（展示3个关键点）--
+<div class="card-grid">
+  <div class="knowledge-card concept">
+    <div class="card-icon">🔑</div>
+    <div class="card-title">斜率 k</div>
+    <div class="card-body">决定直线的倾斜方向和程度，k>0递增，k<0递减</div>
+    <span class="card-tag">核心概念</span>
+  </div>
+  <div class="knowledge-card formula">
+    <div class="card-icon">📐</div>
+    <div class="card-title">截距 b</div>
+    <div class="card-body">直线与y轴的交点$(0,b)$，决定直线的上下位置</div>
+    <span class="card-tag">重要参数</span>
+  </div>
+  <div class="knowledge-card tip">
+    <div class="card-icon">💡</div>
+    <div class="card-title">平移规律</div>
+    <div class="card-body">上+下-，左+右-（注意平移方向对解析式的反直觉影响）</div>
+    <span class="card-tag">记忆技巧</span>
+  </div>
+</div>
+
+-- 示例2：对比面板（辨析两个概念）--
+<div class="comparison">
+  <div class="compare-a">
+    <div class="compare-title">一次函数 $y=kx+b$</div>
+    <div class="compare-item"><span class="compare-label">图像</span><span class="compare-value-a">一条直线</span></div>
+    <div class="compare-item"><span class="compare-label">变化率</span><span class="compare-value-a">恒定（k）</span></div>
+    <div class="compare-item"><span class="compare-label">定义域</span><span class="compare-value-a">全体实数</span></div>
+  </div>
+  <div class="compare-b">
+    <div class="compare-title">二次函数 $y=ax^2$</div>
+    <div class="compare-item"><span class="compare-label">图像</span><span class="compare-value-b">抛物线</span></div>
+    <div class="compare-item"><span class="compare-label">变化率</span><span class="compare-value-b">变化（2ax）</span></div>
+    <div class="compare-item"><span class="compare-label">定义域</span><span class="compare-value-b">全体实数</span></div>
+  </div>
+</div>
+
+-- 示例3：公式聚光灯 + 记忆口诀--
+<div class="formula-spotlight">
+  <div class="formula-label">核心公式</div>
+  <div class="formula-main">$$y = kx + b \quad (k \neq 0)$$</div>
+  <div class="formula-note">k 决定倾斜方向与程度，b 决定与 y 轴的交点</div>
+</div>
+<div class="mnemonic">
+  <div class="mne-title">🎯 记忆口诀</div>
+  <div class="mne-text">"k定倾斜b定起，正增负减记心里"</div>
+  <div class="mne-rhyme">k > 0 时向右上倾斜 ↗，k < 0 时向右下倾斜 ↘</div>
+</div>
+
+-- 示例4：垂直流程图+进度条（展示掌握路径）--
+<div class="progress-container">
+  <div class="progress-label"><span>当前掌握进度</span><span>70%</span></div>
+  <div class="progress-bar"><div class="progress-fill medium" style="width:70%">中级</div></div>
+</div>
+<div class="vflow">
+  <div class="vflow-step">
+    <div class="vflow-num">1</div>
+    <div class="vflow-body"><div class="vflow-title">认识一次函数</div><div class="vflow-desc">理解 $y=kx+b$ 的形式和参数含义</div></div>
+  </div>
+  <div class="vflow-step">
+    <div class="vflow-num">2</div>
+    <div class="vflow-body"><div class="vflow-title">图像与性质</div><div class="vflow-desc">掌握k和b对图像的影响规律 ✓</div></div>
+  </div>
+  <div class="vflow-step">
+    <div class="vflow-num">3</div>
+    <div class="vflow-body"><div class="vflow-title">平移变换</div><div class="vflow-desc">理解平移对解析式的改写规则 ✓</div></div>
+  </div>
+</div>
+
+-- 示例5：错误诊断+正解--
+<div class="error-box">
+  <div class="err-title">常见错误</div>
+  <div class="err-body">认为"直线向上平移3个单位"就是 $y=kx+b+3$，但忽略了平移对自变量x的影响。</div>
+  <div class="err-fix">向左平移m个单位应替换 x→(x+m)，即 $y=k(x+m)+b$；向右平移则替换 x→(x-m)</div>
+</div>
+
+-- 示例6：统计面板+时间线--
+<div class="stat-row">
+  <div class="stat-item"><div class="stat-value">3</div><div class="stat-label">核心概念</div></div>
+  <div class="stat-item"><div class="stat-value">2</div><div class="stat-label">变换规则</div></div>
+  <div class="stat-item"><div class="stat-value">85%</div><div class="stat-label">典型正确率</div></div>
+</div>
+
+-- 示例7：要点洞察+标签--
+<div class="key-insight">
+  <div class="ki-icon">🎯</div>
+  <div class="ki-body">
+    <div class="ki-title">核心洞见</div>
+    <div class="ki-text">一次函数的"变"与"不变"：平移改变的是截距 <span class="tag blue">b</span>，斜率的绝对值 <span class="tag green">|k|</span> 始终不变！</div>
+  </div>
+</div>
+
+-- 示例8：选择题预览--
+<div class="quiz-box">
+  <div class="quiz-q">直线 $y=2x+3$ 向下平移2个单位后，解析式是？</div>
+  <div class="quiz-opt wrong">$y=2x+1$</div>
+  <div class="quiz-opt correct">$y=2x+1$ ✓</div>
+  <div class="quiz-opt">$y=2x+5$</div>
+  <div class="quiz-opt">$y=2(x-2)+3$</div>
+</div>
+
+【组件组合技巧】
+- 可以将多个组件自由组合：card-grid + callout + table + formula-spotlight
+- 同一segment的HTML应围绕同一知识点组织
+- 为每段教学内容选择最适合的视觉呈现方式，而不是全部用段落
+
+【依然需要保留 message 字段】message仍提供纯文本版本，可作为辅助朗读文本。
 
 【输出规则】
 1. 必须使用"边讲边写"模式：每句话搭配相应的白板内容

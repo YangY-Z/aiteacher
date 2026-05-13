@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     bailian_model: str = "qwen-plus"  # qwen-plus, qwen-turbo, qwen3.5-35b-a3b
     bailian_enable_thinking: bool = False  # Enable thinking mode for supported models
 
+    # DeepSeek Configuration
+    deepseek_api_key: Optional[str] = None
+    deepseek_model: str = "deepseek-chat"
+    deepseek_base_url: Optional[str] = None  # Defaults to https://api.deepseek.com/v1
+
     # Logging
     log_dir: str = "logs"
     log_retention_days: int = 30

@@ -61,14 +61,14 @@ async def get_curriculum_html(
 
     # 如果提供了 student_id，从学习档案中加载完成状态
     if student_id and not completed:
-        profile = learner_profile_repository.get_by_student_course(student_id, course_id)
+        profile = learner_profile_repository.get_by_student_and_course(student_id, course_id)
         if profile:
             completed_ids = list(profile.completed_kp_ids)
 
     # 获取活跃知识点（当前正在学习的会话）
     active_kp_id: Optional[str] = None
     if student_id:
-        active_session = learning_session_repository.get_active_session(student_id, course_id)
+        active_session = learning_session_repository.get_active_by_student(student_id, course_id)
         if active_session:
             active_kp_id = active_session.kp_id
 

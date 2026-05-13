@@ -25,9 +25,22 @@
       "last_login_at": "2026-05-11T23:36:38.270933",
       "created_at": "2026-05-03T16:29:13.514933",
       "updated_at": "2026-05-11T23:36:38.270962"
+    },
+    {
+      "id": 2,
+      "name": "测试学生",
+      "grade": "初一",
+      "password_hash": "55d20d30902f6eda34dfcafb0654d887$8ae21808967377f12f680acc6b9dea0b46187b7a86f9d83cc1f74909fc3ceca4",
+      "phone": "13800138000",
+      "avatar_url": null,
+      "status": "active",
+      "role": "student",
+      "last_login_at": "2026-05-13T09:10:27.760267",
+      "created_at": "2026-05-13T08:42:18.583354",
+      "updated_at": "2026-05-13T09:10:27.760274"
     }
   ],
-  "next_id": 1,
+  "next_id": 2,
   "profiles": [
     {
       "id": 1,
@@ -43,8 +56,23 @@
       "last_session_at": null,
       "created_at": "2026-05-03T16:30:26.670300",
       "updated_at": "2026-05-03T16:30:26.670332"
+    },
+    {
+      "id": 2,
+      "student_id": 2,
+      "course_id": "MATH_JUNIOR_01",
+      "current_kp_id": null,
+      "completed_kp_ids": [],
+      "mastered_kp_ids": [],
+      "skipped_kp_ids": [],
+      "mastery_rate": 0.0,
+      "total_time": 0,
+      "session_count": 0,
+      "last_session_at": null,
+      "created_at": "2026-05-13T08:52:26.015911",
+      "updated_at": "2026-05-13T08:52:26.015917"
     }
   ],
-  "next_profile_id": 1,
-  "updated_at": "2026-05-11T23:36:38.274636"
+  "next_profile_id": 2,
+  "updated_at": "2026-05-13T09:10:27.760390"
 }

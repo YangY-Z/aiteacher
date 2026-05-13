@@ -1,7 +1,16 @@
+/* ═══════════════════════════════════════════════════════
+   WhiteboardHTML.css — 暗色主题教学白板统一样式
+   ═══════════════════════════════════════════════════════
+   LLM 输出结构 HTML + CSS class，统一渲染。
+   所有样式基于 .whiteboard-html-content 内部，无全局污染。
+   ═══════════════════════════════════════════════════════ */
+
+/* ── 包装器 ── */
 .whiteboard-html-wrapper {
   padding: 0.25rem 0;
 }
 
+/* ── 工具栏 ── */
 .whiteboard-html-toolbar {
   display: flex;
   gap: 0.5rem;
@@ -19,7 +28,6 @@
   font-size: 0.85rem;
   transition: all 0.2s;
 }
-
 .wb-html-btn:hover {
   background: #2a2a4a;
   border-color: #4a6aff;
@@ -34,7 +42,7 @@
   padding-left: 0.75rem;
 }
 
-/* ── 内容区域 ── */
+/* ── 内容区域基础 ── */
 .whiteboard-html-content {
   font-size: 0.9rem;
   line-height: 1.7;
@@ -133,73 +141,368 @@
   background: #141428;
 }
 
-/* ── 语义组件（LLM 输出应使用的 class 名） ── */
+/* ═══════════════════════════════════════════════════════
+   视觉增强组件库 — LLM 可通过 class 自由组合
+   ═══════════════════════════════════════════════════════ */
 
-/* 提示块 */
-.whiteboard-html-content .callout {
-  border-radius: 6px;
-  padding: 0.6rem 0.85rem;
-  margin: 0.5rem 0;
-  font-size: 0.85rem;
-  border-left: 3px solid;
+/* ── 1. 知识卡片网格 ── */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 0.6rem 0;
 }
-.whiteboard-html-content .callout.info {
-  background: #14283a;
-  border-color: #4a8aff;
-  color: #b0d0f0;
-}
-.whiteboard-html-content .callout.warn {
-  background: #2a2a1a;
-  border-color: #d0a050;
-  color: #d0c8a0;
-}
-.whiteboard-html-content .callout.tip {
-  background: #1a2a1a;
-  border-color: #50a050;
-  color: #a0d0a0;
-}
-.whiteboard-html-content .callout.error {
-  background: #2a1a1a;
-  border-color: #d05050;
-  color: #d0a0a0;
-}
-
-/* 定义块 */
-.whiteboard-html-content .definition {
-  background: #141428;
+.knowledge-card {
+  background: linear-gradient(135deg, #1a1a3a 0%, #141428 100%);
   border: 1px solid #2a2a4a;
-  border-radius: 6px;
-  padding: 0.6rem 1rem;
-  margin: 0.5rem 0;
+  border-radius: 10px;
+  padding: 1rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
-.whiteboard-html-content .definition .term {
+.knowledge-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 106, 255, 0.15);
+}
+.knowledge-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: 10px 0 0 10px;
+}
+.knowledge-card.concept::before { background: linear-gradient(180deg, #4a8aff, #6aafff); }
+.knowledge-card.formula::before { background: linear-gradient(180deg, #f0c040, #f0d080); }
+.knowledge-card.example::before { background: linear-gradient(180deg, #50a050, #80c080); }
+.knowledge-card.warning::before { background: linear-gradient(180deg, #d05050, #f07070); }
+.knowledge-card.tip::before { background: linear-gradient(180deg, #a060d0, #c080f0); }
+.knowledge-card .card-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.4rem;
+}
+.knowledge-card .card-title {
   font-weight: 600;
-  color: #8ab4ff;
+  color: #c0d0ff;
   font-size: 0.95rem;
 }
-.whiteboard-html-content .definition .meaning {
-  color: #d0d8e0;
+.knowledge-card .card-body {
+  color: #b0c0d0;
+  font-size: 0.85rem;
   margin-top: 0.3rem;
+  line-height: 1.5;
+}
+.knowledge-card .card-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  margin-top: 0.4rem;
+  background: #2a2a4a;
+  color: #8ab4ff;
 }
 
-/* 步骤列表 */
-.whiteboard-html-content .step-list {
-  list-style: none;
-  padding: 0;
+/* ── 2. 对比面板 ── */
+.comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0.6rem 0;
+}
+.compare-a, .compare-b {
+  padding: 0.75rem 1rem;
+}
+.compare-a {
+  background: linear-gradient(180deg, #14283a, #0e1e2e);
+  border-right: 1px solid #2a2a4a;
+}
+.compare-b {
+  background: linear-gradient(180deg, #2a1a1a, #1e0e0e);
+}
+.compare-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #3a3a5a;
+  margin-bottom: 0.5rem;
+}
+.compare-a .compare-title { color: #8ab4ff; }
+.compare-b .compare-title { color: #ff8a8a; }
+.compare-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #1a1a2e;
+}
+.compare-item:last-child {
+  border-bottom: none;
+}
+.compare-label {
+  color: #8a9ab0;
+}
+.compare-value-a {
+  color: #8ab4ff;
+  font-weight: 500;
+}
+.compare-value-b {
+  color: #ff8a8a;
+  font-weight: 500;
+}
+
+/* ── 3. 进度条 ── */
+.progress-container {
   margin: 0.5rem 0;
 }
-.whiteboard-html-content .step-list .step-item {
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #8a9ab0;
+  margin-bottom: 0.25rem;
+}
+.progress-bar {
+  background: #1a1a2e;
+  border-radius: 8px;
+  height: 22px;
+  overflow: hidden;
+  position: relative;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: #fff;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  transition: width 0.3s;
+}
+.progress-fill.low { background: linear-gradient(90deg, #d05050, #e07070); }
+.progress-fill.medium { background: linear-gradient(90deg, #d0a050, #e0b070); }
+.progress-fill.high { background: linear-gradient(90deg, #50a050, #70c070); }
+.progress-fill.full { background: linear-gradient(90deg, #4a8aff, #6aafff); }
+
+/* ── 4. 时间线 ── */
+.timeline {
+  position: relative;
+  padding-left: 2rem;
+  margin: 0.6rem 0;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #2a3a5a;
+}
+.tl-item {
+  position: relative;
+  padding: 0.5rem 0 0.5rem 1rem;
+  border-bottom: 1px solid #1a1a2e;
+}
+.tl-item:last-child {
+  border-bottom: none;
+}
+.tl-item::before {
+  content: '';
+  position: absolute;
+  left: -1.35rem;
+  top: 0.8rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4a6aff;
+  border: 2px solid #141428;
+  box-shadow: 0 0 4px rgba(74, 106, 255, 0.3);
+}
+.tl-item.active::before {
+  background: #f0c040;
+  border-color: #2a2a1a;
+  box-shadow: 0 0 8px rgba(240, 192, 64, 0.5);
+}
+.tl-item.done::before {
+  background: #50a050;
+  border-color: #1a2a1a;
+}
+.tl-title {
+  font-weight: 500;
+  color: #c0d0ff;
+  font-size: 0.9rem;
+}
+.tl-desc {
+  color: #999;
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
+}
+
+/* ── 5. 标签/徽章 ── */
+.tag {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin: 0.15rem;
+  cursor: default;
+}
+.tag.blue { background: #1a2a4a; color: #8ab4ff; border: 1px solid #2a4a7a; }
+.tag.green { background: #1a2a1a; color: #80c080; border: 1px solid #2a4a2a; }
+.tag.yellow { background: #2a2a1a; color: #d0c080; border: 1px solid #4a4a2a; }
+.tag.red { background: #2a1a1a; color: #d08080; border: 1px solid #4a2a2a; }
+.tag.purple { background: #1a1a2a; color: #b080d0; border: 1px solid #3a2a4a; }
+.tag.cyan { background: #1a2a2a; color: #80c0c0; border: 1px solid #2a4a4a; }
+
+/* ── 6. 公式聚光灯 ── */
+.formula-spotlight {
+  background: linear-gradient(135deg, #0a0a20 0%, #141430 100%);
+  border: 1px solid #2a2a5a;
+  border-radius: 12px;
+  padding: 1.2rem;
+  margin: 0.6rem 0;
+  text-align: center;
+  position: relative;
+}
+.formula-spotlight::before {
+  content: '✦';
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  color: #4a6aff;
+  font-size: 1rem;
+  opacity: 0.4;
+}
+.formula-spotlight .formula-label {
+  font-size: 0.75rem;
+  color: #6a7a9a;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+}
+.formula-spotlight .formula-main {
+  font-size: 1.4rem;
+  color: #e0e8ff;
+  padding: 0.5rem 0;
+}
+.formula-spotlight .formula-note {
+  font-size: 0.8rem;
+  color: #8a9ab0;
+  margin-top: 0.5rem;
+  border-top: 1px solid #1a1a3a;
+  padding-top: 0.5rem;
+}
+
+/* ── 7. 记忆口诀/助记 ── */
+.mnemonic {
+  background: linear-gradient(135deg, #2a1a3a 0%, #1a1a2e 100%);
+  border: 1px solid #4a2a5a;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin: 0.5rem 0;
+  position: relative;
+}
+.mnemonic::before {
+  content: '🧠';
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  font-size: 1.2rem;
+  filter: drop-shadow(0 0 4px rgba(160, 96, 208, 0.5));
+}
+.mnemonic .mne-title {
+  font-weight: 600;
+  color: #c080d0;
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+}
+.mnemonic .mne-text {
+  color: #b0a0c0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+.mnemonic .mne-rhyme {
+  font-style: italic;
+  color: #d0b0e0;
+  font-size: 0.9rem;
+  padding: 0.3rem 0.5rem;
+  background: rgba(160, 96, 208, 0.1);
+  border-radius: 4px;
+  margin-top: 0.3rem;
+  text-align: center;
+}
+
+/* ── 8. 流程图 ── */
+.flow-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin: 0.6rem 0;
+  flex-wrap: wrap;
+}
+.flow-step {
+  background: #1a1a3a;
+  border: 1px solid #3a3a5a;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  text-align: center;
+  min-width: 100px;
+  flex: 1;
+  position: relative;
+}
+.flow-step .flow-label {
+  font-size: 0.8rem;
+  color: #8ab4ff;
+  font-weight: 500;
+}
+.flow-step .flow-desc {
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 0.15rem;
+}
+.flow-arrow {
+  color: #4a6aff;
+  font-size: 1.2rem;
+  padding: 0 0.5rem;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+/* ── 9. 垂直流程图（自上而下） ── */
+.vflow {
+  margin: 0.6rem 0;
+}
+.vflow-step {
   display: flex;
   gap: 0.75rem;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #1a1a2e;
+  position: relative;
 }
-.whiteboard-html-content .step-list .step-item:last-child {
-  border-bottom: none;
+.vflow-step::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 30px;
+  bottom: -5px;
+  width: 2px;
+  background: #2a3a5a;
 }
-.whiteboard-html-content .step-number {
-  width: 1.6rem;
-  height: 1.6rem;
+.vflow-step:last-child::before {
+  display: none;
+}
+.vflow-num {
+  width: 24px;
+  height: 24px;
   background: #4a6aff;
   color: #fff;
   border-radius: 50%;
@@ -209,61 +512,360 @@
   font-size: 0.75rem;
   font-weight: 600;
   flex-shrink: 0;
+  z-index: 1;
 }
-.whiteboard-html-content .step-body {
+.vflow-body {
   flex: 1;
 }
-.whiteboard-html-content .step-title {
+.vflow-title {
+  font-weight: 500;
+  color: #c0d0ff;
+  font-size: 0.9rem;
+}
+.vflow-desc {
+  color: #999;
+  font-size: 0.82rem;
+  margin-top: 0.15rem;
+}
+
+/* ── 10. 迷你测验 ── */
+.quiz-box {
+  background: #141428;
+  border: 1px solid #2a2a5a;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin: 0.6rem 0;
+}
+.quiz-box .quiz-q {
+  font-weight: 500;
+  color: #c0d0ff;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+.quiz-box .quiz-q::before {
+  content: '❓ ';
+}
+.quiz-opt {
+  display: block;
+  background: #1a1a2e;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  margin: 0.3rem 0;
+  font-size: 0.85rem;
+  color: #b0c0d0;
+  cursor: default;
+  transition: all 0.2s;
+}
+.quiz-opt:hover {
+  background: #222240;
+  border-color: #4a6aff;
+}
+.quiz-opt.correct {
+  background: #1a2a1a;
+  border-color: #50a050;
+  color: #a0d0a0;
+}
+.quiz-opt.correct::after {
+  content: ' ✓';
+  color: #50a050;
+  font-weight: 600;
+}
+.quiz-opt.wrong {
+  background: #2a1a1a;
+  border-color: #d05050;
+  color: #d0a0a0;
+}
+.quiz-opt.wrong::after {
+  content: ' ✗';
+  color: #d05050;
+  font-weight: 600;
+}
+
+/* ── 11. 要点洞察框 ── */
+.key-insight {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  background: linear-gradient(135deg, #141428, #1a1a30);
+  border: 1px solid #2a2a5a;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+}
+.key-insight .ki-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+.key-insight .ki-body {
+  flex: 1;
+}
+.key-insight .ki-title {
+  font-weight: 600;
+  color: #c0d0ff;
+  font-size: 0.9rem;
+}
+.key-insight .ki-text {
+  color: #b0c0d0;
+  font-size: 0.85rem;
+  margin-top: 0.15rem;
+  line-height: 1.6;
+}
+
+/* ── 12. 数字统计/数据展示 ── */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 0.6rem 0;
+}
+.stat-item {
+  background: #141428;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  padding: 0.75rem;
+  text-align: center;
+}
+.stat-item .stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #c0d0ff;
+  line-height: 1.2;
+}
+.stat-item .stat-label {
+  font-size: 0.75rem;
+  color: #8a9ab0;
+  margin-top: 0.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── 13. 示例框 ── */
+.example-box {
+  background: #1a2a1a;
+  border: 1px solid #2a4a2a;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+}
+.example-box .ex-title {
+  font-weight: 600;
+  color: #80c080;
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+}
+.example-box .ex-title::before {
+  content: '📝 ';
+}
+.example-box .ex-body {
+  color: #b0c0b0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+.example-box .ex-solution {
+  background: #0a1a0a;
+  border: 1px solid #2a3a2a;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.4rem;
+  font-size: 0.82rem;
+  color: #a0d0a0;
+}
+
+/* ── 14. 警告/错误框 ── */
+.error-box {
+  background: #2a1a1a;
+  border: 1px solid #4a2a2a;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+}
+.error-box .err-title {
+  font-weight: 600;
+  color: #d08080;
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+}
+.error-box .err-title::before {
+  content: '⚠️ ';
+}
+.error-box .err-body {
+  color: #d0a0a0;
+  font-size: 0.85rem;
+}
+.error-box .err-fix {
+  background: #1a1a1a;
+  border: 1px solid #3a2a2a;
+  border-radius: 6px;
+  padding: 0.4rem 0.7rem;
+  margin-top: 0.4rem;
+  font-size: 0.82rem;
+  color: #d0b0b0;
+}
+.error-box .err-fix::before {
+  content: '✅ 正确做法：';
+  color: #80c080;
+}
+
+/* ── 15. 概念树/层级结构 ── */
+.concept-tree {
+  padding-left: 0;
+  margin: 0.5rem 0;
+  list-style: none;
+}
+.concept-tree li {
+  padding: 0.25rem 0;
+  color: #b0c0d0;
+  position: relative;
+  padding-left: 1.2rem;
+}
+.concept-tree > li::before {
+  content: '📌';
+  position: absolute;
+  left: 0;
+  font-size: 0.8rem;
+}
+.concept-tree li .tree-children {
+  padding-left: 1rem;
+  list-style: none;
+}
+.concept-tree .tree-children > li::before {
+  content: '▸ ';
+  color: #4a6aff;
+  font-weight: 600;
+}
+
+/* ── 16. Callout 增强 ── */
+.callout {
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+  border-left: 4px solid;
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+.callout::before {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+.callout.info {
+  background: #14283a;
+  border-color: #4a8aff;
+  color: #b0d0f0;
+}
+.callout.info::before { content: 'ℹ️'; }
+.callout.warn {
+  background: #2a2a1a;
+  border-color: #d0a050;
+  color: #d0c8a0;
+}
+.callout.warn::before { content: '⚡'; }
+.callout.tip {
+  background: #1a2a1a;
+  border-color: #50a050;
+  color: #a0d0a0;
+}
+.callout.tip::before { content: '💡'; }
+.callout.error {
+  background: #2a1a1a;
+  border-color: #d05050;
+  color: #d0a0a0;
+}
+.callout.error::before { content: '🚫'; }
+
+/* ── 17. 定义块增强 ── */
+.definition {
+  background: linear-gradient(135deg, #141428, #1a1a30);
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+}
+.definition .term {
+  font-weight: 600;
+  color: #8ab4ff;
+  font-size: 0.95rem;
+}
+.definition .term::before {
+  content: '📖 ';
+}
+.definition .meaning {
+  color: #d0d8e0;
+  margin-top: 0.3rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* ── 18. 步骤列表增强 ── */
+.step-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+.step-list .step-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #1a1a2e;
+}
+.step-list .step-item:last-child {
+  border-bottom: none;
+}
+.step-number {
+  width: 1.7rem;
+  height: 1.7rem;
+  background: linear-gradient(135deg, #4a6aff, #6aafff);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(74, 106, 255, 0.3);
+}
+.step-body {
+  flex: 1;
+}
+.step-title {
   font-weight: 500;
   color: #c0d0ff;
 }
-.whiteboard-html-content .step-desc {
+.step-desc {
   font-size: 0.85rem;
   color: #999;
   margin-top: 0.15rem;
 }
 
-/* 高亮/关键点 */
-.whiteboard-html-content .highlight {
-  background: #2a2a3a;
+/* ── 19. 高亮块 ── */
+.highlight {
+  background: linear-gradient(90deg, #2a2a3a, #1a1a2e);
   border-left: 3px solid #f0c040;
-  padding: 0.4rem 0.75rem;
+  padding: 0.5rem 0.85rem;
   margin: 0.4rem 0;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 6px 6px 0;
   color: #e0d8b0;
+  font-size: 0.88rem;
 }
 
-/* 公式块 (KaTeX 容器) */
-.whiteboard-html-content .kb-formula-block {
-  text-align: center;
-  padding: 0.5rem 0;
-  margin: 0.4rem 0;
-  overflow-x: auto;
-}
-.whiteboard-html-content .kb-formula-inline {
-  display: inline;
-  padding: 0 0.2rem;
-}
-
-/* 分割线 */
-.whiteboard-html-content hr {
-  border: none;
-  border-top: 1px solid #2a2a4a;
-  margin: 0.75rem 0;
-}
-
-/* 图片 */
+/* ── 20. 图片 ── */
 .whiteboard-html-content img {
   max-width: 100%;
-  border-radius: 6px;
+  border-radius: 8px;
   margin: 0.5rem 0;
+  border: 1px solid #2a2a4a;
 }
 
-/* details/summary */
+/* ── details/summary ── */
 .whiteboard-html-content details {
   background: #141428;
   border: 1px solid #2a2a4a;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 0.4rem 0.75rem;
   margin: 0.4rem 0;
 }
@@ -272,4 +874,37 @@
   font-weight: 500;
   color: #a0c0ff;
   padding: 0.2rem 0;
+}
+.whiteboard-html-content summary::before {
+  content: '📂 ';
+}
+
+/* 分割线 */
+.whiteboard-html-content hr {
+  border: none;
+  border-top: 1px solid linear-gradient(90deg, transparent, #2a2a4a, transparent);
+  margin: 1rem 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #3a3a5a, transparent);
+}
+
+/* 公式容器 */
+.kb-formula-block {
+  text-align: center;
+  padding: 0.5rem 0;
+  margin: 0.4rem 0;
+  overflow-x: auto;
+}
+.kb-formula-inline {
+  display: inline;
+  padding: 0 0.2rem;
+}
+
+/* ── 动画：渐入 ── */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.whiteboard-html-content > * {
+  animation: fadeSlideIn 0.3s ease forwards;
 }
