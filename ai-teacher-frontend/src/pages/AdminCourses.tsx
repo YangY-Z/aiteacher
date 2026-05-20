@@ -11,7 +11,7 @@ import Popconfirm from 'antd/es/popconfirm';
 import Select from 'antd/es/select';
 import Dropdown from 'antd/es/dropdown';
 import { BookOutlined, PlusOutlined, EditOutlined, DeleteOutlined, LogoutOutlined, SettingOutlined, CloseOutlined, MoreOutlined } from '@ant-design/icons';
-import type { MenuProps } from 'antd/es/menu-props';
+import type { MenuProps } from 'antd';
 import { chapterApi } from '../api/admin';
 import './AdminCourses.css';
 

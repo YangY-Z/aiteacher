@@ -2,9 +2,17 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.core.exceptions import (
+    AuthenticationError,
+    DuplicateEntityError,
+    EntityNotFoundError,
+    ValidationError,
+)
+from app.core.security import require_admin
 from app.models import GradeLevel, Status, SubjectCategory
+from app.models.student import Student
 from app.schemas.grade import (
     GradeCreate,
     GradeUpdate,
@@ -22,7 +30,6 @@ from app.services.subject_service import subject_service
 from app.services.student_service import student_service
 from app.schemas.admin import AdminLogin, AdminToken
 from app.schemas.common import APIResponse
-from app.core.exceptions import AuthenticationError
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -76,6 +83,7 @@ async def admin_login(login_data: AdminLogin) -> APIResponse[AdminToken]:
 async def get_grades(
     level: Optional[GradeLevel] = None,
     active_only: bool = False,
+    _current_admin: Student = Depends(require_admin),
 ) -> GradeListResponse:
     """Get all grades.
 
@@ -96,7 +104,10 @@ async def get_grades(
     response_model=GradeResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_grade(request: GradeCreate) -> GradeResponse:
+async def create_grade(
+    request: GradeCreate,
+    _current_admin: Student = Depends(require_admin),
+) -> GradeResponse:
     """Create a new grade.
 
     Args:
@@ -125,7 +136,10 @@ async def create_grade(request: GradeCreate) -> GradeResponse:
 
 
 @router.get("/grades/{grade_id}", response_model=GradeResponse)
-async def get_grade(grade_id: str) -> GradeResponse:
+async def get_grade(
+    grade_id: str,
+    _current_admin: Student = Depends(require_admin),
+) -> GradeResponse:
     """Get a grade by ID.
 
     Args:
@@ -148,7 +162,11 @@ async def get_grade(grade_id: str) -> GradeResponse:
 
 
 @router.put("/grades/{grade_id}", response_model=GradeResponse)
-async def update_grade(grade_id: str, request: GradeUpdate) -> GradeResponse:
+async def update_grade(
+    grade_id: str,
+    request: GradeUpdate,
+    _current_admin: Student = Depends(require_admin),
+) -> GradeResponse:
     """Update a grade.
 
     Args:
@@ -187,7 +205,10 @@ async def update_grade(grade_id: str, request: GradeUpdate) -> GradeResponse:
     "/grades/{grade_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_grade(grade_id: str) -> None:
+async def delete_grade(
+    grade_id: str,
+    _current_admin: Student = Depends(require_admin),
+) -> None:
     """Delete a grade.
 
     Args:
@@ -211,7 +232,10 @@ async def delete_grade(grade_id: str) -> None:
 
 
 @router.get("/grades/{grade_id}/subjects", response_model=list[GradeSubjectResponse])
-async def get_grade_subjects(grade_id: str) -> list[GradeSubjectResponse]:
+async def get_grade_subjects(
+    grade_id: str,
+    _current_admin: Student = Depends(require_admin),
+) -> list[GradeSubjectResponse]:
     """Get all subjects in a grade.
 
     Args:
@@ -249,7 +273,11 @@ async def get_grade_subjects(grade_id: str) -> list[GradeSubjectResponse]:
     response_model=GradeSubjectResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def add_subject_to_grade(grade_id: str, request: GradeSubjectCreate) -> GradeSubjectResponse:
+async def add_subject_to_grade(
+    grade_id: str,
+    request: GradeSubjectCreate,
+    _current_admin: Student = Depends(require_admin),
+) -> GradeSubjectResponse:
     """Add a subject to a grade.
 
     Args:
@@ -293,7 +321,11 @@ async def add_subject_to_grade(grade_id: str, request: GradeSubjectCreate) -> Gr
     "/grades/{grade_id}/subjects/{subject_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def remove_subject_from_grade(grade_id: str, subject_id: str) -> None:
+async def remove_subject_from_grade(
+    grade_id: str,
+    subject_id: str,
+    _current_admin: Student = Depends(require_admin),
+) -> None:
     """Remove a subject from a grade.
 
     Args:
@@ -324,6 +356,7 @@ async def remove_subject_from_grade(grade_id: str, subject_id: str) -> None:
 async def get_subjects(
     category: Optional[SubjectCategory] = None,
     active_only: bool = False,
+    _current_admin: Student = Depends(require_admin),
 ) -> SubjectListResponse:
     """Get all subjects.
 
@@ -344,7 +377,10 @@ async def get_subjects(
     response_model=SubjectResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_subject(request: SubjectCreate) -> SubjectResponse:
+async def create_subject(
+    request: SubjectCreate,
+    _current_admin: Student = Depends(require_admin),
+) -> SubjectResponse:
     """Create a new subject.
 
     Args:
@@ -375,7 +411,10 @@ async def create_subject(request: SubjectCreate) -> SubjectResponse:
 
 
 @router.get("/subjects/{subject_id}", response_model=SubjectResponse)
-async def get_subject(subject_id: str) -> SubjectResponse:
+async def get_subject(
+    subject_id: str,
+    _current_admin: Student = Depends(require_admin),
+) -> SubjectResponse:
     """Get a subject by ID.
 
     Args:
@@ -398,7 +437,11 @@ async def get_subject(subject_id: str) -> SubjectResponse:
 
 
 @router.put("/subjects/{subject_id}", response_model=SubjectResponse)
-async def update_subject(subject_id: str, request: SubjectUpdate) -> SubjectResponse:
+async def update_subject(
+    subject_id: str,
+    request: SubjectUpdate,
+    _current_admin: Student = Depends(require_admin),
+) -> SubjectResponse:
     """Update a subject.
 
     Args:
@@ -439,7 +482,10 @@ async def update_subject(subject_id: str, request: SubjectUpdate) -> SubjectResp
     "/subjects/{subject_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_subject(subject_id: str) -> None:
+async def delete_subject(
+    subject_id: str,
+    _current_admin: Student = Depends(require_admin),
+) -> None:
     """Delete a subject.
 
     Args:

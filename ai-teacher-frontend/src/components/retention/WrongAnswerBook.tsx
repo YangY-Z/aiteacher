@@ -10,13 +10,13 @@ import Empty from 'antd/es/empty';
 import Button from 'antd/es/button';
 import Progress from 'antd/es/progress';
 import Modal from 'antd/es/modal';
+import type { TabsProps } from 'antd';
 import { 
   CheckCircleOutlined, 
   ExclamationCircleOutlined,
   ReloadOutlined,
   FilterOutlined 
 } from '@ant-design/icons';
-import type { TabsProps } from 'antd/es/tabs-props';
 import './WrongAnswerBook.css';
 
 export interface WrongAnswerRecord {

@@ -99,65 +99,6 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
-/**
- * 自动从教学消息文本生成 whiteboard_html 组件
- * 根据消息内容智能选择组件类型
- */
-function autoGenerateWhiteboardHtml(message: string): string {
-  const text = message;
-  const escaped = escapeHtml(text);
-  const titleText = text.length > 30 ? text.substring(0, 28) + '...' : text;
-  
-  // 检测是否为提问
-  if (/[？?]/.test(text) && text.length < 100) {
-    return `<div class="interactive-reveal">
-  <div class="reveal-question">🤔 ${escaped}</div>
-  <div class="reveal-hint">💡 点击上方查看提示</div>
-</div>`;
-  }
-  
-  // 检测是否涉及定义/概念/定理
-  if (/定义|概念|定理|核心|本质/.test(text)) {
-    return `<div class="hero-teach">
-  <span class="ht-number">✦</span>
-  <div class="ht-overline">核心概念</div>
-  <div class="ht-title" style="font-size:1.1em">${escaped}</div>
-</div>`;
-  }
-  
-  // 检测是否为步骤/指南
-  if (/步骤|首先|然后|最后|第一步|第二步/.test(text)) {
-    return `<div class="knowledge-steps">
-  <div class="steps-header">📋 学习步骤</div>
-  <div class="step"><div class="step-num">→</div><div class="step-text">${escaped}</div></div>
-</div>`;
-  }
-  
-  // 检测是否有数字模式（关键数字）
-  const numMatch = text.match(/\d+/);
-  if (numMatch && text.length < 80) {
-    return `<div class="key-number">
-  <div class="kn-value">${numMatch[0]}</div>
-  <div class="kn-label">${escaped}</div>
-</div>`;
-  }
-  
-  // 检测是否为对比/比较
-  if (/对比|比较|区别|不同|差异|vs/i.test(text)) {
-    return `<div class="split-knowledge">
-  <div class="sk-side"><div class="sk-label">🔍</div><div class="sk-concept">${escaped}</div></div>
-  <div class="sk-divider"></div>
-  <div class="sk-side"><div class="sk-label">💡</div><div class="sk-concept">思考一下</div></div>
-</div>`;
-  }
-  
-  // 默认：使用 teach-rule（通用的教学强调）
-  return `<div class="teach-rule">
-  <div class="tr-ornament">💡</div>
-  <div class="tr-text">${escaped}</div>
-</div>`;
-}
-
 const MinimalLearning: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -718,12 +659,39 @@ const MinimalLearning: React.FC = () => {
                     if (json.video) videoResource = json.video;
                     queueMessage(json.message, 'explain', { imageId: json.image_id, image: imageResource, video: videoResource });
                   }
+                  
                   // 处理 whiteboard_html（语义 HTML 白板内容）
                   if (json.whiteboard_html) {
-                    setWhiteboardHtml(json.whiteboard_html);
-                    if (json.whiteboard?.title) setWhiteboardTitle(json.whiteboard.title);
-                    // 提交当前 HTML 为持久块，防止被后续 segment 覆盖
-                    commitWhiteboardHtmlBlock();
+                    const htmlContent = json.whiteboard_html;
+                    const title = json.whiteboard?.title;
+                    
+                    // 直接提交，避免 zustand 异步状态问题
+                    setWhiteboardHtml(htmlContent);
+                    if (title) setWhiteboardTitle(title);
+                    
+                    // 手动创建并提交白板块
+                    const newState = useLearningStore.getState();
+                    useLearningStore.setState({
+                      whiteboardBlocks: [...newState.whiteboardBlocks, {
+                        id: `wb-html-${Date.now()}`,
+                        title: title || newState.currentWhiteboard.title,
+                        key_points: [],
+                        formulas: [],
+                        examples: [],
+                        notes: [],
+                        html: htmlContent,
+                      }],
+                      currentWhiteboard: { 
+                        title: '',
+                        key_points: [],
+                        formulas: [],
+                        examples: [],
+                        notes: [],
+                        image: null,
+                        html: '',
+                      },
+                      whiteboardMode: newState.whiteboardMode === 'hidden' ? 'mini' : newState.whiteboardMode,
+                    });
                   }
                   if (json.whiteboard) {
                     if (json.whiteboard.title) setWhiteboardTitle(json.whiteboard.title);
@@ -754,12 +722,10 @@ const MinimalLearning: React.FC = () => {
                 
                 // 工具增强事件（v2新增）
                 case 'tool_call':
-                  console.log('[Tool Call]', json.tool_name, json.action);
                   // 可选：显示工具调用提示
                   break;
                 
                 case 'tool_result':
-                  console.log('[Tool Result]', json.tool_name, json.success);
                   // 如果工具结果包含图片，添加到消息中
                   if (json.success && json.image_id) {
                     const toolMsgId = `tool-${Date.now()}`;
@@ -902,18 +868,35 @@ const MinimalLearning: React.FC = () => {
                   queueMessage(json.image.title || '', 'explain', { image: imageResource, video: videoResource });
                 }
                 // 处理 whiteboard_html（语义 HTML 白板内容）
-                // LLM 有时输出 whiteboard_html，有时不输出（推理模型行为不一致）
-                // 当 LLM 输出时直接用，未输出时自动从 message 文本生成
                 if (json.whiteboard_html) {
-                  setWhiteboardHtml(json.whiteboard_html);
-                  if (json.whiteboard?.title) setWhiteboardTitle(json.whiteboard.title);
-                  commitWhiteboardHtmlBlock();
-                } else if (json.message) {
-                  // 自动从消息文本生成 whiteboard_html（智能选择组件类型）
-                  const autoHtml = autoGenerateWhiteboardHtml(json.message);
-                  setWhiteboardHtml(autoHtml);
-                  if (json.whiteboard?.title) setWhiteboardTitle(json.whiteboard.title);
-                  commitWhiteboardHtmlBlock();
+                  const htmlContent = json.whiteboard_html;
+                  const title = json.whiteboard?.title;
+                  
+                  setWhiteboardHtml(htmlContent);
+                  if (title) setWhiteboardTitle(title);
+                  
+                  const newState = useLearningStore.getState();
+                  useLearningStore.setState({
+                    whiteboardBlocks: [...newState.whiteboardBlocks, {
+                      id: `wb-html-${Date.now()}`,
+                      title: title || newState.currentWhiteboard.title,
+                      key_points: [],
+                      formulas: [],
+                      examples: [],
+                      notes: [],
+                      html: htmlContent,
+                    }],
+                    currentWhiteboard: { 
+                      title: '',
+                      key_points: [],
+                      formulas: [],
+                      examples: [],
+                      notes: [],
+                      image: null,
+                      html: '',
+                    },
+                    whiteboardMode: newState.whiteboardMode === 'hidden' ? 'mini' : newState.whiteboardMode,
+                  });
                 }
                 if (json.whiteboard) {
                   if (json.whiteboard.title) setWhiteboardTitle(json.whiteboard.title);
@@ -944,11 +927,9 @@ const MinimalLearning: React.FC = () => {
               
               // 工具增强事件（v2新增）
               case 'tool_call':
-                console.log('[Tool Call]', json.tool_name, json.action);
                 break;
               
               case 'tool_result':
-                console.log('[Tool Result]', json.tool_name, json.success);
                 if (json.success && json.image_id) {
                   const toolMsgId = `tool-${Date.now()}`;
                   setState(prev => ({
@@ -1159,21 +1140,6 @@ const MinimalLearning: React.FC = () => {
       {/* Full-screen whiteboard as background */}
       <div className="whiteboard-main">
         <Whiteboard loading={state.isStreaming} />
-        {/* ✅ Direct WhiteboardHTML rendering from store blocks */}
-        {whiteboardBlocks.length > 0 && (
-          <div className="whiteboard-html-overlay">
-            {whiteboardBlocks.map((block, i) => (
-              <div key={i} className="whiteboard-block html-block">
-                <WhiteboardHTML html={block.html || ''} title={block.title} />
-              </div>
-            ))}
-            {currentWhiteboard.html && (
-              <div className="whiteboard-block html-block streaming">
-                <WhiteboardHTML html={currentWhiteboard.html} title={currentWhiteboard.title} />
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Floating interactive whiteboard panel */}

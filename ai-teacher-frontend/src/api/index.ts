@@ -1,4 +1,4 @@
-import api from './client';
+import api, { API_BASE_URL } from './client';
 import type {
   ApiResponse,
   Student,
@@ -21,6 +21,7 @@ import type {
   ImprovementSession,
   ImprovementQuiz,
   ImprovementQuizResult,
+  MediaResource,
 } from '../types';
 
 // SSE事件类型（增量事件）
@@ -64,6 +65,8 @@ export interface SegmentData {
   message: string;
   whiteboard: WhiteboardSegment;
   is_question?: boolean;
+  image?: MediaResource;
+  video?: MediaResource;
   // 工具增强字段（v2新增）
   image_id?: string;
   video_id?: string;
@@ -169,7 +172,7 @@ export const learningApi = {
   // 流式获取教学内容（增量事件）
   streamTeachingContent: async (sessionId: string, callbacks: StreamCallbacks) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`/api/v1/learning/session/${sessionId}/stream`, {
+    const response = await fetch(`${API_BASE_URL}/learning/session/${sessionId}/stream`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -275,7 +278,7 @@ export const learningApi = {
   // 流式发送消息（增量事件）
   streamSendMessage: async (sessionId: string, message: string, callbacks: StreamCallbacks) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`/api/v1/learning/session/${sessionId}/stream`, {
+    const response = await fetch(`${API_BASE_URL}/learning/session/${sessionId}/stream`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -437,7 +440,7 @@ export const teachingV2Api = {
   // 流式获取教学内容（工具增强版）
   streamTeachingContent: async (sessionId: string, useTools: boolean, callbacks: StreamCallbacks) => {
     const token = localStorage.getItem('token');
-    const response = await fetch(`/api/v1/teaching-v2/session/${sessionId}/teach-v2?use_tools=${useTools}`, {
+    const response = await fetch(`${API_BASE_URL}/teaching-v2/session/${sessionId}/teach-v2?use_tools=${useTools}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

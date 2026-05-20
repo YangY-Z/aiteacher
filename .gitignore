@@ -4,3 +4,10 @@ logs/
 env/
 venv/
 .venv/
+__pycache__/
+.DS_Store
+*.py[cod]
+*.mp3
+*.wav
+ai-teacher-backend/generated_media/
+ai-teacher-backend/test_media/

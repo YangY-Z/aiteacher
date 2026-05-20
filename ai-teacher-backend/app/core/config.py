@@ -4,6 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Project root directory (where .env file is located)
@@ -26,7 +27,7 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     # Data directory for loading JSON files
-    data_dir: str = "/Users/zhaoyang/iFlow/aiteacher"
+    data_dir: str = str(PROJECT_ROOT / "data")
 
     # API
     api_prefix: str = "/api/v1"
@@ -78,6 +79,31 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         """Check if running in production environment."""
         return self.environment == "production"
+
+    @model_validator(mode="after")
+    def validate_production_settings(self) -> "Settings":
+        """Fail fast when unsafe development defaults leak into production."""
+        if not self.is_production:
+            return self
+
+        if self.debug:
+            raise ValueError("DEBUG must be false in production")
+
+        if self.secret_key == "your-secret-key-change-in-production":
+            raise ValueError("SECRET_KEY must be configured in production")
+
+        if "*" in self.cors_origins:
+            raise ValueError("CORS_ORIGINS must not include '*' in production")
+
+        provider_key_map = {
+            "zhipu": self.zhipu_api_key,
+            "bailian": self.bailian_api_key,
+            "deepseek": self.deepseek_api_key,
+        }
+        if not provider_key_map.get(self.llm_provider.lower()):
+            raise ValueError(f"API key for LLM_PROVIDER={self.llm_provider} is required in production")
+
+        return self
 
 
 @lru_cache

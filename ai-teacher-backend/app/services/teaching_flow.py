@@ -520,6 +520,11 @@ next_action 选项：
         elif original_data.get("type") == "segment":
             logger.debug(f"[whiteboard] segment无白板数据, original_data keys: {list(original_data.keys())}")
 
+        whiteboard_html = original_data.get("whiteboard_html")
+        if whiteboard_html:
+            response_data["whiteboard_html"] = whiteboard_html
+            logger.debug(f"[whiteboard_html] segment包含白板HTML, 长度={len(whiteboard_html)}字符")
+
         if event.image:
             response_data["image"] = event.image
         if event.video:

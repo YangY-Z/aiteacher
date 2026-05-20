@@ -1,6 +1,9 @@
 import axios from 'axios';
+import { API_BASE_URL } from './client';
 
-const API_BASE_URL = 'http://localhost:8008/api/v1';
+const getAdminAuthConfig = () => ({
+  headers: { Authorization: `Bearer ${localStorage.getItem('admin_token') ?? ''}` },
+});
 
 // Admin API
 export const adminApi = {
@@ -31,49 +34,52 @@ export const adminApi = {
 export const gradeApi = {
   // List grades
   list: async (params?: { level?: string; active_only?: boolean }) => {
-    const response = await axios.get(`${API_BASE_URL}/admin/grades`, { params });
+    const response = await axios.get(`${API_BASE_URL}/admin/grades`, {
+      ...getAdminAuthConfig(),
+      params,
+    });
     return response.data;
   },
 
   // Create grade
   create: async (data: { name: string; code: string; level: string; sort_order?: number; description?: string }) => {
-    const response = await axios.post(`${API_BASE_URL}/admin/grades`, data);
+    const response = await axios.post(`${API_BASE_URL}/admin/grades`, data, getAdminAuthConfig());
     return response.data;
   },
 
   // Get grade
   get: async (gradeId: string) => {
-    const response = await axios.get(`${API_BASE_URL}/admin/grades/${gradeId}`);
+    const response = await axios.get(`${API_BASE_URL}/admin/grades/${gradeId}`, getAdminAuthConfig());
     return response.data;
   },
 
   // Update grade
   update: async (gradeId: string, data: { name?: string; level?: string; sort_order?: number; description?: string; status?: string }) => {
-    const response = await axios.put(`${API_BASE_URL}/admin/grades/${gradeId}`, data);
+    const response = await axios.put(`${API_BASE_URL}/admin/grades/${gradeId}`, data, getAdminAuthConfig());
     return response.data;
   },
 
   // Delete grade
   delete: async (gradeId: string) => {
-    const response = await axios.delete(`${API_BASE_URL}/admin/grades/${gradeId}`);
+    const response = await axios.delete(`${API_BASE_URL}/admin/grades/${gradeId}`, getAdminAuthConfig());
     return response.data;
   },
 
   // Get grade subjects
   getSubjects: async (gradeId: string) => {
-    const response = await axios.get(`${API_BASE_URL}/admin/grades/${gradeId}/subjects`);
+    const response = await axios.get(`${API_BASE_URL}/admin/grades/${gradeId}/subjects`, getAdminAuthConfig());
     return response.data;
   },
 
   // Add subject to grade
   addSubject: async (gradeId: string, data: { subject_id: string; sort_order?: number }) => {
-    const response = await axios.post(`${API_BASE_URL}/admin/grades/${gradeId}/subjects`, data);
+    const response = await axios.post(`${API_BASE_URL}/admin/grades/${gradeId}/subjects`, data, getAdminAuthConfig());
     return response.data;
   },
 
   // Remove subject from grade
   removeSubject: async (gradeId: string, subjectId: string) => {
-    const response = await axios.delete(`${API_BASE_URL}/admin/grades/${gradeId}/subjects/${subjectId}`);
+    const response = await axios.delete(`${API_BASE_URL}/admin/grades/${gradeId}/subjects/${subjectId}`, getAdminAuthConfig());
     return response.data;
   },
 };
@@ -82,31 +88,34 @@ export const gradeApi = {
 export const subjectApi = {
   // List subjects
   list: async (params?: { category?: string; active_only?: boolean }) => {
-    const response = await axios.get(`${API_BASE_URL}/admin/subjects`, { params });
+    const response = await axios.get(`${API_BASE_URL}/admin/subjects`, {
+      ...getAdminAuthConfig(),
+      params,
+    });
     return response.data;
   },
 
   // Create subject
   create: async (data: { name: string; code: string; category: string; sort_order?: number; description?: string }) => {
-    const response = await axios.post(`${API_BASE_URL}/admin/subjects`, data);
+    const response = await axios.post(`${API_BASE_URL}/admin/subjects`, data, getAdminAuthConfig());
     return response.data;
   },
 
   // Get subject
   get: async (subjectId: string) => {
-    const response = await axios.get(`${API_BASE_URL}/admin/subjects/${subjectId}`);
+    const response = await axios.get(`${API_BASE_URL}/admin/subjects/${subjectId}`, getAdminAuthConfig());
     return response.data;
   },
 
   // Update subject
   update: async (subjectId: string, data: { name?: string; category?: string; sort_order?: number; description?: string; status?: string }) => {
-    const response = await axios.put(`${API_BASE_URL}/admin/subjects/${subjectId}`, data);
+    const response = await axios.put(`${API_BASE_URL}/admin/subjects/${subjectId}`, data, getAdminAuthConfig());
     return response.data;
   },
 
   // Delete subject
   delete: async (subjectId: string) => {
-    const response = await axios.delete(`${API_BASE_URL}/admin/subjects/${subjectId}`);
+    const response = await axios.delete(`${API_BASE_URL}/admin/subjects/${subjectId}`, getAdminAuthConfig());
     return response.data;
   },
 };

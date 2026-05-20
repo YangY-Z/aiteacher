@@ -1,0 +1,19 @@
+# OpenHuman Voice Demo 依赖
+
+# 音频录制
+sounddevice>=0.4.6
+numpy>=1.24.0
+
+# STT - 选择其一:
+# faster-whisper (推荐，Python 原生，更快)
+faster-whisper>=1.0.0
+
+# 或使用 whisper.cpp 子进程 (需要单独安装 whisper-cli)
+# brew install whisper-cpp (macOS)
+
+# TTS - 选择其一:
+# piper-tts (Python 库，推荐)
+piper-tts>=1.2.0
+
+# 或使用 piper 子进程 (需要单独下载二进制)
+# https://github.com/rhasspy/piper/releases
