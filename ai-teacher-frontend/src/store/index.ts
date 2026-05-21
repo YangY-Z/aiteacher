@@ -86,6 +86,11 @@ interface LearningState {
   addWhiteboardBlock: (block: WhiteboardContent) => void;
   updateLastWhiteboardBlock: (block: Partial<WhiteboardContent>) => void;
   clearWhiteboard: () => void;
+  setWhiteboardSnapshot: (snapshot: {
+    whiteboardBlocks?: WhiteboardContent[];
+    currentWhiteboard?: Partial<WhiteboardState>;
+    whiteboardMode?: WhiteboardViewMode;
+  }) => void;
   // 新增：增量更新方法
   setWhiteboardTitle: (title: string) => void;
   addWhiteboardPoint: (point: string) => void;
@@ -196,6 +201,14 @@ export const useLearningStore = create<LearningState>()((set) => ({
     currentWhiteboard: initialWhiteboardState,
     whiteboardMode: 'hidden',
   }),
+  setWhiteboardSnapshot: (snapshot) => set((state) => ({
+    whiteboardBlocks: snapshot.whiteboardBlocks ?? state.whiteboardBlocks,
+    currentWhiteboard: {
+      ...initialWhiteboardState,
+      ...(snapshot.currentWhiteboard ?? {}),
+    },
+    whiteboardMode: snapshot.whiteboardMode ?? state.whiteboardMode,
+  })),
   // 增量更新方法（添加去重逻辑）
   setWhiteboardTitle: (title) => set((state) => {
     // 如果标题已存在，不重复设置

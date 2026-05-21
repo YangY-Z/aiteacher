@@ -4,6 +4,7 @@
   height: 100%;
   min-height: 0; /* 关键：允许flex收缩 */
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: rgba(255, 255, 255, 0.92);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -274,6 +275,29 @@
   border-radius: 8px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.2);
+}
+
+.image-item svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.image-item svg text,
+.image-item svg tspan {
+  fill: rgba(255, 255, 255, 0.92) !important;
+}
+
+.image-item svg [stroke="#000"],
+.image-item svg [stroke="#000000"],
+.image-item svg [stroke="black"] {
+  stroke: rgba(255, 255, 255, 0.72) !important;
+}
+
+.image-item svg [fill="#000"],
+.image-item svg [fill="#000000"],
+.image-item svg [fill="black"] {
+  fill: rgba(255, 255, 255, 0.88) !important;
 }
 
 .whiteboard-image {

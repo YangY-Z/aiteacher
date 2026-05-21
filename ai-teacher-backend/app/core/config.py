@@ -75,6 +75,11 @@ class Settings(BaseSettings):
     sandbox_max_memory_mb: int = 512  # MB
     sandbox_max_cpus: float = 1.0
 
+    # Voice Configuration
+    voice_tts_provider: str = "edge"
+    voice_tts_voice: str = "zh-CN-XiaoxiaoNeural"
+    voice_audio_dir: str = "generated_media/voice"
+
     @property
     def is_production(self) -> bool:
         """Check if running in production environment."""

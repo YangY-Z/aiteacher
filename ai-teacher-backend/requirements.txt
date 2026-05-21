@@ -20,6 +20,7 @@ passlib[bcrypt]>=1.7.4
 # Utilities
 python-dateutil>=2.8.2
 uuid6>=2024.1.12
+edge-tts>=7.0.0
 
 # Testing
 pytest>=7.4.0

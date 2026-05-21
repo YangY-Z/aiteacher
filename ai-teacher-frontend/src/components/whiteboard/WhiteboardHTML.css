@@ -107,6 +107,22 @@
   z-index: 2;
 }
 
+.whiteboard-html-content :where(
+  article, section, header, footer, nav,
+  div, span, strong, em, b, i, u, s, small,
+  dl, dt, dd, figcaption, label, summary
+) {
+  color: inherit;
+}
+
+.whiteboard-html-content :where(.text, .body, .content, .desc, .description, .caption, .subtitle, .note, .hint) {
+  color: var(--wb-text-dim) !important;
+}
+
+.whiteboard-html-content :where(.title, .heading, .label, .name, .term, .value, .answer, .result) {
+  color: var(--wb-text) !important;
+}
+
 /* 标题 — Playfair Display 衬线 */
 .whiteboard-html-content h1,
 .whiteboard-html-content h2,

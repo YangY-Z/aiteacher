@@ -4,7 +4,7 @@ import message from 'antd/es/message';
 import Drawer from 'antd/es/drawer';
 import Tag from 'antd/es/tag';
 import Empty from 'antd/es/empty';
-import { LogoutOutlined, ArrowLeftOutlined, ToolOutlined, HistoryOutlined, CloseOutlined, PlusOutlined, ExpandOutlined, CompressOutlined } from '@ant-design/icons';
+import { LogoutOutlined, ArrowLeftOutlined, ToolOutlined, HistoryOutlined, CloseOutlined, PlusOutlined, ExpandOutlined, CompressOutlined, AudioOutlined, SoundOutlined, StopOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import 'katex/dist/katex.min.css';
 import Whiteboard from '../components/whiteboard/Whiteboard';
@@ -15,7 +15,8 @@ import { FloatingInteractiveWhiteboard } from '../components/interactive';
 import type { FloatingInteractiveWhiteboardRef } from '../components/interactive';
 import type { InteractiveTask, AIFeedback } from '../components/interactive/types';
 import { useAuthStore, useLearningStore } from '../store';
-import type { SessionListItem, SessionHistoryResponse } from '../types';
+import { useBrowserVoice } from '../hooks/useBrowserVoice';
+import type { SessionListItem, SessionHistoryResponse, WhiteboardContent, WhiteboardImage } from '../types';
 import './MinimalLearning.css';
 
 type LearningPhase = 'explain' | 'question' | 'interactive' | 'feedback' | 'assessment';
@@ -99,6 +100,59 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
+const getWhiteboardStorageKey = (sessionId: string) => `learning_whiteboard:${sessionId}`;
+
+interface WhiteboardSnapshot {
+  version: 1;
+  whiteboardBlocks: WhiteboardContent[];
+  currentWhiteboard: {
+    title: string;
+    key_points: string[];
+    formulas: string[];
+    examples: string[];
+    notes: string[];
+    image: WhiteboardImage | null;
+    html: string;
+  };
+  whiteboardMode: 'hidden' | 'mini' | 'expanded';
+}
+
+const emptyWhiteboardSnapshot = (): Omit<WhiteboardSnapshot, 'version' | 'whiteboardMode'> => ({
+  whiteboardBlocks: [],
+  currentWhiteboard: {
+    title: '',
+    key_points: [],
+    formulas: [],
+    examples: [],
+    notes: [],
+    image: null,
+    html: '',
+  },
+});
+
+const loadWhiteboardSnapshot = (sessionId: string): WhiteboardSnapshot | null => {
+  try {
+    const raw = localStorage.getItem(getWhiteboardStorageKey(sessionId));
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.whiteboardBlocks)) return null;
+
+    return {
+      version: 1,
+      whiteboardBlocks: parsed.whiteboardBlocks,
+      currentWhiteboard: {
+        ...emptyWhiteboardSnapshot().currentWhiteboard,
+        ...(parsed.currentWhiteboard || {}),
+      },
+      whiteboardMode: parsed.whiteboardMode || 'hidden',
+    };
+  } catch (error) {
+    console.warn('恢复白板快照失败:', error);
+    return null;
+  }
+};
+
 const MinimalLearning: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -114,8 +168,11 @@ const MinimalLearning: React.FC = () => {
     setWhiteboardImage,
     setWhiteboardHtml,
     commitWhiteboardHtmlBlock,
+    setWhiteboardSnapshot,
+    clearWhiteboard,
     whiteboardBlocks,
     currentWhiteboard,
+    whiteboardMode,
   } = useLearningStore();
   
   const [state, setState] = useState<LearningState>({
@@ -145,6 +202,7 @@ const MinimalLearning: React.FC = () => {
   const chatRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const floatingInteractiveRef = useRef<FloatingInteractiveWhiteboardRef>(null);
+  const restoringWhiteboardSessionRef = useRef<string | null>(null);
 
   // 消息队列和显示控制
   const messageQueueRef = useRef<Array<{content: string, phase: LearningPhase, imageId?: string, image?: MediaResource, video?: MediaResource}>>([]);
@@ -153,67 +211,21 @@ const MinimalLearning: React.FC = () => {
   // 防止评估接口重复调用
   const isLoadingAssessmentRef = useRef(false);
 
-  // 浮动聊天面板状态
+  // 课堂底部控制台状态
   const [chatPanelExpanded, setChatPanelExpanded] = useState(false);
-  const [chatPanelPos, setChatPanelPos] = useState({ x: 0, y: 0 });
-  const [isDraggingChat, setIsDraggingChat] = useState(false);
-  const isDraggingRef = useRef(false); // ref for synchronous drag check in click handler
-  const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
+  const [inputText, setInputText] = useState('');
   const chatPanelRef = useRef<HTMLDivElement>(null);
-
-  // 拖拽聊天面板
-  const handleChatDragStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    isDraggingRef.current = false; // reset on mousedown, will be set true on mousemove
-    setIsDraggingChat(true);
-    dragStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      posX: chatPanelPos.x,
-      posY: chatPanelPos.y,
-    };
-  }, [chatPanelPos]);
+  const voice = useBrowserVoice();
+  const voiceAutoReadRef = useRef(voice.autoRead);
+  const voiceSpeakRef = useRef(voice.speak);
 
   useEffect(() => {
-    if (!isDraggingChat) return;
+    voiceAutoReadRef.current = voice.autoRead;
+    voiceSpeakRef.current = voice.speak;
+  }, [voice.autoRead, voice.speak]);
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const dx = e.clientX - dragStartRef.current.x;
-      const dy = dragStartRef.current.y - e.clientY; // screen Y is inverted (top-down)
-      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-        isDraggingRef.current = true;
-      }
-      const newX = dragStartRef.current.posX + dx;
-      const newY = dragStartRef.current.posY + dy;
-
-      // Clamp: keep panel within reasonable viewport bounds
-      const maxX = Math.max(0, window.innerWidth - 340 - 16);
-      const maxY = Math.max(0, window.innerHeight - 150); // don't go above viewport
-      const minY = -16; // bottom edge at minimum
-      const minX = -200; // allow partial off-screen left
-
-      setChatPanelPos({
-        x: Math.max(0, Math.min(newX, Math.max(0, maxX))),
-        y: Math.max(minY, Math.min(newY, Math.max(0, maxY))),
-      });
-    };
-
-    const handleMouseUp = () => {
-      setIsDraggingChat(false);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDraggingChat]);
-
-  // 展开/收起时重置位置
   const handleToggleChatPanel = useCallback(() => {
     setChatPanelExpanded(prev => !prev);
-    setChatPanelPos({ x: 0, y: 0 });
   }, []);
 
   // 历史会话相关状态
@@ -238,6 +250,24 @@ const MinimalLearning: React.FC = () => {
     localStorage.setItem('learning_session_id', sessionId);
   }, []);
 
+  // 当前会话的白板内容按 sessionId 持久化，刷新后能恢复同一块白板
+  useEffect(() => {
+    if (!state.sessionId) return;
+    if (restoringWhiteboardSessionRef.current) {
+      if (restoringWhiteboardSessionRef.current !== state.sessionId) return;
+      restoringWhiteboardSessionRef.current = null;
+    }
+
+    const snapshot: WhiteboardSnapshot = {
+      version: 1,
+      whiteboardBlocks,
+      currentWhiteboard,
+      whiteboardMode,
+    };
+
+    localStorage.setItem(getWhiteboardStorageKey(state.sessionId), JSON.stringify(snapshot));
+  }, [state.sessionId, whiteboardBlocks, currentWhiteboard, whiteboardMode]);
+
   // 从 localStorage 恢复会话
   const restoreSession = useCallback(async (sessionId: string) => {
     setIsRestoring(true);
@@ -256,6 +286,14 @@ const MinimalLearning: React.FC = () => {
 
       if (data.success && data.data) {
         const history: SessionHistoryResponse = data.data;
+        const whiteboardSnapshot = loadWhiteboardSnapshot(sessionId);
+        restoringWhiteboardSessionRef.current = sessionId;
+
+        if (whiteboardSnapshot) {
+          setWhiteboardSnapshot(whiteboardSnapshot);
+        } else {
+          clearWhiteboard();
+        }
 
         // 将后端消息转换为前端消息格式
         const restoredMessages: Message[] = [];
@@ -297,7 +335,7 @@ const MinimalLearning: React.FC = () => {
     } finally {
       setIsRestoring(false);
     }
-  }, [getAuthHeaders]);
+  }, [clearWhiteboard, getAuthHeaders, setWhiteboardSnapshot]);
 
   // 获取会话历史列表
   const fetchSessionList = useCallback(async () => {
@@ -352,13 +390,6 @@ const MinimalLearning: React.FC = () => {
     }
   }, [state.messages]);
 
-  // 当 AI 开始流式输出时自动展开聊天面板
-  useEffect(() => {
-    if (state.isStreaming) {
-      setChatPanelExpanded(true);
-    }
-  }, [state.isStreaming]);
-
   // 直接添加消息到状态
   const addMessageNow = useCallback((role: 'ai' | 'student', content: string, phase: LearningPhase, imageId?: string, image?: MediaResource, video?: MediaResource) => {
     const msgId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -375,6 +406,9 @@ const MinimalLearning: React.FC = () => {
         video: video || undefined,
       }],
     }));
+    if (role === 'ai' && voiceAutoReadRef.current) {
+      voiceSpeakRef.current(content);
+    }
   }, []);
 
   // 将消息加入队列，逐个显示
@@ -1038,6 +1072,7 @@ const MinimalLearning: React.FC = () => {
           const kpName = startData.data?.kp_name || null;
           setState(prev => ({ ...prev, sessionId, currentKpId: kpId, currentTopic: kpName || prev.currentTopic }));
           saveSessionId(sessionId);
+          clearWhiteboard();
           // 清除 URL 中的 kp_id 参数，避免刷新重复创建
           setSearchParams({}, { replace: true });
           
@@ -1089,6 +1124,25 @@ const MinimalLearning: React.FC = () => {
     }
   }, [state.sessionId, state.isStreaming, state.phase, state.isFirstInput, state.useTools, addMessageNow, getAuthHeaders, queueMessage, saveSessionId, waitForQueueDrain]);
 
+  const handleVoiceInput = useCallback(() => {
+    if (voice.isListening) {
+      voice.stopListening();
+      return;
+    }
+
+    voice.startListening({
+      initialText: inputText,
+      onTranscript: setInputText,
+    });
+  }, [inputText, voice]);
+
+  const submitInputText = useCallback(() => {
+    const content = inputText.trim();
+    if (!content || state.isStreaming) return;
+    handleSend(content);
+    setInputText('');
+  }, [handleSend, inputText, state.isStreaming]);
+
   const handleSubmitDrawing = useCallback(async (imageData: string) => {
     if (!state.sessionId || !state.interactiveTask) return;
 
@@ -1134,6 +1188,8 @@ const MinimalLearning: React.FC = () => {
   const handleCloseInteractivePanel = useCallback(() => {
     setState(prev => ({ ...prev, showInteractivePanel: false }));
   }, []);
+
+  const latestAiMessage = [...state.messages].reverse().find((msg) => msg.role === 'ai' && msg.content.trim());
 
   return (
     <div className="minimal-learning">
@@ -1211,6 +1267,32 @@ const MinimalLearning: React.FC = () => {
             >
               🎨 互动白板
             </Button>
+            <Button
+              type={voice.autoRead ? 'primary' : 'default'}
+              size="small"
+              icon={voice.isPaused ? <PlayCircleOutlined /> : voice.isSpeaking ? <PauseCircleOutlined /> : <SoundOutlined />}
+              onClick={() => {
+                if (voice.isSpeaking) {
+                  if (voice.isPaused) {
+                    voice.resumeSpeaking();
+                  } else {
+                    voice.pauseSpeaking();
+                  }
+                  return;
+                }
+                const nextAutoRead = !voice.autoRead;
+                voice.setAutoRead(nextAutoRead);
+                if (nextAutoRead) {
+                  const lastAiMessage = [...state.messages].reverse().find((msg) => msg.role === 'ai' && msg.content.trim());
+                  if (lastAiMessage) {
+                    voice.speak(lastAiMessage.content, { interrupt: true });
+                  }
+                }
+              }}
+              title={voice.isPaused ? '继续播放语音' : voice.isSpeaking ? '暂停语音播放' : voice.autoRead ? '自动朗读已开启' : '自动朗读已关闭'}
+            >
+              {voice.isPaused ? '继续播放' : voice.isSpeaking ? '暂停语音' : voice.autoRead ? '自动朗读' : '手动朗读'}
+            </Button>
             <div className="user-info">
               <span className="user-name">{user?.name || '学生'}</span>
               <Button type="text" icon={<LogoutOutlined />} onClick={handleLogout} className="logout-btn" title="退出登录" />
@@ -1219,223 +1301,249 @@ const MinimalLearning: React.FC = () => {
         </div>
       </header>
 
-      {/* Floating chat panel - bottom left, draggable */}
+      {/* Voice-first classroom console */}
       <div
         ref={chatPanelRef}
-        className={`floating-chat-panel ${chatPanelExpanded ? 'expanded' : 'collapsed'} ${isDraggingChat ? 'dragging' : ''}`}
-        style={{
-          left: 16 + chatPanelPos.x,
-          bottom: 16 + chatPanelPos.y,
-        }}
+        className={`classroom-console ${chatPanelExpanded ? 'expanded' : 'compact'}`}
       >
-        <div
-          className="chat-panel-header"
-          onMouseDown={handleChatDragStart}
-          onClick={() => {
-            if (!isDraggingRef.current) {
-              handleToggleChatPanel();
-            }
-            isDraggingRef.current = false;
-          }}
-        >
-          <span className="chat-panel-title">💬 对话</span>
-          {state.messages.length > 0 && (
-            <span className="chat-msg-count">{state.messages.length}</span>
-          )}
-          <Button
-            type="text"
-            size="small"
-            icon={chatPanelExpanded ? <CompressOutlined /> : <ExpandOutlined />}
-            className="chat-panel-toggle"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleToggleChatPanel();
-            }}
-          />
-        </div>
-
         {chatPanelExpanded && (
-          <div className="chat-panel-messages" ref={chatRef}>
-            {state.messages.map((msg) => (
-              <div key={msg.id} className={`message ${msg.role}`}>
-                <div className="message-avatar">
-                  {msg.role === 'ai' ? '👨‍🏫' : '👨‍🎓'}
+          <section className="learning-record-panel">
+            <div className="learning-record-header">
+              <div>
+                <div className="learning-record-title">学习记录</div>
+                <div className="learning-record-meta">
+                  {state.messages.length} 条记录
+                  {state.isStreaming && <span> · 老师正在讲解</span>}
                 </div>
-                <div className="message-content">
-                  <MarkdownContent content={msg.content} />
-                  {msg.video && (
-                    <div className="message-media" style={{ marginTop: 8 }}>
-                      <div style={{ background: '#000', borderRadius: 8, overflow: 'hidden' }}>
-                        <video
-                          style={{ maxWidth: '100%', maxHeight: 200, display: 'block' }}
-                          src={msg.video.url}
-                          controls
-                          poster={msg.video.thumbnail_url}
-                        />
+              </div>
+              <Button
+                type="text"
+                size="small"
+                icon={<CompressOutlined />}
+                className="chat-panel-toggle"
+                onClick={handleToggleChatPanel}
+                title="收起学习记录"
+              />
+            </div>
+
+            <div className="chat-panel-messages" ref={chatRef}>
+              {state.messages.map((msg) => (
+                <div key={msg.id} className={`message ${msg.role}`}>
+                  <div className="message-avatar">
+                    {msg.role === 'ai' ? '师' : '我'}
+                  </div>
+                  <div className="message-content">
+                    {msg.role === 'ai' && (
+                      <button
+                        type="button"
+                        className="message-speak-btn"
+                        onClick={() => voice.speak(msg.content, { interrupt: true })}
+                        disabled={!voice.speechSynthesisSupported}
+                        title={voice.speechSynthesisSupported ? '朗读这条记录' : '当前浏览器不支持朗读'}
+                      >
+                        <SoundOutlined />
+                      </button>
+                    )}
+                    <MarkdownContent content={msg.content} />
+                    {msg.video && (
+                      <div className="message-media" style={{ marginTop: 8 }}>
+                        <div style={{ background: '#000', borderRadius: 8, overflow: 'hidden' }}>
+                          <video
+                            style={{ maxWidth: '100%', maxHeight: 200, display: 'block' }}
+                            src={msg.video.url}
+                            controls
+                            poster={msg.video.thumbnail_url}
+                          />
+                        </div>
+                        {msg.video.title && (
+                          <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>{msg.video.title}</div>
+                        )}
                       </div>
-                      {msg.video.title && (
-                        <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>{msg.video.title}</div>
-                      )}
-                    </div>
-                  )}
-                  {msg.image && !msg.video && (
-                    <div className="message-media" style={{ marginTop: 8 }}>
-                      <div style={{ borderRadius: 8, overflow: 'hidden' }}>
-                        <img
-                          style={{ maxWidth: '100%', maxHeight: 200, display: 'block' }}
-                          src={msg.image.url}
-                          alt={msg.image.title || '教学图片'}
-                        />
+                    )}
+                    {msg.image && !msg.video && (
+                      <div className="message-media" style={{ marginTop: 8 }}>
+                        <div style={{ borderRadius: 8, overflow: 'hidden' }}>
+                          <img
+                            style={{ maxWidth: '100%', maxHeight: 200, display: 'block' }}
+                            src={msg.image.url}
+                            alt={msg.image.title || '教学图片'}
+                          />
+                        </div>
+                        {msg.image.title && (
+                          <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>{msg.image.title}</div>
+                        )}
                       </div>
-                      {msg.image.title && (
-                        <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>{msg.image.title}</div>
-                      )}
-                    </div>
-                  )}
-                  {msg.imageId && !msg.image && !msg.video && (
-                    <TeachingImage
-                      imageId={msg.imageId}
-                      alt="教学图片"
-                      showDescription={true}
-                    />
-                  )}
-                  {msg.questionResults && msg.questionResults.length > 0 && (
-                    <div className="assessment-results">
-                      {msg.questionResults.map((qr, idx) => (
-                        <div key={qr.question_id} className={`result-item ${qr.is_correct ? 'correct' : 'incorrect'}`}>
-                          <div className="result-header">
-                            <span className="result-index">第 {idx + 1} 题</span>
-                            <span className={`result-status ${qr.is_correct ? 'correct' : 'incorrect'}`}>
-                              {qr.is_correct ? '✓ 正确' : '✗ 错误'}
-                            </span>
-                          </div>
-                          <div className="result-question"><MarkdownContent content={qr.content} /></div>
-                          <div className="result-answer">
-                            <div className="answer-row">
-                              <span className="answer-label">你的答案：</span>
-                              <span className={qr.is_correct ? 'answer-correct' : 'answer-wrong'}>
-                                {qr.student_answer}
+                    )}
+                    {msg.imageId && !msg.image && !msg.video && (
+                      <TeachingImage
+                        imageId={msg.imageId}
+                        alt="教学图片"
+                        showDescription={true}
+                      />
+                    )}
+                    {msg.questionResults && msg.questionResults.length > 0 && (
+                      <div className="assessment-results">
+                        {msg.questionResults.map((qr, idx) => (
+                          <div key={qr.question_id} className={`result-item ${qr.is_correct ? 'correct' : 'incorrect'}`}>
+                            <div className="result-header">
+                              <span className="result-index">第 {idx + 1} 题</span>
+                              <span className={`result-status ${qr.is_correct ? 'correct' : 'incorrect'}`}>
+                                {qr.is_correct ? '✓ 正确' : '✗ 错误'}
                               </span>
                             </div>
-                            {!qr.is_correct && (
+                            <div className="result-question"><MarkdownContent content={qr.content} /></div>
+                            <div className="result-answer">
                               <div className="answer-row">
-                                <span className="answer-label">正确答案：</span>
-                                <span className="answer-correct">
-                                  {Array.isArray(qr.correct_answer) ? qr.correct_answer.join('、') : qr.correct_answer}
+                                <span className="answer-label">你的答案：</span>
+                                <span className={qr.is_correct ? 'answer-correct' : 'answer-wrong'}>
+                                  {qr.student_answer}
                                 </span>
+                              </div>
+                              {!qr.is_correct && (
+                                <div className="answer-row">
+                                  <span className="answer-label">正确答案：</span>
+                                  <span className="answer-correct">
+                                    {Array.isArray(qr.correct_answer) ? qr.correct_answer.join('、') : qr.correct_answer}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            {qr.explanation && (
+                              <div className="result-explanation">
+                                <span className="explanation-label">💡 解题思路：</span>
+                                <div className="explanation-content"><MarkdownContent content={qr.explanation} /></div>
                               </div>
                             )}
                           </div>
-                          {qr.explanation && (
-                            <div className="result-explanation">
-                              <span className="explanation-label">💡 解题思路：</span>
-                              <div className="explanation-content"><MarkdownContent content={qr.explanation} /></div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {(state.isStreaming || isRestoring) && (
-              <div className="message ai">
-                <div className="message-avatar">👨‍🏫</div>
-                <div className="message-content">
-                  <div className="typing-indicator">
-                    <span></span><span></span><span></span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            )}
+              ))}
 
-            {state.phase === 'assessment' && state.assessmentQuestions.length > 0 && (
-              <div className="assessment-panel">
-                {state.assessmentQuestions.map((q, idx) => {
-                  const displayOptions = q.type === '判断题' && (!q.options || q.options.length === 0)
-                    ? ['正确', '错误']
-                    : q.options;
-
-                  return (
-                    <div key={q.id} className="assessment-question">
-                      <div className="question-header">第 {idx + 1} 题</div>
-                      <div className="question-content"><MarkdownContent content={q.content} /></div>
-
-                      {displayOptions && displayOptions.length > 0 ? (
-                        <div className="question-options">
-                          {displayOptions.map((opt, optIdx) => {
-                            const hasPrefix = /^[A-D][\.、\s]/.test(opt);
-                            const displayText = hasPrefix ? opt : `${String.fromCharCode(65 + optIdx)}. ${opt}`;
-
-                            return (
-                              <button
-                                key={optIdx}
-                                className={`option-btn ${state.selectedAnswers[q.id] === opt ? 'selected' : ''}`}
-                                onClick={() => selectAnswer(q.id, opt)}
-                              >
-                                {displayText}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="question-input">
-                          <input
-                            type="text"
-                            className="answer-input"
-                            placeholder="请输入答案"
-                            value={state.selectedAnswers[q.id] || ''}
-                            onChange={(e) => inputAnswer(q.id, e.target.value)}
-                          />
-                        </div>
-                      )}
+              {(state.isStreaming || isRestoring) && (
+                <div className="message ai">
+                  <div className="message-avatar">师</div>
+                  <div className="message-content">
+                    <div className="typing-indicator">
+                      <span></span><span></span><span></span>
                     </div>
-                  );
-                })}
-                <button
-                  className="submit-assessment-btn"
-                  onClick={submitAssessment}
-                  disabled={Object.keys(state.selectedAnswers).length < state.assessmentQuestions.length}
-                >
-                  提交答案
-                </button>
-              </div>
-            )}
-          </div>
+                  </div>
+                </div>
+              )}
+
+              {state.phase === 'assessment' && state.assessmentQuestions.length > 0 && (
+                <div className="assessment-panel">
+                  {state.assessmentQuestions.map((q, idx) => {
+                    const displayOptions = q.type === '判断题' && (!q.options || q.options.length === 0)
+                      ? ['正确', '错误']
+                      : q.options;
+
+                    return (
+                      <div key={q.id} className="assessment-question">
+                        <div className="question-header">第 {idx + 1} 题</div>
+                        <div className="question-content"><MarkdownContent content={q.content} /></div>
+
+                        {displayOptions && displayOptions.length > 0 ? (
+                          <div className="question-options">
+                            {displayOptions.map((opt, optIdx) => {
+                              const hasPrefix = /^[A-D][\.、\s]/.test(opt);
+                              const displayText = hasPrefix ? opt : `${String.fromCharCode(65 + optIdx)}. ${opt}`;
+
+                              return (
+                                <button
+                                  key={optIdx}
+                                  className={`option-btn ${state.selectedAnswers[q.id] === opt ? 'selected' : ''}`}
+                                  onClick={() => selectAnswer(q.id, opt)}
+                                >
+                                  {displayText}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="question-input">
+                            <input
+                              type="text"
+                              className="answer-input"
+                              placeholder="请输入答案"
+                              value={state.selectedAnswers[q.id] || ''}
+                              onChange={(e) => inputAnswer(q.id, e.target.value)}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <button
+                    className="submit-assessment-btn"
+                    onClick={submitAssessment}
+                    disabled={Object.keys(state.selectedAnswers).length < state.assessmentQuestions.length}
+                  >
+                    提交答案
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
         )}
 
-        <div className="chat-panel-input">
+        <div className="lesson-subtitle">
+          <div className="subtitle-label">
+            <SoundOutlined />
+            <span>老师当前话术</span>
+          </div>
+          <div className="subtitle-content">
+            {latestAiMessage ? (
+              <MarkdownContent content={latestAiMessage.content} />
+            ) : (
+              <span>准备开始今天的学习。</span>
+            )}
+          </div>
+        </div>
+
+        <div className="classroom-controls">
+          <button
+            type="button"
+            className={`voice-input-btn ${voice.isListening ? 'recording' : ''}`}
+            disabled={state.isStreaming}
+            onClick={handleVoiceInput}
+            title={voice.speechRecognitionSupported ? (voice.isListening ? '停止语音输入' : '语音输入') : '当前浏览器不支持语音输入'}
+          >
+            {voice.isListening ? <StopOutlined /> : <AudioOutlined />}
+          </button>
           <textarea
             className="input-field"
             placeholder={state.phase === 'explain' ? '输入问题...' : '输入回答...'}
             disabled={state.isStreaming}
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                const target = e.target as HTMLTextAreaElement;
-                if (target.value.trim()) {
-                  handleSend(target.value.trim());
-                  target.value = '';
-                }
+                submitInputText();
               }
             }}
           />
           <button
             className="send-btn"
-            disabled={state.isStreaming}
-            onClick={() => {
-              const textarea = document.querySelector('.input-field') as HTMLTextAreaElement;
-              if (textarea?.value.trim()) {
-                handleSend(textarea.value.trim());
-                textarea.value = '';
-              }
-            }}
+            disabled={state.isStreaming || !inputText.trim()}
+            onClick={submitInputText}
           >
             发送
           </button>
+          <button
+            type="button"
+            className="record-toggle-btn"
+            onClick={handleToggleChatPanel}
+            title={chatPanelExpanded ? '收起学习记录' : '展开学习记录'}
+          >
+            {chatPanelExpanded ? <CompressOutlined /> : <ExpandOutlined />}
+            <span>{chatPanelExpanded ? '收起' : '记录'}</span>
+          </button>
         </div>
+        {voice.error && <div className="voice-status">{voice.error}</div>}
       </div>
 
       {/* 历史会话抽屉 */}

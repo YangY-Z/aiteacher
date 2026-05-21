@@ -16,6 +16,7 @@ from app.api.teaching_v2 import router as teaching_v2_router
 from app.api.animation import router as animation_router
 from app.api.interactive import router as interactive_router
 from app.api.html_agent import router as html_agent_router
+from app.api.voice import router as voice_router
 
 api_router = APIRouter()
 
@@ -32,3 +33,4 @@ api_router.include_router(kp_router, tags=["知识点管理"])
 api_router.include_router(teaching_v2_router, prefix="/teaching-v2", tags=["教学V2(分层Agent)"])
 api_router.include_router(interactive_router, prefix="/interactive", tags=["互动白板"])
 api_router.include_router(html_agent_router, prefix="/agent", tags=["Agent HTML接口"])
+api_router.include_router(voice_router, tags=["语音"])
