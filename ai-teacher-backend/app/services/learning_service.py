@@ -47,6 +47,74 @@ from app.prompts.question_prompt import CHAT_RESPONSE_PROMPT
 class LearningService:
     """Service for learning session management."""
 
+    def _normalize_whiteboard_items(self, value: Any) -> list[str]:
+        """Normalize a whiteboard list field from model output."""
+        if not value:
+            return []
+        if isinstance(value, list):
+            return [str(item) for item in value if item]
+        return [str(value)]
+
+    def _merge_whiteboard_page(
+        self,
+        page: dict[str, Any],
+        whiteboard: dict[str, Any] | None,
+        whiteboard_html: str = "",
+    ) -> None:
+        """Merge one segment whiteboard into the current response-level page."""
+        if whiteboard:
+            title = whiteboard.get("title")
+            if title and not page.get("title"):
+                page["title"] = title
+
+            field_map = {
+                "points": "key_points",
+                "key_points": "key_points",
+                "formulas": "formulas",
+                "examples": "examples",
+                "notes": "notes",
+            }
+            for source_key, target_key in field_map.items():
+                for item in self._normalize_whiteboard_items(whiteboard.get(source_key)):
+                    if item not in page[target_key]:
+                        page[target_key].append(item)
+
+            if whiteboard.get("image") and not page.get("image"):
+                page["image"] = whiteboard["image"]
+
+        if whiteboard_html and whiteboard_html not in page["html_parts"]:
+            page["html_parts"].append(whiteboard_html)
+            page["html"] = "\n".join(page["html_parts"])
+
+    def _has_whiteboard_page_content(self, page: dict[str, Any]) -> bool:
+        """Return whether an aggregated whiteboard page has visible content."""
+        return bool(
+            page.get("title")
+            or page.get("key_points")
+            or page.get("formulas")
+            or page.get("examples")
+            or page.get("notes")
+            or page.get("image")
+            or page.get("html")
+        )
+
+    def _new_whiteboard_page(self) -> dict[str, Any]:
+        """Create an empty response-level whiteboard page."""
+        return {
+            "title": "",
+            "key_points": [],
+            "formulas": [],
+            "examples": [],
+            "notes": [],
+            "image": None,
+            "html": "",
+            "html_parts": [],
+        }
+
+    def _serialize_whiteboard_page(self, page: dict[str, Any]) -> dict[str, Any]:
+        """Return the frontend-facing whiteboard page payload."""
+        return {key: value for key, value in page.items() if key != "html_parts"}
+
     def _ensure_kp_id(
         self, session: LearningSession, student_id: int, course_id: str
     ) -> None:
@@ -790,6 +858,7 @@ class LearningService:
         # Stream LLM response and parse JSONL
         buffer = ""
         event_count = 0
+        whiteboard_page = self._new_whiteboard_page()
         
         logger.info(f"[{trace_id}] === 步骤4: 开始流式调用LLM ===")
         for chunk in llm_service.stream_chat(SYSTEM_PROMPT, prompt, trace_id=trace_id):
@@ -823,6 +892,7 @@ class LearningService:
                         whiteboard = data.get("whiteboard", {})
                         whiteboard_html = data.get("whiteboard_html", "")
                         need_image = data.get("need_image")
+                        self._merge_whiteboard_page(whiteboard_page, whiteboard, whiteboard_html)
                         
                         # 处理图片/视频生成请求
                         media_resource = None
@@ -837,15 +907,23 @@ class LearningService:
                         # 构建SSE数据
                         segment_data = {
                             "message": message_content,
-                            "whiteboard": whiteboard,
-                            "whiteboard_html": whiteboard_html
                         }
+                        for key in ("is_question", "question_type", "question_text", "options"):
+                            if key in data:
+                                segment_data[key] = data[key]
+                        if whiteboard_html:
+                            segment_data["whiteboard_html"] = whiteboard_html
                         
                         # 附加媒体资源
                         if media_resource:
                             segment_data["image"] = media_resource
                         
                         yield {"event": "segment", "data": json.dumps(segment_data, ensure_ascii=False)}
+                        if self._has_whiteboard_page_content(whiteboard_page):
+                            yield {
+                                "event": "whiteboard_page_delta",
+                                "data": json.dumps({"whiteboard_html": whiteboard_page.get("html", "")}, ensure_ascii=False),
+                            }
                     
                     elif event_type == "wb_title":
                         # 白板标题（兼容旧格式）
@@ -1329,6 +1407,7 @@ class LearningService:
         has_feedback = False
         ai_response_content = ""
         final_next_action = "wait_for_student"
+        whiteboard_page = self._new_whiteboard_page()
 
         for chunk in llm_service.stream_chat(
             SYSTEM_PROMPT,
@@ -1358,12 +1437,21 @@ class LearningService:
                     message_content = data.get('message', '')
                     whiteboard = data.get('whiteboard', {})
                     whiteboard_html = data.get('whiteboard_html', '')
+                    self._merge_whiteboard_page(whiteboard_page, whiteboard, whiteboard_html)
                     segment_data = {
                         'message': message_content,
-                        'whiteboard': whiteboard,
-                        'whiteboard_html': whiteboard_html
                     }
+                    for key in ('is_question', 'question_type', 'question_text', 'options'):
+                        if key in data:
+                            segment_data[key] = data[key]
+                    if whiteboard_html:
+                        segment_data['whiteboard_html'] = whiteboard_html
                     yield {'event': 'segment', 'data': json.dumps(segment_data, ensure_ascii=False)}
+                    if self._has_whiteboard_page_content(whiteboard_page):
+                        yield {
+                            'event': 'whiteboard_page_delta',
+                            'data': json.dumps({'whiteboard_html': whiteboard_page.get('html', '')}, ensure_ascii=False),
+                        }
                     continue
 
                 # 生成并输出事件

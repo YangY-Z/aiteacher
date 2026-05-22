@@ -223,3 +223,50 @@
   color: #666;
   line-height: 1.6;
 }
+
+.compact-whiteboard .whiteboard-body {
+  overflow: hidden;
+}
+
+.compact-whiteboard .whiteboard-interactive {
+  min-height: 0;
+}
+
+.compact-template-panel {
+  flex-shrink: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.compact-template-panel summary {
+  width: fit-content;
+  margin: 8px 10px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1677ff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.compact-template-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.compact-template-panel summary::after {
+  content: '⌄';
+  margin-left: 5px;
+  font-size: 11px;
+}
+
+.compact-template-panel[open] summary::after {
+  content: '⌃';
+}
+
+.compact-template-panel .template-selector {
+  padding-top: 0;
+  border-bottom: none;
+}

@@ -267,11 +267,11 @@ def generate_teaching_prompt(
 【返回格式 - 边讲边写模式 + HTML增强】
 请严格按照以下JSONL格式输出，每行一个独立的JSON对象：
 
-{{"type":"segment","message":"教学内容...","whiteboard":{{"title":"标题"}},"whiteboard_html":"<div class='hero-teach'>...</div>"}}
-{{"type":"segment","message":"教学内容...","whiteboard":{{"points":["要点1","要点2"]}},"whiteboard_html":"<div class='split-knowledge'>...</div>"}}
-{{"type":"segment","message":"需要配图说明的内容","whiteboard":{{}},"need_image":{{"concept":"精确描述你想要画什么样的图片，不要产出模糊的描述，例如：y=2x+1的图片，要展示截距/斜率等重要信息","animation_type":"auto","output_format":"image"}}}}
-{{"type":"segment","message":"需要动画演示的内容","whiteboard":{{}},"need_image":{{"concept":"精确描述你想要画什么样的动画，不要产出模糊的描述，例如：希望展示函数变换的过程，对y=2x+1的图像先左右再上下平移3个单位","animation_type":"auto","output_format":"video"}}}}
-{{"type":"segment","message":"提问内容...","whiteboard":{{}},"whiteboard_html":"<div class='interactive-quiz'>...</div>","is_question":true}}
+{{"type":"segment","message":"教学内容...","whiteboard_html":"<div class='hero-teach'><h2>标题</h2>...</div>"}}
+{{"type":"segment","message":"教学内容...","whiteboard_html":"<div class='split-knowledge'>...</div>"}}
+{{"type":"segment","message":"需要配图说明的内容","need_image":{{"concept":"精确描述你想要画什么样的图片，不要产出模糊的描述，例如：y=2x+1的图片，要展示截距/斜率等重要信息","animation_type":"auto","output_format":"image"}}}}
+{{"type":"segment","message":"需要动画演示的内容","need_image":{{"concept":"精确描述你想要画什么样的动画，不要产出模糊的描述，例如：希望展示函数变换的过程，对y=2x+1的图像先左右再上下平移3个单位","animation_type":"auto","output_format":"video"}}}}
+{{"type":"segment","message":"提问内容...","is_question":true,"question_type":"true_false","question_text":"判断：点$(-2, 1)$在第二象限，这个说法对吗？","options":[{{"value":"true","label":"对"}},{{"value":"false","label":"错"}}],"whiteboard_html":"<div class='interactive-quiz'><div class='quiz-question'>判断：点$(-2, 1)$在第二象限，这个说法对吗？</div><button class='quiz-option' data-answer='true' data-correct>对</button><button class='quiz-option' data-answer='false'>错</button><div class='quiz-feedback'></div></div>"}}
 {{"type":"complete","next_action":"wait_for_student"}}
 
 【HTML增强输出（必须使用）】
@@ -287,6 +287,18 @@ def generate_teaching_prompt(
 - 每个组件都有精心设计的边角装饰和过渡动画
 
 **核心原则：**只写结构HTML（div/span/class），不写内联style，不写JS**。
+
+【提问输出强约束 — 必须遵守】
+当 segment 是提问时，必须满足以下全部条件：
+1. 必须设置 `"is_question": true`
+2. 必须设置 `"question_type"`，只能是 `"true_false"`、`"multiple_choice"`、`"short_answer"` 三者之一
+3. 必须设置 `"question_text"`，写清楚学生需要回答的问题
+4. true_false 判断题必须提供 options: `[{{"value":"true","label":"对"}},{{"value":"false","label":"错"}}]`
+5. multiple_choice 选择题必须提供 options 数组，每项包含 value 和 label
+6. true_false / multiple_choice 的 whiteboard_html 必须使用 `<div class='interactive-quiz'>`，并为每个选项输出 `.quiz-option`
+7. 判断题的“对/错”必须做成两个可点击 `.quiz-option`，不要只用 split-knowledge、comparison、knowledge-card 等普通展示组件
+8. short_answer 可以使用 `<div class='interactive-reveal'>`，但必须包含 `.reveal-question` 和 `.reveal-answer`
+9. 禁止出现 `"is_question": true` 但 whiteboard_html 只是普通展示组件的情况
 
 **【数学公式格式 — 必须遵守】**
 - 所有数学公式、符号、坐标、变量等**必须**用 `$...$` 包裹（行内公式）或 `$$...$$`（块级公式）
@@ -631,7 +643,7 @@ def generate_teaching_prompt(
 
 【输出规则】
 1. 必须使用"边讲边写"模式：每句话搭配相应的白板内容
-2. whiteboard字段可以包含：title, points, formulas, examples, notes；也可用 whiteboard_html 字段输出语义HTML版本
+2. 不要输出 whiteboard 字段；标题、要点、公式、例题、提示都写进 whiteboard_html
 3. 每个segment只包含当前段话相关的白板内容，不要重复之前的内容
 4. 公式使用纯LaTeX格式，例如：y = kx + b
 5. 【必须】每个阶段结尾要有提问，next_action 设为 "wait_for_student"
@@ -723,17 +735,17 @@ TEACHING_PROMPT = """【教学任务】
 【返回格式 - 边讲边写模式】
 请严格按照以下JSONL格式输出，实现"边说边展示"的效果。每行一个独立的JSON对象：
 
-{{"type":"segment","message":"引入内容（20-30字，联系已学知识或生活实例）","whiteboard":{{"title":"知识点标题"}},"whiteboard_html":"<编辑式HTML组件>"}}
+{{"type":"segment","message":"引入内容（20-30字，联系已学知识或生活实例）","whiteboard_html":"<编辑式HTML组件>"}}
 
-{{"type":"segment","message":"定义/概念解释（40-60字）","whiteboard":{{"points":["核心要点1","核心要点2"]}},"whiteboard_html":"<编辑式HTML组件>"}}
+{{"type":"segment","message":"定义/概念解释（40-60字）","whiteboard_html":"<编辑式HTML组件>"}}
 
-{{"type":"segment","message":"公式或关键内容说明（30-50字）","whiteboard":{{"formulas":["公式（LaTeX格式）"]}},"whiteboard_html":"<编辑式HTML组件>"}}
+{{"type":"segment","message":"公式或关键内容说明（30-50字）","whiteboard_html":"<编辑式HTML组件>"}}
 
-{{"type":"segment","message":"示例讲解（40-60字，结合公式演示）","whiteboard":{{"examples":["示例1","示例2"]}},"whiteboard_html":"<编辑式HTML组件>"}}
+{{"type":"segment","message":"示例讲解（40-60字，结合公式演示）","whiteboard_html":"<编辑式HTML组件>"}}
 
-{{"type":"segment","message":"总结归纳（20-30字）","whiteboard":{{"notes":["注意事项"]}},"whiteboard_html":"<编辑式HTML组件>"}}
+{{"type":"segment","message":"总结归纳（20-30字）","whiteboard_html":"<编辑式HTML组件>"}}
 
-{{"type":"segment","message":"提问（15-25字，检查学生理解）","whiteboard":{{}},"whiteboard_html":"<交互式HTML组件>","is_question":true}}
+{{"type":"segment","message":"提问（15-25字，检查学生理解）","is_question":true,"question_type":"true_false|multiple_choice|short_answer","question_text":"明确的问题文本","options":[{{"value":"true","label":"对"}},{{"value":"false","label":"错"}}],"whiteboard_html":"<交互式HTML组件，判断题/选择题必须使用interactive-quiz>"}}
 
 {{"type":"complete","next_action":"wait_for_student"}}
 
@@ -746,6 +758,7 @@ TEACHING_PROMPT = """【教学任务】
 6. 必须包含提问环节
 7. next_action 固定为 "wait_for_student"
 8. 每行必须是合法的JSON，不要有多余逗号或换行
+9. 提问强约束：`is_question=true` 时必须同时输出 `question_type`、`question_text`；判断题/选择题必须输出 `options`，且 whiteboard_html 必须使用 interactive-quiz，不允许只用 split-knowledge 等普通展示组件
 
 请开始输出："""
 
@@ -1003,9 +1016,9 @@ def generate_personalized_teaching_prompt(
 【返回格式 - 边讲边写模式】
 请严格按照以下JSONL格式输出，每行一个独立的JSON对象：
 
-{{"type":"segment","message":"教学内容...","whiteboard":{{"title":"标题"}},"whiteboard_html":"<编辑式HTML组件>"}}
-{{"type":"segment","message":"教学内容...","whiteboard":{{"points":["要点1","要点2"]}},"whiteboard_html":"<编辑式HTML组件>"}}
-{{"type":"segment","message":"提问内容...","whiteboard":{{}},"whiteboard_html":"<交互式HTML组件>","is_question":true}}
+{{"type":"segment","message":"教学内容...","whiteboard_html":"<编辑式HTML组件>"}}
+{{"type":"segment","message":"教学内容...","whiteboard_html":"<编辑式HTML组件>"}}
+{{"type":"segment","message":"提问内容...","is_question":true,"question_type":"true_false|multiple_choice|short_answer","question_text":"明确的问题文本","options":[{{"value":"true","label":"对"}},{{"value":"false","label":"错"}}],"whiteboard_html":"<交互式HTML组件，判断题/选择题必须使用interactive-quiz>"}}
 {{"type":"complete","next_action":"wait_for_student"}}
 
 【输出规则】
@@ -1015,6 +1028,7 @@ def generate_personalized_teaching_prompt(
 4. 公式使用纯LaTeX格式，例如：y = kx + b
 5. 【必须】每个阶段结尾要有提问，next_action 设为 "wait_for_student"
 6. 每行必须是合法的JSON
+7. 提问强约束：`is_question=true` 时必须同时输出 `question_type`、`question_text`；判断题/选择题必须输出 `options`，且 whiteboard_html 必须使用 interactive-quiz，不允许只用 split-knowledge 等普通展示组件
 
 {mode_requirements}
 

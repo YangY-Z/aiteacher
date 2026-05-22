@@ -92,6 +92,7 @@ interface LearningState {
     whiteboardMode?: WhiteboardViewMode;
   }) => void;
   // 新增：增量更新方法
+  mergeCurrentWhiteboard: (content: Partial<WhiteboardContent>) => void;
   setWhiteboardTitle: (title: string) => void;
   addWhiteboardPoint: (point: string) => void;
   addWhiteboardFormula: (formula: string) => void;
@@ -117,6 +118,23 @@ const initialWhiteboardState: WhiteboardState = {
   notes: [],
   image: null,
   html: '',
+};
+
+const normalizeWhiteboardList = (value?: string | string[]) => {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+};
+
+const mergeUnique = (existing: string[], incoming?: string | string[]) => {
+  const items = normalizeWhiteboardList(incoming);
+  if (items.length === 0) return existing;
+  const next = [...existing];
+  items.forEach((item) => {
+    if (item && !next.includes(item)) {
+      next.push(item);
+    }
+  });
+  return next;
 };
 
 const initialLearningState = {
@@ -210,6 +228,20 @@ export const useLearningStore = create<LearningState>()((set) => ({
     whiteboardMode: snapshot.whiteboardMode ?? state.whiteboardMode,
   })),
   // 增量更新方法（添加去重逻辑）
+  mergeCurrentWhiteboard: (content) => set((state) => ({
+    currentWhiteboard: {
+      ...state.currentWhiteboard,
+      title: content.title || state.currentWhiteboard.title,
+      key_points: mergeUnique(state.currentWhiteboard.key_points || [], content.key_points),
+      formulas: mergeUnique(state.currentWhiteboard.formulas || [], content.formulas),
+      examples: mergeUnique(state.currentWhiteboard.examples || [], content.examples),
+      notes: mergeUnique(state.currentWhiteboard.notes || [], content.notes),
+      image: content.image || state.currentWhiteboard.image,
+      html: content.html && content.html !== state.currentWhiteboard.html
+        ? [state.currentWhiteboard.html, content.html].filter(Boolean).join('\n')
+        : state.currentWhiteboard.html,
+    },
+  })),
   setWhiteboardTitle: (title) => set((state) => {
     // 如果标题已存在，不重复设置
     if (state.currentWhiteboard.title === title) return state;
@@ -296,46 +328,29 @@ export const useLearningStore = create<LearningState>()((set) => ({
     const examples = wb.examples || [];
     const notes = wb.notes || [];
     const image = wb.image || null;
+    const html = wb.html || '';
     
     const hasContent = wb.title || 
       keyPoints.length > 0 || 
       formulas.length > 0 || 
       examples.length > 0 || 
       notes.length > 0 ||
-      image;
+      image ||
+      html;
     if (!hasContent) return state;
     
     const newMode = state.whiteboardMode === 'hidden' ? 'mini' : state.whiteboardMode;
     
-    const existingBlock = state.whiteboardBlocks.find(b => b.title === wb.title);
-    if (existingBlock) {
-      const blocks = state.whiteboardBlocks.map(b => 
-        b.title === wb.title 
-          ? { 
-              ...b, 
-              key_points: [...(b.key_points || []), ...keyPoints],
-              formulas: [...(b.formulas || []), ...formulas],
-              examples: [...(b.examples || []), ...examples],
-              notes: [...(b.notes || []), ...notes],
-              image: image || b.image,
-            } 
-          : b
-      );
-      return { 
-        whiteboardBlocks: blocks, 
-        currentWhiteboard: initialWhiteboardState,
-        whiteboardMode: newMode,
-      };
-    }
-    
     return { 
       whiteboardBlocks: [...state.whiteboardBlocks, {
+        id: `wb-${Date.now()}`,
         title: wb.title,
         key_points: keyPoints,
         formulas: formulas,
         examples: examples,
         notes: notes,
         image: image || undefined,
+        html: html || undefined,
       }],
       currentWhiteboard: initialWhiteboardState,
       whiteboardMode: newMode,

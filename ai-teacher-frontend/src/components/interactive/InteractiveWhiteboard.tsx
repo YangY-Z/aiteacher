@@ -17,6 +17,7 @@ interface InteractiveWhiteboardProps {
   isSubmitting?: boolean;
   width?: number;
   height?: number;
+  compact?: boolean;
 }
 
 export interface InteractiveWhiteboardRef {
@@ -36,6 +37,7 @@ const InteractiveWhiteboard = forwardRef<InteractiveWhiteboardRef, InteractiveWh
       isSubmitting = false,
       width = 800,
       height = 600,
+      compact = false,
     },
     ref
   ) => {
@@ -179,7 +181,14 @@ const InteractiveWhiteboard = forwardRef<InteractiveWhiteboardRef, InteractiveWh
             {interactiveTask.instruction}
           </div>
         )}
-        <TemplateSelector />
+        {compact ? (
+          <details className="compact-template-panel">
+            <summary>模板</summary>
+            <TemplateSelector />
+          </details>
+        ) : (
+          <TemplateSelector />
+        )}
         <ToolBar
           onUndo={handleUndo}
           onRedo={handleRedo}
@@ -187,6 +196,7 @@ const InteractiveWhiteboard = forwardRef<InteractiveWhiteboardRef, InteractiveWh
           onSubmit={handleSubmit}
           showSubmit={!!interactiveTask}
           isSubmitting={isSubmitting}
+          compact={compact}
         />
         <div className="canvas-wrapper">
           <DrawingCanvas
@@ -231,27 +241,29 @@ const InteractiveWhiteboard = forwardRef<InteractiveWhiteboardRef, InteractiveWh
     };
 
     return (
-      <div className="interactive-whiteboard">
-        <div className="mode-tabs">
-          <button
-            className={`mode-tab ${mode === 'display' ? 'active' : ''}`}
-            onClick={() => handleModeChange('display')}
-          >
-            📖 展示白板
-          </button>
-          <button
-            className={`mode-tab ${mode === 'interactive' ? 'active' : ''}`}
-            onClick={() => handleModeChange('interactive')}
-          >
-            ✏️ 互动白板
-          </button>
-          <button
-            className={`mode-tab ${mode === 'annotate' ? 'active' : ''}`}
-            onClick={() => handleModeChange('annotate')}
-          >
-            📝 标注
-          </button>
-        </div>
+      <div className={`interactive-whiteboard ${compact ? 'compact-whiteboard' : ''}`}>
+        {!compact && (
+          <div className="mode-tabs">
+            <button
+              className={`mode-tab ${mode === 'display' ? 'active' : ''}`}
+              onClick={() => handleModeChange('display')}
+            >
+              📖 展示白板
+            </button>
+            <button
+              className={`mode-tab ${mode === 'interactive' ? 'active' : ''}`}
+              onClick={() => handleModeChange('interactive')}
+            >
+              ✏️ 互动白板
+            </button>
+            <button
+              className={`mode-tab ${mode === 'annotate' ? 'active' : ''}`}
+              onClick={() => handleModeChange('annotate')}
+            >
+              📝 标注
+            </button>
+          </div>
+        )}
 
         <div className="whiteboard-body">
           {mode === 'display' && renderDisplayMode()}

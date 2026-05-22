@@ -10,7 +10,7 @@
 /* ── 全局噪点纹理 ── */
 .whiteboard-html-wrapper {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 .whiteboard-html-wrapper::before {
   content: '';
@@ -105,6 +105,7 @@
   font-family: 'DM Sans', -apple-system, sans-serif;
   position: relative;
   z-index: 2;
+  overflow: visible;
 }
 
 .whiteboard-html-content :where(
@@ -1591,3 +1592,699 @@
 /* .teach-rule { animation: fadeSlideInLeft 0.4s ease forwards; } */
 /* .split-knowledge { animation: scaleIn 0.35s ease forwards; } */
 /* .key-number { animation: fadeSlideInUp 0.35s ease forwards; } */
+
+/* ═══════════════════════════════════════════════════════════════
+   K12 Classroom Chalkboard System
+   把旧的杂志式/单色组件统一收敛成 K12 课堂黑板风。
+   ═══════════════════════════════════════════════════════════════ */
+
+.whiteboard-html-wrapper {
+  --wb-bg-deep: #071714;
+  --wb-bg-surface: rgba(10, 35, 30, 0.76);
+  --wb-bg-elevated: rgba(15, 48, 42, 0.86);
+  --wb-bg-card: rgba(8, 30, 26, 0.82);
+  --wb-bg-hover: rgba(21, 67, 58, 0.88);
+  --wb-primary: #f8fff4;
+  --wb-primary-soft: #ffffff;
+  --wb-primary-dim: #9ee7ff;
+  --wb-accent: #74d6ff;
+  --wb-accent-soft: #b9efff;
+  --wb-warm: #ffd966;
+  --wb-warm-soft: #ffe7a3;
+  --wb-teal: #7dffb2;
+  --wb-teal-soft: #b8ffd0;
+  --wb-pink: #ff9fc7;
+  --wb-red: #ff8f87;
+  --wb-text: #f4fff8;
+  --wb-text-dim: #cfe7dd;
+  --wb-text-muted: #92b3a8;
+  --wb-border: rgba(217, 255, 240, 0.16);
+  --wb-border-light: rgba(217, 255, 240, 0.28);
+  --wb-shadow: rgba(0, 0, 0, 0.22);
+  --wb-shadow-lg: rgba(0, 0, 0, 0.34);
+  --wb-radius: 8px;
+  --wb-radius-lg: 10px;
+  color: var(--wb-text);
+  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.whiteboard-html-wrapper::before {
+  opacity: 0.06;
+  mix-blend-mode: screen;
+}
+
+.wb-html-title,
+.whiteboard-html-content h1,
+.whiteboard-html-content h2,
+.whiteboard-html-content h3,
+.whiteboard-html-content h4,
+.knowledge-card .card-title,
+.compare-title,
+.formula-spotlight .formula-main,
+.definition .term,
+.stat-item .stat-value,
+.flip-text,
+.magazine-grid .mg-lead .mg-title,
+.split-headline .sh-title,
+.hero-statement .hs-main,
+.chalk-quote .cq-text,
+.story-card .sc-title,
+.diagonal-compare .dc-title,
+.focus-card .fc-title,
+.split-knowledge .sk-concept,
+.key-number .kn-value {
+  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+}
+
+.wb-html-title {
+  font-size: 1.18rem;
+  font-weight: 800;
+  color: var(--wb-primary-soft);
+  margin-bottom: 0.8rem;
+  padding: 0 0 0.55rem;
+  border-bottom: 2px dashed rgba(255, 255, 255, 0.24);
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.16);
+}
+
+.wb-html-title::before {
+  display: none;
+}
+
+.whiteboard-html-content {
+  font-size: 0.92rem;
+  line-height: 1.72;
+}
+
+.whiteboard-html-content h1 {
+  font-size: 1.42rem;
+  font-style: normal;
+  font-weight: 800;
+  color: var(--wb-primary-soft);
+  margin: 0.9rem 0 0.45rem;
+}
+
+.whiteboard-html-content h2 {
+  font-size: 1.16rem;
+  color: var(--wb-warm-soft);
+  border-bottom: 2px dashed rgba(255, 217, 102, 0.34);
+  padding-bottom: 0.28rem;
+  margin-top: 1rem;
+}
+
+.whiteboard-html-content h2::after {
+  height: 3px;
+  width: 64px;
+  background: var(--wb-warm);
+  border-radius: 999px;
+}
+
+.whiteboard-html-content h3 {
+  font-size: 1rem;
+  color: var(--wb-accent-soft);
+  font-weight: 750;
+}
+
+.whiteboard-html-content h4 {
+  color: var(--wb-teal-soft);
+}
+
+.whiteboard-html-content p {
+  color: var(--wb-text);
+  font-size: 0.92rem;
+}
+
+.whiteboard-html-content li {
+  color: var(--wb-text-dim);
+  font-size: 0.9rem;
+  margin-bottom: 0.22rem;
+}
+
+.whiteboard-html-content li::marker {
+  color: var(--wb-warm);
+}
+
+.whiteboard-html-content strong,
+.whiteboard-html-content b,
+.highlight,
+.compare-value-a,
+.compare-value-b,
+.dc-val,
+.answer,
+.result,
+.value {
+  color: var(--wb-warm-soft) !important;
+  font-weight: 800;
+}
+
+.whiteboard-html-content em,
+.whiteboard-html-content i {
+  color: var(--wb-accent-soft);
+  font-style: normal;
+}
+
+.whiteboard-html-content blockquote,
+.callout,
+.highlight {
+  background: rgba(255, 217, 102, 0.1);
+  border-color: var(--wb-warm);
+  color: var(--wb-text);
+}
+
+.whiteboard-html-content blockquote {
+  border-left-width: 4px;
+  border-radius: 0 var(--wb-radius-lg) var(--wb-radius-lg) 0;
+  font-style: normal;
+}
+
+.whiteboard-html-content code,
+.whiteboard-html-content pre {
+  background: rgba(0, 0, 0, 0.28);
+  border-color: rgba(116, 214, 255, 0.2);
+  color: var(--wb-accent-soft);
+}
+
+.whiteboard-html-content table {
+  background: rgba(4, 20, 17, 0.56);
+  border-color: var(--wb-border-light);
+}
+
+.whiteboard-html-content th {
+  background: rgba(116, 214, 255, 0.13);
+  color: var(--wb-accent-soft);
+  border-bottom-color: rgba(116, 214, 255, 0.35);
+}
+
+.whiteboard-html-content td {
+  color: var(--wb-text-dim);
+}
+
+.knowledge-card,
+.formula-spotlight,
+.mnemonic,
+.quiz-box,
+.example-box,
+.error-box,
+.definition,
+.interactive-reveal,
+.interactive-steps,
+.interactive-quiz,
+.interactive-tabs,
+.magazine-grid .mg-lead,
+.magazine-grid .mg-side,
+.story-card,
+.focus-card,
+.hero-statement,
+.floating-note-layout .fn-main,
+.floating-note-layout .fn-note,
+.diagonal-compare .dc-side,
+.chalk-quote,
+.stat-item,
+.flow-step,
+.split-knowledge .sk-side,
+.key-number {
+  background: rgba(8, 30, 26, 0.76);
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius-lg);
+  box-shadow: 0 10px 24px var(--wb-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.knowledge-card,
+.example-box,
+.definition,
+.interactive-reveal,
+.interactive-steps,
+.interactive-quiz {
+  border-left: 4px solid var(--wb-accent);
+}
+
+.knowledge-card.concept::before,
+.knowledge-card.tip::before {
+  background: linear-gradient(90deg, var(--wb-accent), transparent);
+}
+
+.knowledge-card.formula::before,
+.formula-spotlight::before {
+  background: linear-gradient(90deg, transparent, var(--wb-accent), transparent);
+}
+
+.knowledge-card.example::before,
+.example-box {
+  border-left-color: var(--wb-teal);
+}
+
+.knowledge-card.warning::before,
+.error-box,
+.callout.warn,
+.callout.error {
+  border-left-color: var(--wb-pink);
+}
+
+.knowledge-card .card-title,
+.definition .term,
+.tl-title,
+.step-title,
+.vflow-title,
+.ks-title,
+.focus-card .fc-title,
+.story-card .sc-title {
+  color: var(--wb-primary-soft);
+  font-weight: 800;
+}
+
+.knowledge-card .card-body,
+.definition .meaning,
+.example-box .ex-body,
+.error-box .err-body,
+.tl-desc,
+.step-desc,
+.vflow-desc,
+.ks-desc,
+.tab-panel {
+  color: var(--wb-text-dim);
+}
+
+.formula-spotlight {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(116, 214, 255, 0.12), transparent 45%),
+    rgba(4, 20, 17, 0.82);
+  border-color: rgba(116, 214, 255, 0.34);
+  border-left: 4px solid var(--wb-accent);
+}
+
+.formula-spotlight .formula-label,
+.kb-formula-block,
+.kb-formula-inline,
+.kb-formula-block .katex,
+.kb-formula-inline .katex {
+  color: var(--wb-accent-soft);
+}
+
+.formula-spotlight .formula-main,
+.formula-main .katex {
+  color: var(--wb-accent-soft);
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.example-box .ex-title {
+  color: var(--wb-teal-soft);
+}
+
+.example-box .ex-solution,
+.quiz-opt.correct,
+.interactive-quiz .quiz-option.correct {
+  background: rgba(125, 255, 178, 0.1);
+  border-color: rgba(125, 255, 178, 0.4);
+  color: var(--wb-teal-soft);
+}
+
+.error-box .err-title,
+.quiz-opt.wrong,
+.interactive-quiz .quiz-option.wrong {
+  color: var(--wb-red);
+}
+
+.error-box .err-fix {
+  background: rgba(255, 217, 102, 0.09);
+  border-color: rgba(255, 217, 102, 0.28);
+}
+
+.callout.info {
+  background: rgba(116, 214, 255, 0.1);
+  border-color: var(--wb-accent);
+}
+
+.callout.tip {
+  background: rgba(125, 255, 178, 0.1);
+  border-color: var(--wb-teal);
+}
+
+.callout.warn {
+  background: rgba(255, 217, 102, 0.12);
+  border-color: var(--wb-warm);
+}
+
+.callout.error {
+  background: rgba(255, 159, 199, 0.1);
+  border-color: var(--wb-pink);
+}
+
+.step-number,
+.vflow-num,
+.knowledge-steps .ks-num,
+.interactive-steps .step::before {
+  background: var(--wb-accent);
+  color: #06201c;
+  font-weight: 900;
+  box-shadow: 0 0 14px rgba(116, 214, 255, 0.24);
+}
+
+.interactive-steps .step,
+.interactive-quiz .quiz-option,
+.quiz-opt,
+.tab-trigger {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--wb-text-dim);
+}
+
+.interactive-steps .step:hover,
+.interactive-quiz .quiz-option:hover,
+.quiz-opt:hover,
+.tab-trigger:hover {
+  background: rgba(116, 214, 255, 0.11);
+  border-color: rgba(116, 214, 255, 0.42);
+}
+
+.tab-trigger.active {
+  color: var(--wb-warm-soft);
+  border-bottom-color: var(--wb-warm);
+  background: rgba(255, 217, 102, 0.08);
+}
+
+.reveal-question,
+.interactive-quiz .quiz-question,
+.step-header {
+  color: var(--wb-warm-soft);
+  font-weight: 800;
+}
+
+.reveal-answer-content {
+  background: rgba(125, 255, 178, 0.08);
+  border-color: rgba(125, 255, 178, 0.32);
+  border-left-color: var(--wb-teal);
+  color: var(--wb-teal-soft);
+}
+
+.progress-fill.low {
+  background: linear-gradient(90deg, #ff8f87, #ffb0aa);
+}
+
+.progress-fill.medium {
+  background: linear-gradient(90deg, #ffd966, #ffe7a3);
+  color: #13231f;
+}
+
+.progress-fill.high,
+.progress-fill.full {
+  background: linear-gradient(90deg, #58d68d, #7dffb2);
+  color: #08221c;
+}
+
+.tag.slate,
+.tag.cyan {
+  background: rgba(116, 214, 255, 0.1);
+  color: var(--wb-accent-soft);
+  border-color: rgba(116, 214, 255, 0.28);
+}
+
+.tag.green {
+  background: rgba(125, 255, 178, 0.1);
+  color: var(--wb-teal-soft);
+  border-color: rgba(125, 255, 178, 0.28);
+}
+
+.tag.amber {
+  background: rgba(255, 217, 102, 0.12);
+  color: var(--wb-warm-soft);
+  border-color: rgba(255, 217, 102, 0.3);
+}
+
+.tag.red,
+.tag.purple {
+  background: rgba(255, 159, 199, 0.1);
+  color: #ffc3dc;
+  border-color: rgba(255, 159, 199, 0.3);
+}
+
+.whiteboard-html-content details {
+  background: rgba(8, 30, 26, 0.72);
+  border-color: var(--wb-border);
+}
+
+.whiteboard-html-content summary {
+  color: var(--wb-warm-soft);
+  font-weight: 800;
+}
+
+.whiteboard-html-content hr {
+  background: linear-gradient(90deg, transparent, rgba(255, 217, 102, 0.5), transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Light Courseware + Paper Notes
+   分屏布局下的浅色课件画布：更适合长时间 K12 学习。
+   ═══════════════════════════════════════════════════════════════ */
+
+.whiteboard-html-wrapper {
+  --wb-bg-deep: #f8fafc;
+  --wb-bg-surface: #ffffff;
+  --wb-bg-elevated: #f1f5f9;
+  --wb-bg-card: #ffffff;
+  --wb-bg-hover: #eff6ff;
+  --wb-primary: #1d4ed8;
+  --wb-primary-soft: #2563eb;
+  --wb-primary-dim: #60a5fa;
+  --wb-accent: #3b82f6;
+  --wb-accent-soft: #1d4ed8;
+  --wb-warm: #f59e0b;
+  --wb-warm-soft: #92400e;
+  --wb-teal: #16a34a;
+  --wb-teal-soft: #15803d;
+  --wb-pink: #ec4899;
+  --wb-red: #dc2626;
+  --wb-text: #1f2937;
+  --wb-text-dim: #475569;
+  --wb-text-muted: #64748b;
+  --wb-border: rgba(15, 23, 42, 0.1);
+  --wb-border-light: rgba(59, 130, 246, 0.24);
+  --wb-shadow: rgba(15, 23, 42, 0.08);
+  --wb-shadow-lg: rgba(15, 23, 42, 0.12);
+  color: var(--wb-text);
+}
+
+.whiteboard-html-wrapper::before {
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+}
+
+.wb-html-title {
+  color: #0f172a;
+  border-bottom-color: rgba(59, 130, 246, 0.2);
+  text-shadow: none;
+}
+
+.whiteboard-html-content h1 {
+  color: #0f172a;
+}
+
+.whiteboard-html-content h2 {
+  color: #1d4ed8;
+  border-bottom-color: rgba(59, 130, 246, 0.18);
+}
+
+.whiteboard-html-content h2::after {
+  background: #facc15;
+}
+
+.whiteboard-html-content h3 {
+  color: #2563eb;
+}
+
+.whiteboard-html-content h4 {
+  color: #15803d;
+}
+
+.whiteboard-html-content p,
+.whiteboard-html-content li,
+.whiteboard-html-content td {
+  color: var(--wb-text-dim);
+}
+
+.whiteboard-html-content strong,
+.whiteboard-html-content b,
+.highlight,
+.compare-value-a,
+.compare-value-b,
+.dc-val,
+.answer,
+.result,
+.value {
+  color: #92400e !important;
+  background: linear-gradient(transparent 58%, rgba(250, 204, 21, 0.36) 58%);
+  font-weight: 800;
+}
+
+.whiteboard-html-content em,
+.whiteboard-html-content i {
+  color: #1d4ed8;
+}
+
+.whiteboard-html-content blockquote,
+.callout,
+.highlight {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  color: #475569;
+}
+
+.whiteboard-html-content code,
+.whiteboard-html-content pre {
+  background: #eff6ff;
+  border-color: rgba(59, 130, 246, 0.18);
+  color: #1d4ed8;
+}
+
+.knowledge-card,
+.formula-spotlight,
+.mnemonic,
+.quiz-box,
+.example-box,
+.error-box,
+.definition,
+.interactive-reveal,
+.interactive-steps,
+.interactive-quiz,
+.interactive-tabs,
+.magazine-grid .mg-lead,
+.magazine-grid .mg-side,
+.story-card,
+.focus-card,
+.hero-statement,
+.floating-note-layout .fn-main,
+.floating-note-layout .fn-note,
+.diagonal-compare .dc-side,
+.chalk-quote,
+.stat-item,
+.flow-step,
+.split-knowledge .sk-side,
+.key-number {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.knowledge-card,
+.definition,
+.interactive-reveal,
+.interactive-steps,
+.interactive-quiz {
+  border-left-color: #60a5fa;
+}
+
+.formula-spotlight {
+  background: #eff6ff;
+  border-color: rgba(59, 130, 246, 0.22);
+  border-left-color: #3b82f6;
+}
+
+.formula-spotlight .formula-label,
+.kb-formula-block,
+.kb-formula-inline,
+.kb-formula-block .katex,
+.kb-formula-inline .katex,
+.formula-spotlight .formula-main,
+.formula-main .katex {
+  color: #1d4ed8;
+}
+
+.example-box {
+  background: #ecfdf5;
+  border-color: rgba(34, 197, 94, 0.18);
+  border-left-color: #22c55e;
+}
+
+.example-box .ex-title,
+.example-box .ex-solution,
+.quiz-opt.correct,
+.interactive-quiz .quiz-option.correct {
+  color: #15803d;
+}
+
+.error-box,
+.callout.error {
+  background: #fdf2f8;
+  border-color: rgba(236, 72, 153, 0.28);
+}
+
+.error-box .err-title,
+.quiz-opt.wrong,
+.interactive-quiz .quiz-option.wrong {
+  color: #dc2626;
+}
+
+.callout.info {
+  background: #eff6ff;
+  border-color: #60a5fa;
+}
+
+.callout.tip {
+  background: #ecfdf5;
+  border-color: #22c55e;
+}
+
+.callout.warn {
+  background: #fffbeb;
+  border-color: #f59e0b;
+}
+
+.interactive-steps .step,
+.interactive-quiz .quiz-option,
+.quiz-opt,
+.tab-trigger {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #475569;
+}
+
+.interactive-steps .step:hover,
+.interactive-quiz .quiz-option:hover,
+.quiz-opt:hover,
+.tab-trigger:hover {
+  background: #eff6ff;
+  border-color: rgba(59, 130, 246, 0.28);
+}
+
+.interactive-quiz .quiz-option {
+  position: relative;
+}
+
+.interactive-quiz .quiz-option.selected {
+  border-width: 2px;
+  border-color: #1677ff !important;
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.16);
+  transform: translateX(3px);
+}
+
+.interactive-quiz .quiz-option.selected::before {
+  content: '已选';
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #1677ff;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.interactive-quiz .quiz-option.unselected {
+  opacity: 0.68;
+}
+
+.interactive-quiz .quiz-option.selected.correct {
+  background: #ecfdf5;
+  border-color: #16a34a !important;
+  color: #166534;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.16);
+}
+
+.interactive-quiz .quiz-option.selected.wrong {
+  background: #fef2f2;
+  border-color: #dc2626 !important;
+  color: #991b1b;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14);
+}

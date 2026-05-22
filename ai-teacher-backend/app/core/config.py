@@ -74,6 +74,7 @@ class Settings(BaseSettings):
     sandbox_timeout: int = 60  # seconds
     sandbox_max_memory_mb: int = 512  # MB
     sandbox_max_cpus: float = 1.0
+    sandbox_render_retries: int = 1  # Retry Manim render after LLM code repair
 
     # Voice Configuration
     voice_tts_provider: str = "edge"

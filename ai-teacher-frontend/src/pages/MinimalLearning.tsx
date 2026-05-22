@@ -4,15 +4,14 @@ import message from 'antd/es/message';
 import Drawer from 'antd/es/drawer';
 import Tag from 'antd/es/tag';
 import Empty from 'antd/es/empty';
-import { LogoutOutlined, ArrowLeftOutlined, ToolOutlined, HistoryOutlined, CloseOutlined, PlusOutlined, ExpandOutlined, CompressOutlined, AudioOutlined, SoundOutlined, StopOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import { LogoutOutlined, ArrowLeftOutlined, ToolOutlined, HistoryOutlined, CloseOutlined, PlusOutlined, AudioOutlined, SoundOutlined, StopOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import 'katex/dist/katex.min.css';
 import Whiteboard from '../components/whiteboard/Whiteboard';
 import WhiteboardHTML from '../components/whiteboard/WhiteboardHTML';
 import TeachingImage from '../components/teaching/TeachingImage';
 import MarkdownContent from '../components/MarkdownContent';
-import { FloatingInteractiveWhiteboard } from '../components/interactive';
-import type { FloatingInteractiveWhiteboardRef } from '../components/interactive';
+import { InteractiveWhiteboard } from '../components/interactive';
 import type { InteractiveTask, AIFeedback } from '../components/interactive/types';
 import { useAuthStore, useLearningStore } from '../store';
 import { useBrowserVoice } from '../hooks/useBrowserVoice';
@@ -71,6 +70,8 @@ interface LearningState {
   currentTopic: string;
   currentKpId: string | null;
   phase: LearningPhase;
+  currentPhase: number;
+  totalPhases: number;
   messages: Message[];
   isStreaming: boolean;
   sessionId: string | null;
@@ -160,14 +161,14 @@ const MinimalLearning: React.FC = () => {
   const urlKpName = searchParams.get('kp_name');
   const { user, logout, token } = useAuthStore();
   const { 
+    mergeCurrentWhiteboard,
     setWhiteboardTitle, 
     addWhiteboardPoint, 
     addWhiteboardFormula, 
     addWhiteboardExample, 
     addWhiteboardNote,
     setWhiteboardImage,
-    setWhiteboardHtml,
-    commitWhiteboardHtmlBlock,
+    commitWhiteboard,
     setWhiteboardSnapshot,
     clearWhiteboard,
     whiteboardBlocks,
@@ -179,6 +180,8 @@ const MinimalLearning: React.FC = () => {
     currentTopic: urlKpName || '一次函数',
     currentKpId: null,
     phase: 'explain',
+    currentPhase: 1,
+    totalPhases: 4,
     messages: [{
       id: 'welcome-msg',
       role: 'ai',
@@ -199,10 +202,9 @@ const MinimalLearning: React.FC = () => {
     isSubmittingDrawing: false,
   });
   
-  const chatRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const floatingInteractiveRef = useRef<FloatingInteractiveWhiteboardRef>(null);
   const restoringWhiteboardSessionRef = useRef<string | null>(null);
+  const pendingWhiteboardAnswerRef = useRef<string | null>(null);
 
   // 消息队列和显示控制
   const messageQueueRef = useRef<Array<{content: string, phase: LearningPhase, imageId?: string, image?: MediaResource, video?: MediaResource}>>([]);
@@ -211,9 +213,10 @@ const MinimalLearning: React.FC = () => {
   // 防止评估接口重复调用
   const isLoadingAssessmentRef = useRef(false);
 
-  // 课堂底部控制台状态
-  const [chatPanelExpanded, setChatPanelExpanded] = useState(false);
+  // 右侧交流输入状态
   const [inputText, setInputText] = useState('');
+  const [interactivePanelMounted, setInteractivePanelMounted] = useState(false);
+  const [interactivePanelVisible, setInteractivePanelVisible] = useState(false);
   const chatPanelRef = useRef<HTMLDivElement>(null);
   const voice = useBrowserVoice();
   const voiceAutoReadRef = useRef(voice.autoRead);
@@ -223,10 +226,6 @@ const MinimalLearning: React.FC = () => {
     voiceAutoReadRef.current = voice.autoRead;
     voiceSpeakRef.current = voice.speak;
   }, [voice.autoRead, voice.speak]);
-
-  const handleToggleChatPanel = useCallback(() => {
-    setChatPanelExpanded(prev => !prev);
-  }, []);
 
   // 历史会话相关状态
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -300,14 +299,19 @@ const MinimalLearning: React.FC = () => {
         for (const round of history.rounds) {
           for (const msg of round.messages) {
             const role = msg.role === 'assistant' ? 'ai' : 'student';
-            const content = msg.content;
-            if (!content) continue;
+            const content = msg.content || '';
+            const questionResults = (msg.questionResults || msg.question_results) as QuestionResult[] | undefined;
+            if (!content && !msg.imageId && !msg.image_id && !msg.image && !msg.video && !questionResults?.length) continue;
             restoredMessages.push({
               id: `hist-${round.round_number}-${Math.random().toString(36).slice(2, 9)}`,
               role,
               content,
               timestamp: round.start_time ? new Date(round.start_time) : new Date(),
               phase: 'explain',
+              imageId: msg.imageId || msg.image_id,
+              image: msg.image,
+              video: msg.video,
+              questionResults,
             });
           }
         }
@@ -321,6 +325,8 @@ const MinimalLearning: React.FC = () => {
             messages: restoredMessages,
             isFirstInput: false,
             currentTopic: history.kp_name || '一次函数',
+            currentPhase: Math.max(1, history.rounds[history.current_round_index || 0]?.current_phase || prev.currentPhase),
+            totalPhases: Math.max(1, history.rounds[history.current_round_index || 0]?.total_phases || prev.totalPhases),
           }));
         } else {
           setState(prev => ({
@@ -383,12 +389,6 @@ const MinimalLearning: React.FC = () => {
       fetchSessionList();
     }
   }, [historyOpen, sessionList.length, fetchSessionList]);
-
-  useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
-    }
-  }, [state.messages]);
 
   // 直接添加消息到状态
   const addMessageNow = useCallback((role: 'ai' | 'student', content: string, phase: LearningPhase, imageId?: string, image?: MediaResource, video?: MediaResource) => {
@@ -580,7 +580,7 @@ const MinimalLearning: React.FC = () => {
     if (!state.sessionId) return;
 
     // 更新当前主题
-    setState(prev => ({ ...prev, currentTopic: kpName, phase: 'explain' }));
+    setState(prev => ({ ...prev, currentTopic: kpName, phase: 'explain', currentPhase: 1, totalPhases: 4 }));
 
     // 添加新知识点开始消息
     addMessageNow('ai', `🎉 现在我们开始学习新的知识点：「${kpName}」`, 'explain');
@@ -680,12 +680,14 @@ const MinimalLearning: React.FC = () => {
           if (trimmedLine.startsWith('data:')) {
             const data = trimmedLine.slice(5).trim();
             if (!data || data === '[DONE]') continue;
-            
+
             try {
               const json = JSON.parse(data);
+
+              const eventType = json.type || currentEventType;
               
               // 根据事件类型处理
-              switch (currentEventType) {
+              switch (eventType) {
                 case 'segment':
                   if (json.message) {
                     let imageResource: MediaResource | undefined = json.image && json.image.type === 'image' ? json.image : undefined;
@@ -693,55 +695,12 @@ const MinimalLearning: React.FC = () => {
                     if (json.video) videoResource = json.video;
                     queueMessage(json.message, 'explain', { imageId: json.image_id, image: imageResource, video: videoResource });
                   }
-                  
-                  // 处理 whiteboard_html（语义 HTML 白板内容）
                   if (json.whiteboard_html) {
-                    const htmlContent = json.whiteboard_html;
-                    const title = json.whiteboard?.title;
-                    
-                    // 直接提交，避免 zustand 异步状态问题
-                    setWhiteboardHtml(htmlContent);
-                    if (title) setWhiteboardTitle(title);
-                    
-                    // 手动创建并提交白板块
-                    const newState = useLearningStore.getState();
-                    useLearningStore.setState({
-                      whiteboardBlocks: [...newState.whiteboardBlocks, {
-                        id: `wb-html-${Date.now()}`,
-                        title: title || newState.currentWhiteboard.title,
-                        key_points: [],
-                        formulas: [],
-                        examples: [],
-                        notes: [],
-                        html: htmlContent,
-                      }],
-                      currentWhiteboard: { 
-                        title: '',
-                        key_points: [],
-                        formulas: [],
-                        examples: [],
-                        notes: [],
-                        image: null,
-                        html: '',
-                      },
-                      whiteboardMode: newState.whiteboardMode === 'hidden' ? 'mini' : newState.whiteboardMode,
+                    mergeCurrentWhiteboard({
+                      html: json.whiteboard_html,
                     });
                   }
-                  if (json.whiteboard) {
-                    if (json.whiteboard.title) setWhiteboardTitle(json.whiteboard.title);
-                    if (json.whiteboard.points) {
-                      json.whiteboard.points.forEach((p: string) => addWhiteboardPoint(p));
-                    }
-                    if (json.whiteboard.formulas) {
-                      json.whiteboard.formulas.forEach((f: string) => addWhiteboardFormula(f));
-                    }
-                    if (json.whiteboard.examples) {
-                      json.whiteboard.examples.forEach((e: string) => addWhiteboardExample(e));
-                    }
-                    if (json.whiteboard.notes) {
-                      json.whiteboard.notes.forEach((n: string) => addWhiteboardNote(n));
-                    }
-                  }
+
                   if (json.image && json.image.type === 'image') {
                     setWhiteboardImage({
                       id: json.image.id,
@@ -751,6 +710,12 @@ const MinimalLearning: React.FC = () => {
                       description: json.image.description,
                       type: json.image.type,
                     });
+                  }
+                  break;
+
+                case 'whiteboard_page_delta':
+                  if (json.whiteboard_html) {
+                    mergeCurrentWhiteboard({ html: json.whiteboard_html });
                   }
                   break;
                 
@@ -818,8 +783,7 @@ const MinimalLearning: React.FC = () => {
                   break;
                 
                 case 'complete':
-                  // 提交 HTML 白板内容（如果有）
-                  commitWhiteboardHtmlBlock();
+                  commitWhiteboard();
                   if (json.next_action === 'start_assessment') {
                     setState(prev => ({ ...prev, phase: 'assessment' }));
                     waitForQueueDrain().then(() => {
@@ -831,8 +795,18 @@ const MinimalLearning: React.FC = () => {
                   break;
 
                 case 'phase_advance':
+                  setState(prev => ({
+                    ...prev,
+                    currentPhase: Math.max(1, Number(json.current_phase) || prev.currentPhase),
+                    totalPhases: Math.max(1, Number(json.total_phases) || prev.totalPhases),
+                  }));
                   if (json.next_action === 'start_assessment') {
-                    setState(prev => ({ ...prev, phase: 'assessment' }));
+                    setState(prev => ({
+                      ...prev,
+                      phase: 'assessment',
+                      currentPhase: Math.max(1, Number(json.total_phases) || prev.totalPhases),
+                      totalPhases: Math.max(1, Number(json.total_phases) || prev.totalPhases),
+                    }));
                     waitForQueueDrain().then(() => {
                       setTimeout(() => startAssessment(), 500);
                     });
@@ -884,9 +858,11 @@ const MinimalLearning: React.FC = () => {
           
           try {
             const json = JSON.parse(data);
-            
+
+            const eventType = json.type || currentEventType;
+
             // 根据事件类型处理
-            switch (currentEventType) {
+            switch (eventType) {
               // 教学模式事件
               case 'segment':
                 if (json.message) {
@@ -901,51 +877,10 @@ const MinimalLearning: React.FC = () => {
                   let videoResource: MediaResource | undefined = json.image.type === 'video' ? json.image : undefined;
                   queueMessage(json.image.title || '', 'explain', { image: imageResource, video: videoResource });
                 }
-                // 处理 whiteboard_html（语义 HTML 白板内容）
                 if (json.whiteboard_html) {
-                  const htmlContent = json.whiteboard_html;
-                  const title = json.whiteboard?.title;
-                  
-                  setWhiteboardHtml(htmlContent);
-                  if (title) setWhiteboardTitle(title);
-                  
-                  const newState = useLearningStore.getState();
-                  useLearningStore.setState({
-                    whiteboardBlocks: [...newState.whiteboardBlocks, {
-                      id: `wb-html-${Date.now()}`,
-                      title: title || newState.currentWhiteboard.title,
-                      key_points: [],
-                      formulas: [],
-                      examples: [],
-                      notes: [],
-                      html: htmlContent,
-                    }],
-                    currentWhiteboard: { 
-                      title: '',
-                      key_points: [],
-                      formulas: [],
-                      examples: [],
-                      notes: [],
-                      image: null,
-                      html: '',
-                    },
-                    whiteboardMode: newState.whiteboardMode === 'hidden' ? 'mini' : newState.whiteboardMode,
+                  mergeCurrentWhiteboard({
+                    html: json.whiteboard_html,
                   });
-                }
-                if (json.whiteboard) {
-                  if (json.whiteboard.title) setWhiteboardTitle(json.whiteboard.title);
-                  if (json.whiteboard.points) {
-                    json.whiteboard.points.forEach((p: string) => addWhiteboardPoint(p));
-                  }
-                  if (json.whiteboard.formulas) {
-                    json.whiteboard.formulas.forEach((f: string) => addWhiteboardFormula(f));
-                  }
-                  if (json.whiteboard.examples) {
-                    json.whiteboard.examples.forEach((e: string) => addWhiteboardExample(e));
-                  }
-                  if (json.whiteboard.notes) {
-                    json.whiteboard.notes.forEach((n: string) => addWhiteboardNote(n));
-                  }
                 }
                 if (json.image && json.image.type === 'image') {
                   setWhiteboardImage({
@@ -956,6 +891,12 @@ const MinimalLearning: React.FC = () => {
                     description: json.image.description,
                     type: json.image.type,
                   });
+                }
+                break;
+
+              case 'whiteboard_page_delta':
+                if (json.whiteboard_html) {
+                  mergeCurrentWhiteboard({ html: json.whiteboard_html });
                 }
                 break;
               
@@ -1007,8 +948,18 @@ const MinimalLearning: React.FC = () => {
                 break;
               
               case 'phase_advance':
+                setState(prev => ({
+                  ...prev,
+                  currentPhase: Math.max(1, Number(json.current_phase) || prev.currentPhase),
+                  totalPhases: Math.max(1, Number(json.total_phases) || prev.totalPhases),
+                }));
                 if (json.next_action === 'start_assessment') {
-                  setState(prev => ({ ...prev, phase: 'assessment' }));
+                  setState(prev => ({
+                    ...prev,
+                    phase: 'assessment',
+                    currentPhase: Math.max(1, Number(json.total_phases) || prev.totalPhases),
+                    totalPhases: Math.max(1, Number(json.total_phases) || prev.totalPhases),
+                  }));
                   waitForQueueDrain().then(() => {
                     setTimeout(() => startAssessment(), 500);
                   });
@@ -1016,6 +967,7 @@ const MinimalLearning: React.FC = () => {
                 break;
               
               case 'complete':
+                commitWhiteboard();
                 if (json.next_action === 'start_assessment') {
                   setState(prev => ({ ...prev, phase: 'assessment' }));
                   // 等待消息队列全部展示完毕后再开始评估
@@ -1070,7 +1022,14 @@ const MinimalLearning: React.FC = () => {
         if (sessionId) {
           const kpId = startData.data?.kp_id || urlKpId || null;
           const kpName = startData.data?.kp_name || null;
-          setState(prev => ({ ...prev, sessionId, currentKpId: kpId, currentTopic: kpName || prev.currentTopic }));
+          setState(prev => ({
+            ...prev,
+            sessionId,
+            currentKpId: kpId,
+            currentTopic: kpName || prev.currentTopic,
+            currentPhase: 1,
+            totalPhases: 4,
+          }));
           saveSessionId(sessionId);
           clearWhiteboard();
           // 清除 URL 中的 kp_id 参数，避免刷新重复创建
@@ -1143,6 +1102,28 @@ const MinimalLearning: React.FC = () => {
     setInputText('');
   }, [handleSend, inputText, state.isStreaming]);
 
+  const handleWhiteboardQuizAnswer = useCallback((answer: string, source: 'quiz' | 'reveal' = 'quiz') => {
+    const content = answer.trim();
+    if (!content) return;
+    const messageContent = source === 'quiz'
+      ? `我选择：${content}`
+      : `我看到了白板提问：${content}`;
+    if (state.isStreaming) {
+      pendingWhiteboardAnswerRef.current = messageContent;
+      return;
+    }
+    setInputText('');
+    handleSend(messageContent);
+  }, [handleSend, state.isStreaming]);
+
+  useEffect(() => {
+    if (state.isStreaming || !pendingWhiteboardAnswerRef.current) return;
+    const answer = pendingWhiteboardAnswerRef.current;
+    pendingWhiteboardAnswerRef.current = null;
+    setInputText('');
+    handleSend(answer);
+  }, [handleSend, state.isStreaming]);
+
   const handleSubmitDrawing = useCallback(async (imageData: string) => {
     if (!state.sessionId || !state.interactiveTask) return;
 
@@ -1181,36 +1162,157 @@ const MinimalLearning: React.FC = () => {
     }
   }, [state.sessionId, state.interactiveTask, getAuthHeaders, addMessageNow]);
 
-  const handleToggleInteractivePanel = useCallback(() => {
-    setState(prev => ({ ...prev, showInteractivePanel: !prev.showInteractivePanel }));
+  const openInteractivePanel = useCallback(() => {
+    setInteractivePanelMounted(true);
+    setState(prev => ({ ...prev, showInteractivePanel: true }));
+    window.requestAnimationFrame(() => {
+      setInteractivePanelVisible(true);
+    });
   }, []);
 
   const handleCloseInteractivePanel = useCallback(() => {
+    setInteractivePanelVisible(false);
     setState(prev => ({ ...prev, showInteractivePanel: false }));
   }, []);
 
-  const latestAiMessage = [...state.messages].reverse().find((msg) => msg.role === 'ai' && msg.content.trim());
+  const handleToggleInteractivePanel = useCallback(() => {
+    if (state.showInteractivePanel) {
+      handleCloseInteractivePanel();
+      return;
+    }
+
+    openInteractivePanel();
+  }, [handleCloseInteractivePanel, openInteractivePanel, state.showInteractivePanel]);
+
+  const isInteractivePanelOpen = state.showInteractivePanel;
+  const interactivePanelButtonLabel = isInteractivePanelOpen ? '关闭互动白板' : '打开互动白板';
+  const interactivePanelClassName = [
+    'side-card',
+    'interactive-side-card',
+    interactivePanelVisible ? 'is-open' : 'is-closed',
+  ].join(' ');
+
+  const sidePanelClassName = [
+    'learning-side-panel',
+    isInteractivePanelOpen ? 'interactive-active' : '',
+  ].filter(Boolean).join(' ');
+
+  const latestStudentMessage = [...state.messages].reverse().find((msg) => msg.role === 'student' && msg.content.trim());
+  const phaseLabelMap: Record<LearningPhase, string> = {
+    explain: '概念讲解',
+    question: '随堂练习',
+    interactive: '互动探究',
+    feedback: '即时反馈',
+    assessment: '阶段测评',
+  };
+  const safeTotalPhases = Math.max(1, state.totalPhases || 4);
+  const safeCurrentPhase = Math.min(safeTotalPhases, Math.max(1, state.currentPhase || 1));
+  const lessonProgressPercent = state.phase === 'assessment'
+    ? 100
+    : Math.round((safeCurrentPhase / safeTotalPhases) * 100);
+  const answeredCount = Object.keys(state.selectedAnswers).length;
+  const assessmentTotal = state.assessmentQuestions.length;
+  const boardItemCount = whiteboardBlocks.length
+    + currentWhiteboard.key_points.length
+    + currentWhiteboard.formulas.length
+    + currentWhiteboard.examples.length
+    + currentWhiteboard.notes.length
+    + (currentWhiteboard.title ? 1 : 0)
+    + (currentWhiteboard.html ? 1 : 0)
+    + (currentWhiteboard.image ? 1 : 0);
+  const sideHint = state.phase === 'assessment'
+    ? '先完成当前小测，再看解析。'
+    : state.phase === 'question'
+      ? '先说出你的思路，再看老师反馈。'
+      : state.phase === 'interactive'
+        ? '可以打开互动白板，把想法画出来。'
+        : '跟着左侧当前内容，抓住一个核心点。';
+
+  const renderRecordMedia = (msg: Message) => {
+    if (msg.image) {
+      return (
+        <div className="side-record-media">
+          <img
+            src={msg.image.url}
+            alt={msg.image.title || '教学图片'}
+            title={msg.image.description || msg.image.title || '教学图片'}
+          />
+          {msg.image.title && <div className="side-record-media-caption">{msg.image.title}</div>}
+        </div>
+      );
+    }
+
+    if (msg.video) {
+      return (
+        <div className="side-record-media">
+          <video
+            src={msg.video.url}
+            controls
+            poster={msg.video.thumbnail_url}
+            title={msg.video.description || msg.video.title || '教学视频'}
+          />
+          {msg.video.title && <div className="side-record-media-caption">{msg.video.title}</div>}
+        </div>
+      );
+    }
+
+    if (msg.imageId) {
+      return (
+        <TeachingImage
+          imageId={msg.imageId}
+          className="side-record-teaching-image"
+          showDescription
+        />
+      );
+    }
+
+    return null;
+  };
+
+  const renderQuestionResults = (results?: QuestionResult[]) => {
+    if (!results || results.length === 0) return null;
+
+    return (
+      <div className="assessment-results side-assessment-results">
+        {results.map((result, index) => (
+          <div key={result.question_id || index} className={`result-item ${result.is_correct ? 'correct' : 'incorrect'}`}>
+            <div className="result-header">
+              <span className="result-index">第 {index + 1} 题</span>
+              <span className={`result-status ${result.is_correct ? 'correct' : 'incorrect'}`}>
+                {result.is_correct ? '正确' : '需订正'}
+              </span>
+            </div>
+            <div className="result-question"><MarkdownContent content={result.content} /></div>
+            <div className="result-answer">
+              <div className="answer-row">
+                <span className="answer-label">你的答案：</span>
+                <span className={result.is_correct ? 'answer-correct' : 'answer-wrong'}>{result.student_answer || '未作答'}</span>
+              </div>
+              <div className="answer-row">
+                <span className="answer-label">正确答案：</span>
+                <span className="answer-correct">
+                  {Array.isArray(result.correct_answer) ? result.correct_answer.join('、') : result.correct_answer}
+                </span>
+              </div>
+            </div>
+            {result.explanation && (
+              <div className="result-explanation">
+                <span className="explanation-label">解析</span>
+                <div className="explanation-content"><MarkdownContent content={result.explanation} /></div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="minimal-learning">
-      {/* Full-screen whiteboard as background */}
-      <div className="whiteboard-main">
-        <Whiteboard loading={state.isStreaming} />
-      </div>
-
-      {/* Floating interactive whiteboard panel */}
-      <FloatingInteractiveWhiteboard
-        ref={floatingInteractiveRef}
-        visible={state.showInteractivePanel}
-        onClose={handleCloseInteractivePanel}
-        onSubmit={handleSubmitDrawing}
-        isSubmitting={state.isSubmittingDrawing}
-      />
-
       {/* Overlay header */}
       <header className="minimal-header">
         <div className="header-content">
-          <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} className="back-btn">
+          <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} className="back-btn" aria-label="返回上一页">
             返回
           </Button>
           <div className="header-right">
@@ -1221,6 +1323,7 @@ const MinimalLearning: React.FC = () => {
               icon={<HistoryOutlined />}
               onClick={() => { fetchSessionList(); setHistoryOpen(true); }}
               title="历史会话"
+              aria-label="打开历史会话"
             />
             <Button
               type="text"
@@ -1233,6 +1336,8 @@ const MinimalLearning: React.FC = () => {
                   ...prev,
                   sessionId: null,
                   currentKpId: null,
+                  currentPhase: 1,
+                  totalPhases: 4,
                   messages: [{
                     id: 'welcome-msg',
                     role: 'ai' as const,
@@ -1249,6 +1354,7 @@ const MinimalLearning: React.FC = () => {
                 }));
               }}
               title="新开会话"
+              aria-label="新开会话"
             />
             <Button
               type={state.useTools ? 'primary' : 'default'}
@@ -1256,16 +1362,19 @@ const MinimalLearning: React.FC = () => {
               icon={<ToolOutlined />}
               onClick={() => setState(prev => ({ ...prev, useTools: !prev.useTools }))}
               title={state.useTools ? '工具增强已启用' : '工具增强已禁用'}
+              aria-label={state.useTools ? '关闭工具增强' : '开启工具增强'}
             >
               {state.useTools ? '工具增强' : '标准模式'}
             </Button>
             <Button
-              type={state.showInteractivePanel ? 'primary' : 'default'}
+              type={isInteractivePanelOpen ? 'primary' : 'default'}
               size="small"
+              icon={<ToolOutlined />}
               onClick={handleToggleInteractivePanel}
-              title={state.showInteractivePanel ? '关闭互动白板' : '打开互动白板'}
+              title={interactivePanelButtonLabel}
+              aria-label={interactivePanelButtonLabel}
             >
-              🎨 互动白板
+              {interactivePanelButtonLabel}
             </Button>
             <Button
               type={voice.autoRead ? 'primary' : 'default'}
@@ -1290,261 +1399,237 @@ const MinimalLearning: React.FC = () => {
                 }
               }}
               title={voice.isPaused ? '继续播放语音' : voice.isSpeaking ? '暂停语音播放' : voice.autoRead ? '自动朗读已开启' : '自动朗读已关闭'}
+              aria-label={voice.isPaused ? '继续播放语音' : voice.isSpeaking ? '暂停语音播放' : voice.autoRead ? '关闭自动朗读' : '开启自动朗读'}
             >
               {voice.isPaused ? '继续播放' : voice.isSpeaking ? '暂停语音' : voice.autoRead ? '自动朗读' : '手动朗读'}
             </Button>
             <div className="user-info">
               <span className="user-name">{user?.name || '学生'}</span>
-              <Button type="text" icon={<LogoutOutlined />} onClick={handleLogout} className="logout-btn" title="退出登录" />
+              <Button type="text" icon={<LogoutOutlined />} onClick={handleLogout} className="logout-btn" title="退出登录" aria-label="退出登录" />
             </div>
           </div>
         </div>
       </header>
 
-      {/* Voice-first classroom console */}
-      <div
-        ref={chatPanelRef}
-        className={`classroom-console ${chatPanelExpanded ? 'expanded' : 'compact'}`}
-      >
-        {chatPanelExpanded && (
-          <section className="learning-record-panel">
-            <div className="learning-record-header">
-              <div>
-                <div className="learning-record-title">学习记录</div>
-                <div className="learning-record-meta">
-                  {state.messages.length} 条记录
-                  {state.isStreaming && <span> · 老师正在讲解</span>}
-                </div>
-              </div>
-              <Button
-                type="text"
-                size="small"
-                icon={<CompressOutlined />}
-                className="chat-panel-toggle"
-                onClick={handleToggleChatPanel}
-                title="收起学习记录"
-              />
+      <main className="learning-workspace">
+        <section className="lesson-stage" aria-label="课堂画布">
+          <div className="lesson-stage-header">
+            <div>
+              <div className="stage-eyebrow">课堂画布</div>
+              <h1>{state.currentTopic}</h1>
             </div>
+            <Tag color={state.isStreaming ? 'processing' : 'default'}>
+              {state.isStreaming ? '老师讲解中' : phaseLabelMap[state.phase]}
+            </Tag>
+          </div>
+          <div className="whiteboard-main">
+            <Whiteboard loading={state.isStreaming} onQuizAnswer={handleWhiteboardQuizAnswer} />
+          </div>
+        </section>
 
-            <div className="chat-panel-messages" ref={chatRef}>
-              {state.messages.map((msg) => (
-                <div key={msg.id} className={`message ${msg.role}`}>
-                  <div className="message-avatar">
-                    {msg.role === 'ai' ? '师' : '我'}
+        <aside className={sidePanelClassName} aria-label="学习辅助区">
+          <div className={`side-content-base ${isInteractivePanelOpen ? 'is-covered' : ''}`} aria-hidden={isInteractivePanelOpen}>
+              <section className="side-card side-overview-card">
+                <div className="side-card-title">学习状态</div>
+                <div className="goal-topic">{phaseLabelMap[state.phase]}</div>
+                <p>{sideHint}</p>
+                <div className="compact-step-row">
+                  {Array.from({ length: safeTotalPhases }, (_, index) => (
+                    <span
+                      key={`phase-${index + 1}`}
+                      className={`compact-step-dot ${index + 1 < safeCurrentPhase || state.phase === 'assessment' ? 'done' : index + 1 === safeCurrentPhase ? 'active' : ''}`}
+                      title={`第 ${index + 1} 阶段`}
+                    />
+                  ))}
+                </div>
+                <div className="phase-progress-meta">
+                  <span>{state.phase === 'assessment' ? '教学完成' : `第 ${safeCurrentPhase} / ${safeTotalPhases} 阶段`}</span>
+                  <strong>{lessonProgressPercent}%</strong>
+                </div>
+                <div className="side-stats">
+                  <div>
+                    <strong>{boardItemCount}</strong>
+                    <span>板书点</span>
                   </div>
-                  <div className="message-content">
-                    {msg.role === 'ai' && (
-                      <button
-                        type="button"
-                        className="message-speak-btn"
-                        onClick={() => voice.speak(msg.content, { interrupt: true })}
-                        disabled={!voice.speechSynthesisSupported}
-                        title={voice.speechSynthesisSupported ? '朗读这条记录' : '当前浏览器不支持朗读'}
-                      >
-                        <SoundOutlined />
-                      </button>
-                    )}
-                    <MarkdownContent content={msg.content} />
-                    {msg.video && (
-                      <div className="message-media" style={{ marginTop: 8 }}>
-                        <div style={{ background: '#000', borderRadius: 8, overflow: 'hidden' }}>
-                          <video
-                            style={{ maxWidth: '100%', maxHeight: 200, display: 'block' }}
-                            src={msg.video.url}
-                            controls
-                            poster={msg.video.thumbnail_url}
-                          />
-                        </div>
-                        {msg.video.title && (
-                          <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>{msg.video.title}</div>
-                        )}
-                      </div>
-                    )}
-                    {msg.image && !msg.video && (
-                      <div className="message-media" style={{ marginTop: 8 }}>
-                        <div style={{ borderRadius: 8, overflow: 'hidden' }}>
-                          <img
-                            style={{ maxWidth: '100%', maxHeight: 200, display: 'block' }}
-                            src={msg.image.url}
-                            alt={msg.image.title || '教学图片'}
-                          />
-                        </div>
-                        {msg.image.title && (
-                          <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>{msg.image.title}</div>
-                        )}
-                      </div>
-                    )}
-                    {msg.imageId && !msg.image && !msg.video && (
-                      <TeachingImage
-                        imageId={msg.imageId}
-                        alt="教学图片"
-                        showDescription={true}
-                      />
-                    )}
-                    {msg.questionResults && msg.questionResults.length > 0 && (
-                      <div className="assessment-results">
-                        {msg.questionResults.map((qr, idx) => (
-                          <div key={qr.question_id} className={`result-item ${qr.is_correct ? 'correct' : 'incorrect'}`}>
-                            <div className="result-header">
-                              <span className="result-index">第 {idx + 1} 题</span>
-                              <span className={`result-status ${qr.is_correct ? 'correct' : 'incorrect'}`}>
-                                {qr.is_correct ? '✓ 正确' : '✗ 错误'}
-                              </span>
-                            </div>
-                            <div className="result-question"><MarkdownContent content={qr.content} /></div>
-                            <div className="result-answer">
-                              <div className="answer-row">
-                                <span className="answer-label">你的答案：</span>
-                                <span className={qr.is_correct ? 'answer-correct' : 'answer-wrong'}>
-                                  {qr.student_answer}
-                                </span>
-                              </div>
-                              {!qr.is_correct && (
-                                <div className="answer-row">
-                                  <span className="answer-label">正确答案：</span>
-                                  <span className="answer-correct">
-                                    {Array.isArray(qr.correct_answer) ? qr.correct_answer.join('、') : qr.correct_answer}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                            {qr.explanation && (
-                              <div className="result-explanation">
-                                <span className="explanation-label">💡 解题思路：</span>
-                                <div className="explanation-content"><MarkdownContent content={qr.explanation} /></div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                  <div>
+                    <strong>{state.messages.length}</strong>
+                    <span>互动轮次</span>
+                  </div>
+                  <div>
+                    <strong>{assessmentTotal ? `${answeredCount}/${assessmentTotal}` : '-'}</strong>
+                    <span>测评进度</span>
                   </div>
                 </div>
-              ))}
-
-              {(state.isStreaming || isRestoring) && (
-                <div className="message ai">
-                  <div className="message-avatar">师</div>
-                  <div className="message-content">
-                    <div className="typing-indicator">
-                      <span></span><span></span><span></span>
-                    </div>
-                  </div>
-                </div>
-              )}
+              </section>
 
               {state.phase === 'assessment' && state.assessmentQuestions.length > 0 && (
-                <div className="assessment-panel">
-                  {state.assessmentQuestions.map((q, idx) => {
-                    const displayOptions = q.type === '判断题' && (!q.options || q.options.length === 0)
-                      ? ['正确', '错误']
-                      : q.options;
+                <section className="side-card side-assessment-card">
+                  <div className="side-card-title">随堂小测</div>
+                  <div className="assessment-panel side-assessment-panel">
+                {state.assessmentQuestions.map((q, idx) => {
+                  const displayOptions = q.type === '判断题' && (!q.options || q.options.length === 0)
+                    ? ['正确', '错误']
+                    : q.options;
 
-                    return (
-                      <div key={q.id} className="assessment-question">
-                        <div className="question-header">第 {idx + 1} 题</div>
-                        <div className="question-content"><MarkdownContent content={q.content} /></div>
+                  return (
+                    <div key={q.id} className="assessment-question">
+                      <div className="question-header">第 {idx + 1} 题</div>
+                      <div className="question-content"><MarkdownContent content={q.content} /></div>
 
-                        {displayOptions && displayOptions.length > 0 ? (
-                          <div className="question-options">
-                            {displayOptions.map((opt, optIdx) => {
-                              const hasPrefix = /^[A-D][\.、\s]/.test(opt);
-                              const displayText = hasPrefix ? opt : `${String.fromCharCode(65 + optIdx)}. ${opt}`;
+                      {displayOptions && displayOptions.length > 0 ? (
+                        <div className="question-options">
+                          {displayOptions.map((opt, optIdx) => {
+                            const hasPrefix = /^[A-D][\.、\s]/.test(opt);
+                            const displayText = hasPrefix ? opt : `${String.fromCharCode(65 + optIdx)}. ${opt}`;
 
-                              return (
-                                <button
-                                  key={optIdx}
-                                  className={`option-btn ${state.selectedAnswers[q.id] === opt ? 'selected' : ''}`}
-                                  onClick={() => selectAnswer(q.id, opt)}
-                                >
-                                  {displayText}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="question-input">
-                            <input
-                              type="text"
-                              className="answer-input"
-                              placeholder="请输入答案"
-                              value={state.selectedAnswers[q.id] || ''}
-                              onChange={(e) => inputAnswer(q.id, e.target.value)}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  <button
-                    className="submit-assessment-btn"
-                    onClick={submitAssessment}
-                    disabled={Object.keys(state.selectedAnswers).length < state.assessmentQuestions.length}
-                  >
-                    提交答案
-                  </button>
-                </div>
+                            return (
+                              <button
+                                key={optIdx}
+                                className={`option-btn ${state.selectedAnswers[q.id] === opt ? 'selected' : ''}`}
+                                onClick={() => selectAnswer(q.id, opt)}
+                              >
+                                {displayText}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="question-input">
+                          <input
+                            type="text"
+                            className="answer-input"
+                            placeholder="请输入答案"
+                            value={state.selectedAnswers[q.id] || ''}
+                            onChange={(e) => inputAnswer(q.id, e.target.value)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <button
+                  className="submit-assessment-btn"
+                  onClick={submitAssessment}
+                  disabled={Object.keys(state.selectedAnswers).length < state.assessmentQuestions.length}
+                >
+                  提交答案
+                </button>
+                  </div>
+                </section>
               )}
-            </div>
-          </section>
-        )}
 
-        <div className="lesson-subtitle">
-          <div className="subtitle-label">
-            <SoundOutlined />
-            <span>老师当前话术</span>
+              <section className="side-card side-record-card">
+                <div className="side-card-title">学习记录</div>
+                {latestStudentMessage && (
+                  <div className="side-latest-answer">
+                    <span>你刚才：</span>
+                    <MarkdownContent content={latestStudentMessage.content} />
+                  </div>
+                )}
+                <div className="side-full-record-list fixed">
+                  {state.messages.map((msg) => (
+                    <div key={msg.id} className={`side-full-record ${msg.role}`}>
+                      <div className="side-full-record-avatar">{msg.role === 'ai' ? '师' : '我'}</div>
+                      <div className="side-full-record-content">
+                        {msg.role === 'ai' && (
+                          <button
+                            type="button"
+                            className="side-speak-btn"
+                            onClick={() => voice.speak(msg.content, { interrupt: true })}
+                            disabled={!voice.speechSynthesisSupported}
+                            title={voice.speechSynthesisSupported ? '朗读这条记录' : '当前浏览器不支持朗读'}
+                            aria-label="朗读这条学习记录"
+                          >
+                            <SoundOutlined />
+                          </button>
+                        )}
+                        <MarkdownContent content={msg.content} />
+                        {renderRecordMedia(msg)}
+                        {renderQuestionResults(msg.questionResults)}
+                      </div>
+                    </div>
+                  ))}
+                  {(state.isStreaming || isRestoring) && (
+                    <div className="side-full-record ai">
+                      <div className="side-full-record-avatar">师</div>
+                      <div className="side-full-record-content">老师正在讲解...</div>
+                    </div>
+                  )}
+                </div>
+                <div
+                  ref={chatPanelRef}
+                  className="side-record-composer"
+                >
+                  <div className="classroom-controls">
+                    <button
+                      type="button"
+                      className={`voice-input-btn ${voice.isListening ? 'recording' : ''}`}
+                      disabled={state.isStreaming}
+                      onClick={handleVoiceInput}
+                      title={voice.speechRecognitionSupported ? (voice.isListening ? '停止语音输入' : '语音输入') : '当前浏览器不支持语音输入'}
+                      aria-label={voice.isListening ? '停止语音输入' : '开始语音输入'}
+                    >
+                      {voice.isListening ? <StopOutlined /> : <AudioOutlined />}
+                    </button>
+                    <textarea
+                      className="input-field"
+                      placeholder={state.phase === 'explain' ? '输入问题...' : '输入回答...'}
+                      disabled={state.isStreaming}
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          submitInputText();
+                        }
+                      }}
+                    />
+                    <button
+                      className="send-btn"
+                      disabled={state.isStreaming || !inputText.trim()}
+                      onClick={submitInputText}
+                      aria-label="发送消息"
+                    >
+                      发送
+                    </button>
+                  </div>
+                  {voice.error && <div className="voice-status">{voice.error}</div>}
+                </div>
+              </section>
           </div>
-          <div className="subtitle-content">
-            {latestAiMessage ? (
-              <MarkdownContent content={latestAiMessage.content} />
-            ) : (
-              <span>准备开始今天的学习。</span>
-            )}
-          </div>
-        </div>
 
-        <div className="classroom-controls">
-          <button
-            type="button"
-            className={`voice-input-btn ${voice.isListening ? 'recording' : ''}`}
-            disabled={state.isStreaming}
-            onClick={handleVoiceInput}
-            title={voice.speechRecognitionSupported ? (voice.isListening ? '停止语音输入' : '语音输入') : '当前浏览器不支持语音输入'}
-          >
-            {voice.isListening ? <StopOutlined /> : <AudioOutlined />}
-          </button>
-          <textarea
-            className="input-field"
-            placeholder={state.phase === 'explain' ? '输入问题...' : '输入回答...'}
-            disabled={state.isStreaming}
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                submitInputText();
-              }
-            }}
-          />
-          <button
-            className="send-btn"
-            disabled={state.isStreaming || !inputText.trim()}
-            onClick={submitInputText}
-          >
-            发送
-          </button>
-          <button
-            type="button"
-            className="record-toggle-btn"
-            onClick={handleToggleChatPanel}
-            title={chatPanelExpanded ? '收起学习记录' : '展开学习记录'}
-          >
-            {chatPanelExpanded ? <CompressOutlined /> : <ExpandOutlined />}
-            <span>{chatPanelExpanded ? '收起' : '记录'}</span>
-          </button>
-        </div>
-        {voice.error && <div className="voice-status">{voice.error}</div>}
-      </div>
+          {interactivePanelMounted && (
+            <section className={interactivePanelClassName} aria-label="互动白板">
+              <div className="interactive-side-header">
+                <div>
+                  <div className="side-card-title">互动白板</div>
+                  <p>在这里画图、标注或解题，不会遮住左侧课堂画布。</p>
+                </div>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<CloseOutlined />}
+                  onClick={handleCloseInteractivePanel}
+                  title="收起互动白板"
+                  aria-label="关闭互动白板面板"
+                />
+              </div>
+              <div className="interactive-side-body">
+                <InteractiveWhiteboard
+                  mode="interactive"
+                  interactiveTask={state.interactiveTask}
+                  aiFeedback={state.aiDrawingFeedback}
+                  onSubmit={handleSubmitDrawing}
+                  isSubmitting={state.isSubmittingDrawing}
+                  width={300}
+                  height={280}
+                  compact
+                />
+              </div>
+            </section>
+          )}
+        </aside>
+      </main>
 
       {/* 历史会话抽屉 */}
       <Drawer
@@ -1554,6 +1639,7 @@ const MinimalLearning: React.FC = () => {
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
         closeIcon={<CloseOutlined />}
+        aria-label="历史会话抽屉"
       >
         {isLoadingHistory ? (
           <div style={{ textAlign: 'center', padding: 40 }}>加载中...</div>

@@ -108,6 +108,12 @@ export interface SessionListItem {
 export interface RoundMessage {
   role: string;
   content: string;
+  imageId?: string;
+  image_id?: string;
+  image?: MediaResource;
+  video?: MediaResource;
+  questionResults?: Record<string, unknown>[];
+  question_results?: Record<string, unknown>[];
 }
 
 export interface SessionHistoryRound {
@@ -115,6 +121,8 @@ export interface SessionHistoryRound {
   status: string;
   start_time: string | null;
   end_time: string | null;
+  current_phase?: number;
+  total_phases?: number;
   messages: RoundMessage[];
   teaching_mode: string | null;
   assessment_result: Record<string, unknown> | null;

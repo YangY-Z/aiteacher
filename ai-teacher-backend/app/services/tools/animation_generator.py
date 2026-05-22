@@ -69,6 +69,20 @@ class AnimationScene(Scene):
 ```
 """
 
+MANIM_REPAIR_SYSTEM_PROMPT = """你是一个专业的 Manim 代码修复专家。
+
+你的任务：
+1. 根据 OpenSandbox/Manim 的报错修复给定 Python 代码
+2. 保留原教学意图和主要视觉元素
+3. 只使用 Manim 标准库（from manim import *）
+4. 类名必须仍然是 AnimationScene
+5. 不使用任何外部文件操作或网络请求
+
+输出格式：
+只输出修复后的 Python 代码，不要解释原因。
+代码必须用 ```python 和 ``` 包裹。
+"""
+
 # Animation templates for common scenarios
 ANIMATION_TEMPLATES = {
     "linear_function": """
@@ -174,6 +188,7 @@ class AnimationGenerator(AnimationGeneratorProtocol):
         output_dir: str = "./generated_media",
         timeout: int = None,
         use_cache: bool = True,
+        render_retries: Optional[int] = None,
     ):
         """Initialize animation generator.
         
@@ -181,15 +196,22 @@ class AnimationGenerator(AnimationGeneratorProtocol):
             output_dir: Directory to store generated videos
             timeout: Maximum execution time (defaults to config value)
             use_cache: Whether to enable caching
+            render_retries: Number of LLM repair attempts after render failure
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.timeout = timeout or settings.sandbox_timeout
         self.use_cache = use_cache
+        self.render_retries = (
+            settings.sandbox_render_retries
+            if render_retries is None
+            else max(0, render_retries)
+        )
         
         logger.info(
             f"AnimationGenerator initialized: "
-            f"output_dir={output_dir}, timeout={self.timeout}s"
+            f"output_dir={output_dir}, timeout={self.timeout}s, "
+            f"render_retries={self.render_retries}"
         )
     
     async def generate_animation(
@@ -242,9 +264,14 @@ class AnimationGenerator(AnimationGeneratorProtocol):
             animation_type, params, trace_id
         )
         
-        # Step 2: Execute in OpenSandbox
-        media_data = await self._execute_in_sandbox(
-            manim_code, trace_id, output_format
+        # Step 2: Execute in OpenSandbox. If generated code fails, ask LLM to
+        # repair it with the concrete sandbox error and try again.
+        media_data, render_attempts, final_manim_code = await self._execute_with_repair(
+            manim_code=manim_code,
+            animation_type=animation_type,
+            params=params,
+            trace_id=trace_id,
+            output_format=output_format,
         )
         
         # Step 3: Save media file
@@ -259,7 +286,8 @@ class AnimationGenerator(AnimationGeneratorProtocol):
             result = {
                 "video_url": f"/media/{cache_key}.mp4",
                 "file_path": str(media_path),
-                "duration": self._estimate_duration(manim_code),
+                "duration": self._estimate_duration(final_manim_code),
+                "render_attempts": render_attempts,
                 "cached": False,
                 "type": "video",
                 "concept": params.get("concept", ""),
@@ -269,6 +297,7 @@ class AnimationGenerator(AnimationGeneratorProtocol):
             result = {
                 "image_url": f"/media/{cache_key}.png",
                 "file_path": str(media_path),
+                "render_attempts": render_attempts,
                 "cached": False,
                 "type": "image",
                 "concept": params.get("concept", ""),
@@ -276,6 +305,51 @@ class AnimationGenerator(AnimationGeneratorProtocol):
             }
         
         return result
+
+    async def _execute_with_repair(
+        self,
+        manim_code: str,
+        animation_type: str,
+        params: Dict[str, Any],
+        trace_id: str,
+        output_format: str,
+    ) -> tuple[bytes, int, str]:
+        """Execute Manim code and repair it with LLM feedback on failure."""
+        current_code = manim_code
+        max_attempts = self.render_retries + 1
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                media_data = await self._execute_in_sandbox(
+                    current_code, trace_id, output_format
+                )
+                if attempt > 1:
+                    logger.info(
+                        f"[{trace_id}] Manim render succeeded after repair, "
+                        f"attempt={attempt}/{max_attempts}"
+                    )
+                return media_data, attempt, current_code
+            except Exception as e:
+                error_text = str(e)
+                logger.warning(
+                    f"[{trace_id}] Manim render attempt {attempt}/{max_attempts} failed: "
+                    f"{error_text[-1000:]}"
+                )
+
+                if attempt >= max_attempts:
+                    raise
+
+                current_code = await self._repair_manim_code(
+                    original_code=current_code,
+                    error_text=error_text,
+                    animation_type=animation_type,
+                    params=params,
+                    trace_id=trace_id,
+                    output_format=output_format,
+                    attempt=attempt,
+                )
+
+        raise RuntimeError("Manim render failed after repair attempts")
     
     async def _generate_manim_code(
         self,
@@ -404,6 +478,67 @@ class AnimationScene(Scene):
 请输出代码：
 """
         return prompt
+
+    async def _repair_manim_code(
+        self,
+        original_code: str,
+        error_text: str,
+        animation_type: str,
+        params: Dict[str, Any],
+        trace_id: str,
+        output_format: str,
+        attempt: int,
+    ) -> str:
+        """Ask the LLM to repair Manim code using the sandbox error."""
+        logger.info(f"[{trace_id}] Repairing Manim code, repair_attempt={attempt}")
+
+        prompt = f"""
+下面的 Manim 代码在 OpenSandbox 中执行失败了。请根据报错修复代码。
+
+【教学/动画类型】
+{animation_type}
+
+【输出格式】
+{output_format}
+
+【原始参数】
+{params}
+
+【失败代码】
+```python
+{original_code}
+```
+
+【OpenSandbox / Manim 报错】
+```
+{error_text[-4000:]}
+```
+
+【修复要求】
+1. 只输出完整可运行的 Python 代码
+2. 必须包含 `from manim import *`
+3. 必须定义 `class AnimationScene(Scene):`
+4. 不要使用不存在或不确定的 Manim API；如果某个 API 报错，请换成更基础稳定的写法
+5. 保持教学意图不变，但可以简化动画以确保运行成功
+"""
+
+        response = await asyncio.to_thread(
+            llm_service.chat,
+            system_prompt=MANIM_REPAIR_SYSTEM_PROMPT,
+            user_message=prompt,
+            temperature=0.2,
+            trace_id=f"{trace_id}:repair:{attempt}",
+        )
+        repaired_code = self._extract_code_from_response(response)
+
+        if not repaired_code.strip():
+            raise RuntimeError("LLM returned empty repaired Manim code")
+
+        logger.info(
+            f"[{trace_id}] Manim code repaired, repair_attempt={attempt}, "
+            f"length={len(repaired_code)}"
+        )
+        return repaired_code
     
     async def _execute_in_sandbox(
         self,

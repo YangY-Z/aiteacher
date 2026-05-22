@@ -151,3 +151,69 @@
   background: #d9d9d9;
   cursor: not-allowed;
 }
+
+.compact-toolbar {
+  display: block;
+  padding: 8px 10px;
+}
+
+.compact-toolbar-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.compact-toolbar-main .tool-buttons,
+.compact-toolbar-main .action-buttons {
+  flex-shrink: 0;
+}
+
+.compact-submit-btn {
+  margin-left: auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.compact-advanced-tools {
+  margin-top: 8px;
+}
+
+.compact-advanced-tools summary {
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1677ff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.compact-advanced-tools summary::-webkit-details-marker {
+  display: none;
+}
+
+.compact-advanced-tools summary::after {
+  content: '⌄';
+  margin-left: 5px;
+  font-size: 11px;
+}
+
+.compact-advanced-tools[open] summary::after {
+  content: '⌃';
+}
+
+.compact-advanced-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 10px;
+  background: #f8fafc;
+}

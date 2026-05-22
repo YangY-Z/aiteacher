@@ -392,7 +392,7 @@ next_action 选项：
 每行输出一个JSON对象：
 
 {{"type":"segment","message":"点评/反馈或继续教学的内容..."}}
-{{"type":"segment","message":"提问内容...","is_question":true}}
+{{"type":"segment","message":"提问内容...","is_question":true,"question_type":"true_false|multiple_choice|short_answer","question_text":"明确的问题文本","options":[{{"value":"true","label":"对"}},{{"value":"false","label":"错"}}],"whiteboard_html":"<交互式HTML组件，判断题/选择题必须使用interactive-quiz>"}}
 {{"type":"complete","next_action":"next_phase"}}
 
 注意：next_action 根据评估规则决定，可选 "wait_for_student"、"next_phase" 或 "start_assessment"
@@ -403,20 +403,21 @@ next_action 选项：
 【返回格式】
 请严格按照以下JSONL格式输出,每行一个独立的JSON对象:
 
-{"type":"segment","message":"教学内容...","whiteboard":{"title":"核心概念"}}
-{"type":"segment","message":"教学讲解...","whiteboard":{"points":["要点1：...","要点2：..."]}}
+{"type":"segment","message":"教学内容...","whiteboard_html":"<div class='hero-teach'><h2>核心概念</h2>...</div>"}
+{"type":"segment","message":"教学讲解...","whiteboard_html":"<div class='split-knowledge'>...</div>"}
 {"type":"segment","message":"教学内容...","image_id":"IMG_001"}
 {"type":"segment","message":"教学内容...","video_id":"VID_002"}
-{"type":"segment","message":"提问内容...","is_question":true}
+{"type":"segment","message":"提问内容...","is_question":true,"question_type":"true_false","question_text":"明确的问题文本","options":[{"value":"true","label":"对"},{"value":"false","label":"错"}],"whiteboard_html":"<div class='interactive-quiz'>...</div>"}
 {"type":"complete","next_action":"wait_for_student"}
 
 【重要规则】
-1. 讲解关键概念时，必须在 segment 中包含 whiteboard，帮助学生在白板上看到知识要点
-2. whiteboard 支持: title(标题), points(要点列表), formulas(公式列表), examples(示例), notes(注意事项)
+1. 讲解关键概念时，必须在 segment 中包含 whiteboard_html，帮助学生在白板上看到知识要点
+2. 不要输出 whiteboard 字段；标题、要点、公式、例题、提示都写进 whiteboard_html
 3. 每个 segment 最多只能引用一个资源(图片/视频/演示)
 4. 如果需要多个资源,请分成多个 segment 输出
 5. 必须包含提问环节
 6. next_action 设为 "wait_for_student"（系统会根据LLM响应自动决定是否推进）
+7. 提问强约束：`is_question=true` 时必须同时输出 `question_type`、`question_text`；判断题/选择题必须输出 `options`，且 whiteboard_html 必须使用 interactive-quiz，不允许只用 split-knowledge 等普通展示组件
 
 请开始输出:
 """
@@ -512,18 +513,16 @@ next_action 选项：
         response_data = {
             "message": original_data.get("message", ""),
         }
-
-        whiteboard = original_data.get("whiteboard")
-        if whiteboard:
-            response_data["whiteboard"] = whiteboard
-            logger.debug(f"[whiteboard] segment包含白板数据: {list(whiteboard.keys())}")
-        elif original_data.get("type") == "segment":
-            logger.debug(f"[whiteboard] segment无白板数据, original_data keys: {list(original_data.keys())}")
+        for key in ("is_question", "question_type", "question_text", "options"):
+            if key in original_data:
+                response_data[key] = original_data[key]
 
         whiteboard_html = original_data.get("whiteboard_html")
         if whiteboard_html:
             response_data["whiteboard_html"] = whiteboard_html
             logger.debug(f"[whiteboard_html] segment包含白板HTML, 长度={len(whiteboard_html)}字符")
+        elif original_data.get("type") == "segment":
+            logger.debug(f"[whiteboard_html] segment无白板HTML, original_data keys: {list(original_data.keys())}")
 
         if event.image:
             response_data["image"] = event.image

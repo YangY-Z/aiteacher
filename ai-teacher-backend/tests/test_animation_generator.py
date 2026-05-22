@@ -6,7 +6,7 @@ from app.services.tools.animation_generator import AnimationGenerator, ANIMATION
 
 @pytest.mark.asyncio
 async def test_generate_animation_linear_function():
-    """Test generating a linear function animation."""
+    """Test generating a linear function image by default."""
     
     generator = AnimationGenerator(
         output_dir="./test_media",
@@ -18,9 +18,8 @@ async def test_generate_animation_linear_function():
         params={"k": 2, "b": 1},
     )
     
-    assert "video_url" in result
+    assert "image_url" in result
     assert "file_path" in result
-    assert "duration" in result
     assert result["cached"] == False
 
 
@@ -102,6 +101,59 @@ def test_build_cache_key():
     
     # Key should start with animation type
     assert key1.startswith("linear_function_")
+
+
+@pytest.mark.asyncio
+async def test_generate_animation_repairs_code_after_sandbox_error(tmp_path):
+    """Retry should repair LLM-generated code with sandbox error feedback."""
+
+    generator = AnimationGenerator(
+        output_dir=str(tmp_path),
+        use_cache=False,
+        render_retries=1,
+    )
+    calls = {"execute": 0, "repair_error": ""}
+
+    async def fake_generate_code(animation_type, params, trace_id):
+        return "bad manim code"
+
+    async def fake_execute(code, trace_id, output_format):
+        calls["execute"] += 1
+        if calls["execute"] == 1:
+            raise RuntimeError("Manim execution failed: NameError: bad_api")
+        assert code == "fixed manim code"
+        return b"fake-png"
+
+    async def fake_repair(
+        original_code,
+        error_text,
+        animation_type,
+        params,
+        trace_id,
+        output_format,
+        attempt,
+    ):
+        calls["repair_error"] = error_text
+        assert original_code == "bad manim code"
+        assert "NameError: bad_api" in error_text
+        assert attempt == 1
+        return "fixed manim code"
+
+    generator._generate_manim_code = fake_generate_code
+    generator._execute_in_sandbox = fake_execute
+    generator._repair_manim_code = fake_repair
+
+    result = await generator.generate_animation(
+        animation_type="auto",
+        params={"concept": "测试图示"},
+        output_format="image",
+    )
+
+    assert calls["execute"] == 2
+    assert "NameError: bad_api" in calls["repair_error"]
+    assert result["image_url"].endswith(".png")
+    assert result["render_attempts"] == 2
+    assert (tmp_path / f"{result['cache_key']}.png").read_bytes() == b"fake-png"
 
 
 @pytest.mark.asyncio

@@ -12,10 +12,12 @@
  *   - interactive-tabs: 选项卡切换
  */
 
-import React, { useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useMemo, useRef, useEffect, useCallback, useState } from 'react';
 import katex from 'katex';
 import DOMPurify from 'dompurify';
 import './WhiteboardHTML.css';
+
+const quizSelectionMemory = new Map<string, Record<string, string>>();
 
 interface WhiteboardHTMLProps {
   html: string;
@@ -23,6 +25,7 @@ interface WhiteboardHTMLProps {
   showToolbar?: boolean;
   onDownload?: () => void;
   onClear?: () => void;
+  onQuizAnswer?: (answer: string, source?: 'quiz' | 'reveal') => void;
 }
 
 /** 允许的 HTML 标签白名单 */
@@ -35,13 +38,15 @@ const ALLOWED_TAGS = [
   'div', 'span', 'strong', 'em', 'b', 'i', 'u', 's', 'sub', 'sup',
   'img', 'figure', 'figcaption',
   'details', 'summary',
-  'label', 'input',
+  'label', 'input', 'button',
   'small',
 ];
 
 const ALLOWED_ATTR = [
   'class', 'id', 'href', 'target', 'rel', 'alt', 'src', 'title',
-  'data-correct', 'data-hidden', 'data-tab', 'data-step',
+  'type', 'aria-label',
+  'data-answer', 'data-value', 'data-correct', 'data-hidden', 'data-tab', 'data-step',
+  'data-is-question', 'data-question-type',
 ];
 
 /**
@@ -129,14 +134,55 @@ function initSteps(root: HTMLElement) {
  * 交互式选择题 (interactive-quiz)
  * 点击选项，data-correct 的变绿，其他的变红并禁用
  */
-function initQuiz(root: HTMLElement) {
+function getQuizAnswerText(option: HTMLElement): string {
+  return (
+    option.getAttribute('data-answer') ||
+    option.getAttribute('data-value') ||
+    option.textContent ||
+    ''
+  ).trim();
+}
+
+function getQuizSelectionKey(option: HTMLElement): string {
+  const container = option.closest<HTMLElement>('.interactive-quiz');
+  const root = option.closest<HTMLElement>('.whiteboard-html-content');
+  const quizIndex = container && root
+    ? Array.from(root.querySelectorAll<HTMLElement>('.interactive-quiz')).indexOf(container)
+    : 0;
+  return `quiz-${Math.max(0, quizIndex)}`;
+}
+
+function applyQuizSelection(container: HTMLElement, selectedAnswer: string) {
+  const options = container.querySelectorAll<HTMLElement>('.quiz-option');
+  options.forEach(o => {
+    const isSelected = getQuizAnswerText(o) === selectedAnswer;
+    o.classList.toggle('selected', isSelected);
+    o.classList.toggle('unselected', !isSelected);
+    o.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+
+    if (o.getAttribute('data-correct') !== null) {
+      o.classList.add('correct');
+    } else {
+      o.classList.add('wrong');
+    }
+  });
+}
+
+function initQuiz(root: HTMLElement, onQuizAnswer?: (answer: string, source?: 'quiz' | 'reveal') => void) {
   root.querySelectorAll<HTMLElement>('.interactive-quiz').forEach(container => {
     const options = container.querySelectorAll<HTMLElement>('.quiz-option');
     let answered = false;
     options.forEach(opt => {
-      opt.addEventListener('click', () => {
+      opt.setAttribute('role', 'button');
+      opt.setAttribute('tabindex', '0');
+      if (!opt.getAttribute('aria-label')) {
+        opt.setAttribute('aria-label', `选择 ${getQuizAnswerText(opt)}`);
+      }
+
+      const submitOption = () => {
         if (answered) return;
         answered = true;
+        const answerText = getQuizAnswerText(opt);
         const isCorrect = opt.getAttribute('data-correct') !== null;
         // 标记所有选项
         options.forEach(o => {
@@ -154,9 +200,61 @@ function initQuiz(root: HTMLElement) {
           feedback.textContent = isCorrect ? '✅ 回答正确！' : '❌ 再想想，注意左加右减哦！';
           feedback.classList.add('show');
         }
+        if (answerText) {
+          onQuizAnswer?.(answerText, 'quiz');
+        }
+      };
+
+      opt.addEventListener('click', submitOption);
+      opt.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        submitOption();
       });
     });
   });
+}
+
+function submitQuizOption(option: HTMLElement, onQuizAnswer?: (answer: string, source?: 'quiz' | 'reveal') => void) {
+  const container = option.closest<HTMLElement>('.interactive-quiz');
+  if (!container || container.dataset.answered === 'true') return;
+
+  container.dataset.answered = 'true';
+  const options = container.querySelectorAll<HTMLElement>('.quiz-option');
+  const answerText = getQuizAnswerText(option);
+  const isCorrect = option.getAttribute('data-correct') !== null;
+
+  options.forEach(o => {
+    o.classList.toggle('selected', o === option);
+    o.classList.toggle('unselected', o !== option);
+    o.setAttribute('aria-pressed', o === option ? 'true' : 'false');
+
+    if (o.getAttribute('data-correct') !== null) {
+      o.classList.add('correct');
+    } else {
+      o.classList.add('wrong');
+    }
+  });
+
+  const feedback = container.querySelector<HTMLElement>('.quiz-feedback');
+  if (feedback) {
+    feedback.textContent = isCorrect ? '✅ 回答正确！' : '❌ 再想想，注意左加右减哦！';
+    feedback.classList.add('show');
+  }
+
+  if (answerText) {
+    window.setTimeout(() => {
+      onQuizAnswer?.(answerText, 'quiz');
+    }, 800);
+  }
+}
+
+function toggleReveal(reveal: HTMLElement) {
+  const answer = reveal.querySelector<HTMLElement>('.reveal-answer');
+  if (!answer) return;
+
+  reveal.classList.add('reveal-ready');
+  reveal.classList.toggle('revealed');
 }
 
 /**
@@ -207,8 +305,17 @@ const WhiteboardHTML: React.FC<WhiteboardHTMLProps> = ({
   showToolbar = false,
   onDownload,
   onClear,
+  onQuizAnswer,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
+  const onQuizAnswerRef = useRef(onQuizAnswer);
+  const [quizSelections, setQuizSelections] = useState<Record<string, string>>(
+    () => quizSelectionMemory.get(html) || {}
+  );
+
+  useEffect(() => {
+    onQuizAnswerRef.current = onQuizAnswer;
+  }, [onQuizAnswer]);
 
   const safeHtml = useMemo(() => {
     const preprocessed = preprocessFormulas(html);
@@ -218,28 +325,98 @@ const WhiteboardHTML: React.FC<WhiteboardHTMLProps> = ({
     });
   }, [html]);
 
+  useEffect(() => {
+    setQuizSelections(quizSelectionMemory.get(html) || {});
+  }, [html, safeHtml]);
+
   // 渲染后扫描 DOM，挂接交互事件
   useEffect(() => {
     if (!contentRef.current) return;
     const root = contentRef.current;
-    initReveal(root);
+    root.querySelectorAll<HTMLElement>('.interactive-reveal').forEach(el => {
+      if (el.querySelector<HTMLElement>('.reveal-answer')) {
+        el.classList.add('reveal-ready');
+      }
+    });
     initSteps(root);
-    initQuiz(root);
+    root.querySelectorAll<HTMLElement>('.interactive-quiz .quiz-option').forEach(opt => {
+      opt.setAttribute('role', 'button');
+      opt.setAttribute('tabindex', '0');
+      if (!opt.getAttribute('aria-label')) {
+        opt.setAttribute('aria-label', `选择 ${getQuizAnswerText(opt)}`);
+      }
+    });
     initFlip(root);
     initTabs(root);
   }, [safeHtml]);
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+    const root = contentRef.current;
+    Object.entries(quizSelections).forEach(([key, selectedAnswer]) => {
+      const index = Number(key.replace('quiz-', ''));
+      const container = root.querySelectorAll<HTMLElement>('.interactive-quiz')[index];
+      if (container) {
+        container.dataset.answered = 'true';
+        applyQuizSelection(container, selectedAnswer);
+      }
+    });
+  }, [quizSelections]);
+
+  const handleContentClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    const quizOption = target.closest<HTMLElement>('.interactive-quiz .quiz-option');
+    if (quizOption) {
+      const answer = getQuizAnswerText(quizOption);
+      if (answer) {
+        const key = getQuizSelectionKey(quizOption);
+        setQuizSelections(prev => {
+          const next = { ...prev, [key]: answer };
+          quizSelectionMemory.set(html, next);
+          return next;
+        });
+      }
+      submitQuizOption(quizOption, (answer, source) => onQuizAnswerRef.current?.(answer, source));
+      return;
+    }
+
+    const reveal = target.closest<HTMLElement>('.interactive-reveal');
+    if (!reveal || target.closest('a, button')) return;
+
+    toggleReveal(reveal);
+  }, []);
+
+  const handleContentKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+
+    const target = event.target as HTMLElement;
+    const quizOption = target.closest<HTMLElement>('.interactive-quiz .quiz-option');
+    if (!quizOption) return;
+
+    event.preventDefault();
+    const answer = getQuizAnswerText(quizOption);
+    if (answer) {
+      const key = getQuizSelectionKey(quizOption);
+      setQuizSelections(prev => {
+        const next = { ...prev, [key]: answer };
+        quizSelectionMemory.set(html, next);
+        return next;
+      });
+    }
+    submitQuizOption(quizOption, (answer, source) => onQuizAnswerRef.current?.(answer, source));
+  }, []);
 
   return (
     <div className="whiteboard-html-wrapper">
       {showToolbar && (onDownload || onClear) && (
         <div className="whiteboard-html-toolbar">
           {onDownload && (
-            <button className="wb-html-btn" onClick={onDownload} title="下载">
+            <button className="wb-html-btn" onClick={onDownload} title="下载" aria-label="下载白板内容">
               ⬇
             </button>
           )}
           {onClear && (
-            <button className="wb-html-btn" onClick={onClear} title="清空">
+            <button className="wb-html-btn" onClick={onClear} title="清空" aria-label="清空白板内容">
               🗑
             </button>
           )}
@@ -249,6 +426,8 @@ const WhiteboardHTML: React.FC<WhiteboardHTMLProps> = ({
       <div
         ref={contentRef}
         className="whiteboard-html-content"
+        onClick={handleContentClick}
+        onKeyDown={handleContentKeyDown}
         dangerouslySetInnerHTML={{ __html: safeHtml }}
       />
     </div>

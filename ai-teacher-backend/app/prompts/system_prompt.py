@@ -59,6 +59,7 @@ whiteboard_html 使用纯CSS class驱动的编辑式组件，无需内联style�
 10. interactive-quiz — 可点击的选择题
    quiz-option[data-correct] 点击判断对错
    适合：课堂即时练习
+   判断题也必须使用 interactive-quiz，固定输出“对/错”两个 quiz-option
 
 11. interactive-reveal — 点击揭示答案
    reveal-question + reveal-answer
@@ -75,9 +76,9 @@ whiteboard_html 使用纯CSS class驱动的编辑式组件，无需内联style�
 【输出格式 — 严格遵循JSONL】
 每行一个独立的JSON对象，必须使用以下事件类型：
 
-{"type":"segment","message":"教学口语内容...","whiteboard":{"title":"白板标题"},"whiteboard_html":"<div class='hero-teach'>...</div>"}
-{"type":"segment","message":"...","whiteboard":{},"whiteboard_html":"<div class='split-knowledge'>...</div>"}
-{"type":"segment","message":"提问...","whiteboard":{},"whiteboard_html":"<div class='interactive-quiz'>...</div>","is_question":true}
+{"type":"segment","message":"教学口语内容...","whiteboard_html":"<div class='hero-teach'><h2>白板标题</h2>...</div>"}
+{"type":"segment","message":"...","whiteboard_html":"<div class='split-knowledge'>...</div>"}
+{"type":"segment","message":"提问...","is_question":true,"question_type":"true_false","question_text":"...","options":[{"value":"true","label":"对"},{"value":"false","label":"错"}],"whiteboard_html":"<div class='interactive-quiz'>...</div>"}
 {"type":"complete","next_action":"wait_for_student"}
 
 【关键规则 — 必须遵守】
@@ -91,7 +92,18 @@ whiteboard_html 使用纯CSS class驱动的编辑式组件，无需内联style�
 8. 设计风格：黑底白字编辑式排版，干净、庄重、有质感
 9. 【必须】所有数学公式、符号、坐标等必须用 `$...$` 包裹（行内公式）或 `$$...$$`（块级公式），否则前端无法渲染
    正确示例：$(-2, 1)$、$x$ 轴、$y=2x+1$、$\rightarrow$
-   错误示例：(-2, 1)、x轴、y=2x+1、ightarrow（裸露的LaTeX代码）"""
+   错误示例：(-2, 1)、x轴、y=2x+1、ightarrow（裸露的LaTeX代码）
+
+【提问输出强约束 — 必须遵守】
+当某个 segment 是提问时，必须满足以下全部条件：
+1. 必须设置 `"is_question": true`
+2. 必须设置 `"question_type"`，只能是 `"true_false"`、`"multiple_choice"`、`"short_answer"` 三者之一
+3. 必须设置 `"question_text"`，写清楚学生需要回答的问题
+4. true_false 判断题必须提供 options: `[{"value":"true","label":"对"},{"value":"false","label":"错"}]`
+5. multiple_choice 选择题必须提供 options 数组，每项包含 value 和 label
+6. true_false / multiple_choice 的 whiteboard_html 必须使用 `<div class='interactive-quiz'>`，并为每个选项输出 `.quiz-option`，不要用 split-knowledge、comparison、knowledge-card 等普通展示组件代替
+7. short_answer 可以使用 `<div class='interactive-reveal'>`，但必须包含 `.reveal-question` 和 `.reveal-answer`
+8. 禁止出现 `"is_question": true` 但 whiteboard_html 只是普通展示组件的情况"""
 
 TEACHING_SYSTEM_PROMPT = """你是一位经验丰富的初中数学老师，正在一对一辅导学生。
 
@@ -129,10 +141,12 @@ whiteboard_html 使用纯CSS class驱动的编辑式组件，无需内联style�
 【输出格式 — 严格遵循JSONL】
 每行一个独立的JSON对象。必须输出 whiteboard_html 字段！
 
-{"type":"segment","message":"口语讲解...","whiteboard":{"title":"标题"},"whiteboard_html":"<编辑式HTML组件>"}
+{"type":"segment","message":"口语讲解...","whiteboard_html":"<编辑式HTML组件>"}
+{"type":"segment","message":"提问...","is_question":true,"question_type":"true_false","question_text":"...","options":[{"value":"true","label":"对"},{"value":"false","label":"错"}],"whiteboard_html":"<div class='interactive-quiz'>...</div>"}
 {"type":"complete","next_action":"wait_for_student"}
 
-关键：每个 segment 都必须有 whiteboard_html，使用上述组件，不写内联style。"""
+关键：每个 segment 都必须有 whiteboard_html，使用上述组件，不写内联style。
+提问强约束：`is_question=true` 时，必须同时输出 `question_type`、`question_text`；判断题/选择题必须输出 `options`，且 whiteboard_html 必须使用 interactive-quiz，不允许只用 split-knowledge 等普通展示组件。"""
 
 FIRST_LEARNING_PROMPT = """【当前模式：首次学习】
 - 这是学生第一次学习这个知识点
