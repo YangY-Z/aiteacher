@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 from app.core.exceptions import EntityNotFoundError, LearningSessionError
 from app.models.learning import (
+    AssessmentResult,
     LearningRecord,
     LearningSession,
     LearningStatus,
@@ -115,6 +116,44 @@ class LearningService:
         """Return the frontend-facing whiteboard page payload."""
         return {key: value for key, value in page.items() if key != "html_parts"}
 
+    def _persist_whiteboard_page(self, session: LearningSession, page: dict[str, Any]) -> None:
+        """Persist a generated whiteboard page on the current round."""
+        if not self._has_whiteboard_page_content(page):
+            return
+
+        serialized = self._serialize_whiteboard_page(page)
+        serialized.setdefault("id", f"wb-{datetime.now().timestamp()}")
+        pages = session.current_round.whiteboard_pages
+        if pages and pages[-1].get("html") == serialized.get("html"):
+            pages[-1] = serialized
+        else:
+            pages.append(serialized)
+
+    def build_whiteboard_snapshot(self, session: LearningSession) -> dict[str, Any]:
+        """Build a session-level whiteboard snapshot from persisted round pages."""
+        pages: list[dict[str, Any]] = []
+        for round_data in session.rounds:
+            for index, page in enumerate(round_data.whiteboard_pages):
+                if not page:
+                    continue
+                pages.append({
+                    "id": page.get("id") or f"wb-r{round_data.round_number}-{index}",
+                    "title": page.get("title") or "",
+                    "key_points": page.get("key_points") or [],
+                    "formulas": page.get("formulas") or [],
+                    "examples": page.get("examples") or [],
+                    "notes": page.get("notes") or [],
+                    "image": page.get("image") or None,
+                    "html": page.get("html") or "",
+                })
+
+        return {
+            "version": 1,
+            "whiteboardBlocks": pages,
+            "currentWhiteboard": self._serialize_whiteboard_page(self._new_whiteboard_page()),
+            "whiteboardMode": "expanded" if pages else "hidden",
+        }
+
     def _ensure_kp_id(
         self, session: LearningSession, student_id: int, course_id: str
     ) -> None:
@@ -153,6 +192,17 @@ class LearningService:
             # 复用已有的同知识点session，无需更新
             if not existing.kp_id:
                 self._ensure_kp_id(existing, student_id, course_id)
+            profile = student_profile_repository.get_by_student_and_course(
+                student_id, course_id
+            )
+            if (
+                profile
+                and existing.kp_id
+                and existing.kp_id not in profile.mastered_kp_ids
+                and existing.kp_id != profile.current_kp_id
+            ):
+                profile.set_current_kp(existing.kp_id)
+                student_profile_repository.update(profile)
             return existing
 
         # Get or create student profile
@@ -174,6 +224,10 @@ class LearningService:
             else:
                 first_kp = course_service.get_first_knowledge_point(course_id)
                 kp_id = first_kp.id
+
+        if kp_id and kp_id not in profile.mastered_kp_ids and kp_id != profile.current_kp_id:
+            profile.set_current_kp(kp_id)
+            student_profile_repository.update(profile)
 
         # Get teaching mode for this knowledge point
         kp = knowledge_point_repository.get_by_id(kp_id)
@@ -400,6 +454,19 @@ class LearningService:
         Returns:
             List of assessment questions.
         """
+        if not assessment_question_repository.get_all():
+            try:
+                from app.main import get_assessment_path
+                from app.utils.data_loader import load_assessment_data
+
+                assessment_path = get_assessment_path()
+                if assessment_path:
+                    with open(assessment_path, "r", encoding="utf-8") as f:
+                        load_assessment_data(json.load(f))
+                    logger.info(f"评估题库按需加载成功: {assessment_path}")
+            except Exception as exc:
+                logger.warning(f"评估题库按需加载失败: {exc}")
+
         questions = assessment_question_repository.get_by_kp(kp_id)
         return questions[:count]
 
@@ -517,10 +584,16 @@ class LearningService:
 
             student_profile_repository.update(profile)
 
-        # Update session's kp_id to the next knowledge point (only if passed)
-        if passed and next_kp_id:
-            session.kp_id = next_kp_id
-            learning_session_repository.update(session)
+        # Keep this session bound to the knowledge point it taught. The next
+        # knowledge point gets its own session so records/whiteboards stay isolated.
+        assessment_result = AssessmentResult(
+            score=score,
+            correct_count=correct_count,
+            total_count=len(answers),
+            passed=passed,
+        )
+        session.current_round.complete(passed, assessment_result)
+        learning_session_repository.update(session)
 
         # Determine if backtrack is required
         backtrack_required = False
@@ -567,6 +640,7 @@ class LearningService:
         """
         if not session.kp_id:
             raise LearningSessionError("会话没有当前知识点")
+        skipped_kp_id = session.kp_id
 
         # Update learning record
         record = learning_record_repository.get_by_student_and_kp(
@@ -602,13 +676,13 @@ class LearningService:
 
             student_profile_repository.update(profile)
 
-        # Update session's kp_id to the next knowledge point
-        if next_kp_id:
-            session.kp_id = next_kp_id
-            learning_session_repository.update(session)
+        # Keep the skipped session bound to the skipped knowledge point. The next
+        # knowledge point gets its own session so records/whiteboards stay isolated.
+        session.current_round.abandon()
+        learning_session_repository.update(session)
 
         return {
-            "skipped_kp_id": profile.skipped_kp_ids[-1] if profile and profile.skipped_kp_ids else None,
+            "skipped_kp_id": skipped_kp_id,
             "next_kp_id": next_kp_id,
             "next_kp_name": next_kp_name,
         }
@@ -627,6 +701,7 @@ class LearningService:
         """
         if not session.kp_id:
             raise LearningSessionError("会话没有当前知识点")
+        completed_kp_id = session.kp_id
 
         # Update learning record
         record = learning_record_repository.get_by_student_and_kp(
@@ -662,13 +737,13 @@ class LearningService:
 
             student_profile_repository.update(profile)
 
-        # Update session's kp_id to the next knowledge point
-        if next_kp_id:
-            session.kp_id = next_kp_id
-            learning_session_repository.update(session)
+        # Keep this session bound to the completed knowledge point. The next
+        # knowledge point gets its own session so records/whiteboards stay isolated.
+        session.current_round.complete(True)
+        learning_session_repository.update(session)
 
         return {
-            "completed_kp_id": session.kp_id if not next_kp_id else profile.mastered_kp_ids[-1] if profile else None,
+            "completed_kp_id": completed_kp_id,
             "next_kp_id": next_kp_id,
             "next_kp_name": next_kp_name,
         }
@@ -693,6 +768,19 @@ class LearningService:
         current_kp = None
         if profile and profile.current_kp_id:
             current_kp = knowledge_point_repository.get_by_id(profile.current_kp_id)
+
+        session_status_by_kp: dict[str, tuple[str, datetime]] = {}
+        for session in learning_session_repository.get_by_student(student_id):
+            if session.course_id != course_id or not session.kp_id:
+                continue
+            round_status = (
+                session.current_round.status.value
+                if hasattr(session.current_round.status, "value")
+                else str(session.current_round.status)
+            )
+            previous = session_status_by_kp.get(session.kp_id)
+            if previous is None or session.created_at > previous[1]:
+                session_status_by_kp[session.kp_id] = (round_status, session.created_at)
 
         # 构建详细的知识点进度列表
         knowledge_points_progress = []
@@ -733,6 +821,19 @@ class LearningService:
                                 last_score = record.attempts[-1].score if record.attempts else 0
                                 progress = min(100, int(last_score * 100))
 
+            session_status = session_status_by_kp.get(kp.id)
+            if session_status and status not in {"completed", "skipped"}:
+                round_status = session_status[0]
+                if round_status == "completed":
+                    status = "completed"
+                    progress = 100
+                elif round_status == "failed":
+                    status = "in_progress"
+                    progress = max(progress, 80)
+                elif round_status == "in_progress" and status == "locked":
+                    status = "current"
+                    progress = max(progress, 50)
+
             # 如果仍然是 locked，检查前置依赖是否全部完成来决定是否解锁
             if status == "locked":
                 dependencies = knowledge_point_dependency_repository.get_dependencies(kp.id)
@@ -748,6 +849,7 @@ class LearningService:
             
             knowledge_points_progress.append({
                 "id": kp.id,
+                "chapter_id": kp.chapter_id,
                 "name": kp.name,
                 "type": kp.type.value if hasattr(kp.type, 'value') else str(kp.type),
                 "level": kp.level,
@@ -917,9 +1019,13 @@ class LearningService:
                         # 附加媒体资源
                         if media_resource:
                             segment_data["image"] = media_resource
+                            if not whiteboard_page.get("image"):
+                                whiteboard_page["image"] = media_resource
                         
                         yield {"event": "segment", "data": json.dumps(segment_data, ensure_ascii=False)}
                         if self._has_whiteboard_page_content(whiteboard_page):
+                            self._persist_whiteboard_page(session, whiteboard_page)
+                            learning_session_repository.update(session)
                             yield {
                                 "event": "whiteboard_page_delta",
                                 "data": json.dumps({"whiteboard_html": whiteboard_page.get("html", "")}, ensure_ascii=False),
@@ -991,6 +1097,9 @@ class LearningService:
                         yield {"event": "complete", "data": json.dumps({"next_action": data.get("next_action", "wait_for_student")}, ensure_ascii=False)}
             except json.JSONDecodeError:
                 pass
+
+        self._persist_whiteboard_page(session, whiteboard_page)
+        learning_session_repository.update(session)
         
         logger.info(f"[{trace_id}] === 教学流式响应结束, 总计{event_count}个事件 ===")
 
@@ -1448,6 +1557,8 @@ class LearningService:
                         segment_data['whiteboard_html'] = whiteboard_html
                     yield {'event': 'segment', 'data': json.dumps(segment_data, ensure_ascii=False)}
                     if self._has_whiteboard_page_content(whiteboard_page):
+                        self._persist_whiteboard_page(session, whiteboard_page)
+                        learning_session_repository.update(session)
                         yield {
                             'event': 'whiteboard_page_delta',
                             'data': json.dumps({'whiteboard_html': whiteboard_page.get('html', '')}, ensure_ascii=False),
@@ -1467,6 +1578,9 @@ class LearningService:
             if data and data.get("type") == "complete":
                 final_next_action = data.get("next_action", "wait_for_student")
                 yield self._yield_chat_event("complete", next_action=final_next_action)
+
+        self._persist_whiteboard_page(session, whiteboard_page)
+        learning_session_repository.update(session)
 
         # 保存 AI 回复
         if has_feedback and ai_response_content:

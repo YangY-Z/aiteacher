@@ -89,7 +89,7 @@ whiteboard_html 使用纯CSS class驱动的编辑式组件，无需内联style�
 5. 【必须】有提问时 next_action 设为 wait_for_student
 6. 优先使用 hero-teach、teach-rule、split-knowledge、key-number 等编辑式组件
 7. 交互组件（quiz/reveal/steps/tabs）只在需要学生互动时使用
-8. 设计风格：黑底白字编辑式排版，干净、庄重、有质感
+8. 设计风格：浅色课件风格，白底/浅蓝/浅黄为主，和学习页面整体保持一致，避免大面积黑色或深色背景
 9. 【必须】所有数学公式、符号、坐标等必须用 `$...$` 包裹（行内公式）或 `$$...$$`（块级公式），否则前端无法渲染
    正确示例：$(-2, 1)$、$x$ 轴、$y=2x+1$、$\rightarrow$
    错误示例：(-2, 1)、x轴、y=2x+1、ightarrow（裸露的LaTeX代码）

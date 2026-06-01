@@ -63,6 +63,22 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
+def get_assessment_path() -> Path | None:
+    """Resolve the assessment bank path across local project layouts."""
+    backend_root = Path(__file__).parent.parent
+    repo_root = backend_root.parent
+    candidates = [
+        Path(settings.data_dir) / "评估题库_一次函数.json",
+        backend_root / "data" / "评估题库_一次函数.json",
+        repo_root / "评估题库_一次函数.json",
+    ]
+
+    for path in candidates:
+        if path.exists():
+            return path
+    return None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown events."""
@@ -74,8 +90,8 @@ async def lifespan(app: FastAPI):
     logger.info("=" * 50)
 
     # Load assessment questions
-    assessment_path = Path(settings.data_dir) / "评估题库_一次函数.json"
-    if assessment_path.exists():
+    assessment_path = get_assessment_path()
+    if assessment_path:
         try:
             with open(assessment_path, "r", encoding="utf-8") as f:
                 assessment_data = json.load(f)
@@ -83,6 +99,8 @@ async def lifespan(app: FastAPI):
             logger.info(f"评估题库加载成功: {assessment_path}")
         except (json.JSONDecodeError, Exception) as e:
             logger.warning(f"加载评估题库失败: {e}")
+    else:
+        logger.warning("未找到评估题库文件: 评估题库_一次函数.json")
 
     yield
 

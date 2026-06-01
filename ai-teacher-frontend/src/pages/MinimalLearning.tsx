@@ -45,6 +45,7 @@ interface MediaResource {
   id?: string;
   type: 'image' | 'video';
   url: string;
+  svg_code?: string;
   thumbnail_url?: string;
   title?: string;
   description?: string;
@@ -69,6 +70,8 @@ interface Message {
 interface LearningState {
   currentTopic: string;
   currentKpId: string | null;
+  sessionStatus: string | null;
+  currentRoundStatus: string | null;
   phase: LearningPhase;
   currentPhase: number;
   totalPhases: number;
@@ -92,6 +95,8 @@ interface LearningState {
 // 渲染带有公式 + Markdown 格式的内容 — 改用 MarkdownContent 组件
 
 /** 转义 HTML 特殊字符，防止 XSS 和格式错乱 */
+const COURSE_ID = 'MATH_JUNIOR_01';
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -101,7 +106,17 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
+const getSessionStorageKey = (kpId?: string | null) => (
+  kpId ? `learning_session_id:${kpId}` : 'learning_session_id'
+);
 const getWhiteboardStorageKey = (sessionId: string) => `learning_whiteboard:${sessionId}`;
+const createWelcomeMessage = (topic: string): Message => ({
+  id: 'welcome-msg',
+  role: 'ai',
+  content: `你好！我是你的AI老师。今天我们来学习"${topic}"。准备好了吗？输入任何内容开始学习。`,
+  timestamp: new Date(),
+  phase: 'explain',
+});
 
 interface WhiteboardSnapshot {
   version: 1;
@@ -154,6 +169,32 @@ const loadWhiteboardSnapshot = (sessionId: string): WhiteboardSnapshot | null =>
   }
 };
 
+const normalizeWhiteboardSnapshot = (snapshot: SessionHistoryResponse['whiteboard_snapshot']): WhiteboardSnapshot | null => {
+  if (!snapshot || !Array.isArray(snapshot.whiteboardBlocks)) return null;
+
+  const currentWhiteboard = {
+    ...emptyWhiteboardSnapshot().currentWhiteboard,
+    ...(snapshot.currentWhiteboard || {}),
+  };
+  const hasBackendContent = snapshot.whiteboardBlocks.length > 0
+    || Boolean(currentWhiteboard.title)
+    || currentWhiteboard.key_points.length > 0
+    || currentWhiteboard.formulas.length > 0
+    || currentWhiteboard.examples.length > 0
+    || currentWhiteboard.notes.length > 0
+    || Boolean(currentWhiteboard.image)
+    || Boolean(currentWhiteboard.html);
+
+  if (!hasBackendContent) return null;
+
+  return {
+    version: 1,
+    whiteboardBlocks: snapshot.whiteboardBlocks,
+    currentWhiteboard,
+    whiteboardMode: snapshot.whiteboardMode || 'hidden',
+  };
+};
+
 const MinimalLearning: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -179,16 +220,12 @@ const MinimalLearning: React.FC = () => {
   const [state, setState] = useState<LearningState>({
     currentTopic: urlKpName || '一次函数',
     currentKpId: null,
+    sessionStatus: null,
+    currentRoundStatus: null,
     phase: 'explain',
     currentPhase: 1,
     totalPhases: 4,
-    messages: [{
-      id: 'welcome-msg',
-      role: 'ai',
-      content: '你好！我是你的AI老师。今天我们来学习"一次函数"。准备好了吗？输入任何内容开始学习。',
-      timestamp: new Date(),
-      phase: 'explain',
-    }],
+    messages: [createWelcomeMessage(urlKpName || '一次函数')],
     isStreaming: false,
     sessionId: null,
     isFirstInput: true,  // 首次输入标记
@@ -218,6 +255,8 @@ const MinimalLearning: React.FC = () => {
   const [interactivePanelMounted, setInteractivePanelMounted] = useState(false);
   const [interactivePanelVisible, setInteractivePanelVisible] = useState(false);
   const chatPanelRef = useRef<HTMLDivElement>(null);
+  const recordListRef = useRef<HTMLDivElement>(null);
+  const shouldStickToRecordBottomRef = useRef(true);
   const voice = useBrowserVoice();
   const voiceAutoReadRef = useRef(voice.autoRead);
   const voiceSpeakRef = useRef(voice.speak);
@@ -227,11 +266,31 @@ const MinimalLearning: React.FC = () => {
     voiceSpeakRef.current = voice.speak;
   }, [voice.autoRead, voice.speak]);
 
+  const scrollRecordToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const list = recordListRef.current;
+    if (!list) return;
+    requestAnimationFrame(() => {
+      list.scrollTo({ top: list.scrollHeight, behavior });
+    });
+  }, []);
+
+  const handleRecordScroll = useCallback(() => {
+    const list = recordListRef.current;
+    if (!list) return;
+    const distanceToBottom = list.scrollHeight - list.scrollTop - list.clientHeight;
+    shouldStickToRecordBottomRef.current = distanceToBottom < 80;
+  }, []);
+
   // 历史会话相关状态
   const [historyOpen, setHistoryOpen] = useState(false);
   const [sessionList, setSessionList] = useState<SessionListItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+
+  useEffect(() => {
+    if (!shouldStickToRecordBottomRef.current) return;
+    scrollRecordToBottom(state.messages.length <= 1 || isRestoring ? 'auto' : 'smooth');
+  }, [isRestoring, scrollRecordToBottom, state.isStreaming, state.messages.length]);
 
   const getAuthHeaders = useCallback(() => ({
     'Content-Type': 'application/json',
@@ -240,14 +299,43 @@ const MinimalLearning: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    localStorage.removeItem('learning_session_id');
+    localStorage.removeItem(getSessionStorageKey());
     window.location.href = '/login';
   };
 
-  // 保存 sessionId 到 localStorage
-  const saveSessionId = useCallback((sessionId: string) => {
-    localStorage.setItem('learning_session_id', sessionId);
+  // 保存 sessionId：保留最近会话，同时按知识点单独索引，避免不同知识点串台
+  const saveSessionId = useCallback((sessionId: string, kpId?: string | null) => {
+    localStorage.setItem(getSessionStorageKey(), sessionId);
+    if (kpId) {
+      localStorage.setItem(getSessionStorageKey(kpId), sessionId);
+    }
   }, []);
+
+  const resetToKnowledgePoint = useCallback((kpId: string | null, kpName?: string | null) => {
+    const topic = kpName || '一次函数';
+    shouldStickToRecordBottomRef.current = true;
+    restoringWhiteboardSessionRef.current = '__switching_kp__';
+    clearWhiteboard();
+    setState(prev => ({
+      ...prev,
+      sessionId: null,
+      currentKpId: kpId,
+      sessionStatus: null,
+      currentRoundStatus: null,
+      phase: 'explain',
+      currentPhase: 1,
+      totalPhases: 4,
+      messages: [createWelcomeMessage(topic)],
+      isStreaming: false,
+      isFirstInput: true,
+      assessmentQuestions: [],
+      currentQuestionIndex: 0,
+      selectedAnswers: {},
+      currentTopic: topic,
+      interactiveTask: null,
+      aiDrawingFeedback: null,
+    }));
+  }, [clearWhiteboard]);
 
   // 当前会话的白板内容按 sessionId 持久化，刷新后能恢复同一块白板
   useEffect(() => {
@@ -268,7 +356,8 @@ const MinimalLearning: React.FC = () => {
   }, [state.sessionId, whiteboardBlocks, currentWhiteboard, whiteboardMode]);
 
   // 从 localStorage 恢复会话
-  const restoreSession = useCallback(async (sessionId: string) => {
+  const restoreSession = useCallback(async (sessionId: string, expectedKpId?: string | null) => {
+    shouldStickToRecordBottomRef.current = true;
     setIsRestoring(true);
     try {
       const res = await fetch(`/api/v1/learning/session/${sessionId}/history`, {
@@ -277,7 +366,7 @@ const MinimalLearning: React.FC = () => {
       });
 
       if (!res.ok) {
-        localStorage.removeItem('learning_session_id');
+        localStorage.removeItem(getSessionStorageKey());
         return;
       }
 
@@ -285,7 +374,13 @@ const MinimalLearning: React.FC = () => {
 
       if (data.success && data.data) {
         const history: SessionHistoryResponse = data.data;
-        const whiteboardSnapshot = loadWhiteboardSnapshot(sessionId);
+        if (expectedKpId && history.kp_id !== expectedKpId) {
+          localStorage.removeItem(getSessionStorageKey(expectedKpId));
+          return false;
+        }
+        saveSessionId(sessionId, history.kp_id);
+        const backendWhiteboardSnapshot = normalizeWhiteboardSnapshot(history.whiteboard_snapshot);
+        const whiteboardSnapshot = backendWhiteboardSnapshot || loadWhiteboardSnapshot(sessionId);
         restoringWhiteboardSessionRef.current = sessionId;
 
         if (whiteboardSnapshot) {
@@ -317,37 +412,47 @@ const MinimalLearning: React.FC = () => {
         }
 
         // 只在有消息时才恢复，否则保持欢迎语
+        const currentRound = history.rounds[history.current_round_index || 0];
         if (restoredMessages.length > 0) {
           setState(prev => ({
             ...prev,
             sessionId,
             currentKpId: history.kp_id || prev.currentKpId,
+            sessionStatus: history.status,
+            currentRoundStatus: history.current_round_status || currentRound?.status || prev.currentRoundStatus,
             messages: restoredMessages,
             isFirstInput: false,
             currentTopic: history.kp_name || '一次函数',
-            currentPhase: Math.max(1, history.rounds[history.current_round_index || 0]?.current_phase || prev.currentPhase),
-            totalPhases: Math.max(1, history.rounds[history.current_round_index || 0]?.total_phases || prev.totalPhases),
+            currentPhase: Math.max(1, history.current_phase || currentRound?.current_phase || prev.currentPhase),
+            totalPhases: Math.max(1, history.total_phases || currentRound?.total_phases || prev.totalPhases),
           }));
         } else {
           setState(prev => ({
             ...prev,
             sessionId,
+            currentKpId: history.kp_id || prev.currentKpId,
+            sessionStatus: history.status,
+            currentRoundStatus: history.current_round_status || prev.currentRoundStatus,
+            currentPhase: Math.max(1, history.current_phase || prev.currentPhase),
+            totalPhases: Math.max(1, history.total_phases || prev.totalPhases),
           }));
         }
+        return true;
       }
     } catch (error) {
       console.error('恢复会话失败:', error);
-      localStorage.removeItem('learning_session_id');
+      localStorage.removeItem(getSessionStorageKey());
     } finally {
       setIsRestoring(false);
     }
-  }, [clearWhiteboard, getAuthHeaders, setWhiteboardSnapshot]);
+    return false;
+  }, [clearWhiteboard, getAuthHeaders, saveSessionId, setWhiteboardSnapshot]);
 
   // 获取会话历史列表
   const fetchSessionList = useCallback(async () => {
     setIsLoadingHistory(true);
     try {
-      const params = new URLSearchParams({ course_id: 'MATH_JUNIOR_01' });
+      const params = new URLSearchParams({ course_id: COURSE_ID });
       if (state.currentKpId) {
         params.set('kp_id', state.currentKpId);
       }
@@ -375,13 +480,62 @@ const MinimalLearning: React.FC = () => {
     await restoreSession(sessionId);
   }, [restoreSession]);
 
-  // 页面加载时恢复会话
-  useEffect(() => {
-    const savedSessionId = localStorage.getItem('learning_session_id');
-    if (savedSessionId) {
-      restoreSession(savedSessionId);
+  const findLatestSessionIdForKp = useCallback(async (kpId: string) => {
+    const params = new URLSearchParams({ course_id: COURSE_ID, kp_id: kpId });
+    const res = await fetch(`/api/v1/learning/sessions?${params}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (!data.success || !Array.isArray(data.data) || data.data.length === 0) {
+      return null;
     }
-  }, [restoreSession]);
+
+    return (data.data[0] as SessionListItem).session_id;
+  }, [getAuthHeaders]);
+
+  // 页面加载时恢复会话：URL 指定知识点时优先恢复该知识点自己的会话
+  useEffect(() => {
+    let cancelled = false;
+
+    const restoreInitialSession = async () => {
+      if (urlKpId) {
+        resetToKnowledgePoint(urlKpId, urlKpName);
+        setSessionList([]);
+
+        const scopedSessionId = localStorage.getItem(getSessionStorageKey(urlKpId));
+        if (scopedSessionId) {
+          const restored = await restoreSession(scopedSessionId, urlKpId);
+          if (restored || cancelled) return;
+        }
+
+        const latestSessionId = await findLatestSessionIdForKp(urlKpId);
+        if (cancelled) return;
+
+        if (latestSessionId) {
+          saveSessionId(latestSessionId, urlKpId);
+          await restoreSession(latestSessionId, urlKpId);
+          return;
+        }
+
+        return;
+      }
+
+      const savedSessionId = localStorage.getItem(getSessionStorageKey());
+      if (savedSessionId) {
+        await restoreSession(savedSessionId);
+      }
+    };
+
+    restoreInitialSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [findLatestSessionIdForKp, resetToKnowledgePoint, restoreSession, saveSessionId, urlKpId, urlKpName]);
 
   // 打开历史面板时获取列表
   useEffect(() => {
@@ -445,9 +599,77 @@ const MinimalLearning: React.FC = () => {
     }
   }, []);
 
+  const getStreamMediaResources = (json: any): { image?: MediaResource; video?: MediaResource; whiteboard?: MediaResource } => {
+    const imageResource: MediaResource | undefined = json.image?.type === 'image' ? json.image : undefined;
+    const videoResource: MediaResource | undefined = json.video
+      ? { ...json.video, type: 'video' }
+      : json.image?.type === 'video'
+        ? json.image
+        : undefined;
+
+    return {
+      image: imageResource,
+      video: videoResource,
+      whiteboard: videoResource || imageResource,
+    };
+  };
+
+  const showMediaOnWhiteboard = (media?: MediaResource) => {
+    if (!media) return;
+    setWhiteboardImage({
+      id: media.id,
+      url: media.url,
+      svg_code: media.svg_code,
+      title: media.title,
+      description: media.description,
+      type: media.type,
+      thumbnail_url: media.thumbnail_url,
+      source: media.source,
+      duration: media.duration,
+    });
+  };
+
+  const waitForMediaReady = async (media?: MediaResource) => {
+    if (!media?.url || media.svg_code) return;
+
+    await new Promise<void>((resolve) => {
+      const timeout = window.setTimeout(resolve, media.type === 'video' ? 15000 : 10000);
+
+      const done = () => {
+        window.clearTimeout(timeout);
+        resolve();
+      };
+
+      if (media.type === 'video') {
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.muted = true;
+        video.playsInline = true;
+        video.onloadedmetadata = done;
+        video.oncanplay = done;
+        video.onerror = done;
+        video.src = media.url;
+        video.load();
+        return;
+      }
+
+      const image = new Image();
+      image.onload = done;
+      image.onerror = done;
+      image.src = media.url;
+    });
+  };
+
+  const waitForMediaPresentation = async (media?: MediaResource) => {
+    if (!media) return;
+    await waitForQueueDrain();
+    await new Promise(resolve => setTimeout(resolve, media.type === 'video' ? 800 : 500));
+  };
+
   // 开始评估
-  const startAssessment = async () => {
-    if (!state.sessionId) return;
+  const startAssessment = async (sessionIdOverride?: string | null) => {
+    const assessmentSessionId = sessionIdOverride || state.sessionId;
+    if (!assessmentSessionId) return;
 
     // 使用 ref 防止重复调用
     if (isLoadingAssessmentRef.current) return;
@@ -456,7 +678,7 @@ const MinimalLearning: React.FC = () => {
     try {
       setState(prev => ({ ...prev, isStreaming: true }));
 
-      const res = await fetch(`/api/v1/learning/session/${state.sessionId}/assessment`, {
+      const res = await fetch(`/api/v1/learning/session/${assessmentSessionId}/assessment`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -552,13 +774,14 @@ const MinimalLearning: React.FC = () => {
           assessmentQuestions: [],
           selectedAnswers: {},
           isStreaming: false,
+          currentRoundStatus: result.passed ? 'completed' : 'failed',
         }));
 
         // 根据评估结果决定下一步
-        if (result.passed && result.next_kp_name) {
+        if (result.passed && result.next_kp_id && result.next_kp_name) {
           // 通过且有下一个知识点，自动开始新知识点学习
           setTimeout(() => {
-            startNewKnowledgePoint(result.next_kp_name!);
+            startNewKnowledgePoint(result.next_kp_id!, result.next_kp_name!);
           }, 1500);
         } else if (!result.passed) {
           // 未通过，继续当前知识点讲解
@@ -576,36 +799,66 @@ const MinimalLearning: React.FC = () => {
   };
 
   // 开始新知识点学习
-  const startNewKnowledgePoint = async (kpName: string) => {
-    if (!state.sessionId) return;
-
-    // 更新当前主题
-    setState(prev => ({ ...prev, currentTopic: kpName, phase: 'explain', currentPhase: 1, totalPhases: 4 }));
-
-    // 添加新知识点开始消息
-    addMessageNow('ai', `🎉 现在我们开始学习新的知识点：「${kpName}」`, 'explain');
-
-    // 直接开始新知识点的教学
-    setTimeout(async () => {
+  const startNewKnowledgePoint = async (kpId: string, kpName: string) => {
+    try {
       setState(prev => ({ ...prev, isStreaming: true }));
 
-      try {
-        const res = await fetch(`/api/v1/learning/session/${state.sessionId}/stream?start_new=true`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ message: '', is_first_input: true }),
-        });
+      const startRes = await fetch('/api/v1/learning/start', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ course_id: COURSE_ID, kp_id: kpId }),
+      });
 
-        if (!res.ok) throw new Error(`请求失败: ${res.status}`);
+      if (!startRes.ok) throw new Error(`创建新知识点会话失败: ${startRes.status}`);
 
-        await processStreamResponse(res);
-      } catch (error) {
-        console.error('开始新知识点失败:', error);
-        message.error('开始新知识点失败');
-      } finally {
-        setState(prev => ({ ...prev, isStreaming: false }));
-      }
-    }, 500);
+      const startData = await startRes.json();
+      const sessionId = startData.data?.session_id;
+      if (!sessionId) throw new Error('创建新知识点会话失败: 缺少 session_id');
+
+      const resolvedKpId = startData.data?.kp_id || kpId;
+      const resolvedKpName = startData.data?.kp_name || kpName;
+      restoringWhiteboardSessionRef.current = null;
+      saveSessionId(sessionId, resolvedKpId);
+      clearWhiteboard();
+
+      setState(prev => ({
+        ...prev,
+        sessionId,
+        currentKpId: resolvedKpId,
+        sessionStatus: startData.data?.status || prev.sessionStatus,
+        currentRoundStatus: startData.data?.current_round_status || 'in_progress',
+        currentTopic: resolvedKpName,
+        phase: 'explain',
+        currentPhase: Math.max(1, Number(startData.data?.current_phase) || 1),
+        totalPhases: Math.max(1, Number(startData.data?.total_phases) || 4),
+        messages: [{
+          id: `new-kp-${Date.now()}`,
+          role: 'ai',
+          content: `现在我们开始学习新的知识点：「${resolvedKpName}」。`,
+          timestamp: new Date(),
+          phase: 'explain',
+        }],
+        isFirstInput: false,
+        assessmentQuestions: [],
+        currentQuestionIndex: 0,
+        selectedAnswers: {},
+      }));
+
+      const res = await fetch(`/api/v1/learning/session/${sessionId}/stream?start_new=true`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ message: '', is_first_input: true }),
+      });
+
+      if (!res.ok) throw new Error(`请求失败: ${res.status}`);
+
+      await processStreamResponse(res, sessionId);
+    } catch (error) {
+      console.error('开始新知识点失败:', error);
+      message.error('开始新知识点失败');
+    } finally {
+      setState(prev => ({ ...prev, isStreaming: false }));
+    }
   };
 
   // 继续当前知识点学习
@@ -628,7 +881,7 @@ const MinimalLearning: React.FC = () => {
 
         if (!res.ok) throw new Error(`请求失败: ${res.status}`);
 
-        await processStreamResponse(res);
+        await processStreamResponse(res, state.sessionId);
       } catch (error) {
         console.error('继续学习失败:', error);
         message.error('继续学习失败');
@@ -688,12 +941,15 @@ const MinimalLearning: React.FC = () => {
               
               // 根据事件类型处理
               switch (eventType) {
-                case 'segment':
+                case 'segment': {
+                  const mediaResources = getStreamMediaResources(json);
+                  await waitForMediaReady(mediaResources.whiteboard);
                   if (json.message) {
-                    let imageResource: MediaResource | undefined = json.image && json.image.type === 'image' ? json.image : undefined;
-                    let videoResource: MediaResource | undefined = json.image && json.image.type === 'video' ? json.image : undefined;
-                    if (json.video) videoResource = json.video;
-                    queueMessage(json.message, 'explain', { imageId: json.image_id, image: imageResource, video: videoResource });
+                    queueMessage(json.message, 'explain', {
+                      imageId: json.image_id,
+                      image: mediaResources.image,
+                      video: mediaResources.video,
+                    });
                   }
                   if (json.whiteboard_html) {
                     mergeCurrentWhiteboard({
@@ -701,17 +957,10 @@ const MinimalLearning: React.FC = () => {
                     });
                   }
 
-                  if (json.image && json.image.type === 'image') {
-                    setWhiteboardImage({
-                      id: json.image.id,
-                      url: json.image.url,
-                      svg_code: json.image.svg_code,
-                      title: json.image.title,
-                      description: json.image.description,
-                      type: json.image.type,
-                    });
-                  }
+                  showMediaOnWhiteboard(mediaResources.whiteboard);
+                  await waitForMediaPresentation(mediaResources.whiteboard);
                   break;
+                }
 
                 case 'whiteboard_page_delta':
                   if (json.whiteboard_html) {
@@ -724,23 +973,36 @@ const MinimalLearning: React.FC = () => {
                   // 可选：显示工具调用提示
                   break;
                 
-                case 'tool_result':
+                case 'tool_result': {
                   // 如果工具结果包含图片，添加到消息中
-                  if (json.success && json.image_id) {
-                    const toolMsgId = `tool-${Date.now()}`;
-                    setState(prev => ({
-                      ...prev,
-                      messages: [...prev.messages, {
-                        id: toolMsgId,
-                        role: 'ai',
-                        content: json.message || '',
-                        timestamp: new Date(),
-                        phase: 'explain',
+                  if (json.success) {
+                    const mediaResources = getStreamMediaResources(json);
+                    if (mediaResources.whiteboard) {
+                      await waitForMediaReady(mediaResources.whiteboard);
+                      queueMessage(json.message || mediaResources.whiteboard.title || '', 'explain', {
                         imageId: json.image_id,
-                      }],
-                    }));
+                        image: mediaResources.image,
+                        video: mediaResources.video,
+                      });
+                      showMediaOnWhiteboard(mediaResources.whiteboard);
+                      await waitForMediaPresentation(mediaResources.whiteboard);
+                    } else if (json.image_id) {
+                      const toolMsgId = `tool-${Date.now()}`;
+                      setState(prev => ({
+                        ...prev,
+                        messages: [...prev.messages, {
+                          id: toolMsgId,
+                          role: 'ai',
+                          content: json.message || '',
+                          timestamp: new Date(),
+                          phase: 'explain',
+                          imageId: json.image_id,
+                        }],
+                      }));
+                    }
                   }
                   break;
+                }
                 
                 // 教学模式事件
                 case 'msg_intro':
@@ -787,7 +1049,7 @@ const MinimalLearning: React.FC = () => {
                   if (json.next_action === 'start_assessment') {
                     setState(prev => ({ ...prev, phase: 'assessment' }));
                     waitForQueueDrain().then(() => {
-                      setTimeout(() => startAssessment(), 500);
+                      setTimeout(() => startAssessment(sessionId), 500);
                     });
                   } else if (json.next_action === 'question') {
                     setState(prev => ({ ...prev, phase: 'question' }));
@@ -808,7 +1070,7 @@ const MinimalLearning: React.FC = () => {
                       totalPhases: Math.max(1, Number(json.total_phases) || prev.totalPhases),
                     }));
                     waitForQueueDrain().then(() => {
-                      setTimeout(() => startAssessment(), 500);
+                      setTimeout(() => startAssessment(sessionId), 500);
                     });
                   }
                   break;
@@ -827,7 +1089,8 @@ const MinimalLearning: React.FC = () => {
   };
 
   // 处理流式响应
-  const processStreamResponse = async (res: Response) => {
+  const processStreamResponse = async (res: Response, sessionIdOverride?: string | null) => {
+    const streamSessionId = sessionIdOverride || state.sessionId;
     const reader = res.body?.getReader();
     const decoder = new TextDecoder();
     
@@ -864,35 +1127,31 @@ const MinimalLearning: React.FC = () => {
             // 根据事件类型处理
             switch (eventType) {
               // 教学模式事件
-              case 'segment':
+              case 'segment': {
+                const mediaResources = getStreamMediaResources(json);
+                await waitForMediaReady(mediaResources.whiteboard);
                 if (json.message) {
-                  // 提取媒体资源
-                  let imageResource: MediaResource | undefined = json.image && json.image.type === 'image' ? json.image : undefined;
-                  let videoResource: MediaResource | undefined = json.image && json.image.type === 'video' ? json.image : undefined;
-                  if (json.video) videoResource = json.video;
-                  queueMessage(json.message, 'explain', { imageId: json.image_id, image: imageResource, video: videoResource });
-                } else if (json.image) {
+                  queueMessage(json.message, 'explain', {
+                    imageId: json.image_id,
+                    image: mediaResources.image,
+                    video: mediaResources.video,
+                  });
+                } else if (mediaResources.whiteboard) {
                   // 只有媒体资源没有文本消息
-                  let imageResource: MediaResource | undefined = json.image.type === 'image' ? json.image : undefined;
-                  let videoResource: MediaResource | undefined = json.image.type === 'video' ? json.image : undefined;
-                  queueMessage(json.image.title || '', 'explain', { image: imageResource, video: videoResource });
+                  queueMessage(mediaResources.whiteboard.title || '', 'explain', {
+                    image: mediaResources.image,
+                    video: mediaResources.video,
+                  });
                 }
                 if (json.whiteboard_html) {
                   mergeCurrentWhiteboard({
                     html: json.whiteboard_html,
                   });
                 }
-                if (json.image && json.image.type === 'image') {
-                  setWhiteboardImage({
-                    id: json.image.id,
-                    url: json.image.url,
-                    svg_code: json.image.svg_code,
-                    title: json.image.title,
-                    description: json.image.description,
-                    type: json.image.type,
-                  });
-                }
+                showMediaOnWhiteboard(mediaResources.whiteboard);
+                await waitForMediaPresentation(mediaResources.whiteboard);
                 break;
+              }
 
               case 'whiteboard_page_delta':
                 if (json.whiteboard_html) {
@@ -904,22 +1163,35 @@ const MinimalLearning: React.FC = () => {
               case 'tool_call':
                 break;
               
-              case 'tool_result':
-                if (json.success && json.image_id) {
-                  const toolMsgId = `tool-${Date.now()}`;
-                  setState(prev => ({
-                    ...prev,
-                    messages: [...prev.messages, {
-                      id: toolMsgId,
-                      role: 'ai',
-                      content: json.message || '',
-                      timestamp: new Date(),
-                      phase: 'explain',
+              case 'tool_result': {
+                if (json.success) {
+                  const mediaResources = getStreamMediaResources(json);
+                  if (mediaResources.whiteboard) {
+                    await waitForMediaReady(mediaResources.whiteboard);
+                    queueMessage(json.message || mediaResources.whiteboard.title || '', 'explain', {
                       imageId: json.image_id,
-                    }],
-                  }));
+                      image: mediaResources.image,
+                      video: mediaResources.video,
+                    });
+                    showMediaOnWhiteboard(mediaResources.whiteboard);
+                    await waitForMediaPresentation(mediaResources.whiteboard);
+                  } else if (json.image_id) {
+                    const toolMsgId = `tool-${Date.now()}`;
+                    setState(prev => ({
+                      ...prev,
+                      messages: [...prev.messages, {
+                        id: toolMsgId,
+                        role: 'ai',
+                        content: json.message || '',
+                        timestamp: new Date(),
+                        phase: 'explain',
+                        imageId: json.image_id,
+                      }],
+                    }));
+                  }
                 }
                 break;
+              }
               
               case 'msg_intro':
               case 'msg_def':
@@ -961,7 +1233,7 @@ const MinimalLearning: React.FC = () => {
                     totalPhases: Math.max(1, Number(json.total_phases) || prev.totalPhases),
                   }));
                   waitForQueueDrain().then(() => {
-                    setTimeout(() => startAssessment(), 500);
+                    setTimeout(() => startAssessment(streamSessionId), 500);
                   });
                 }
                 break;
@@ -972,7 +1244,7 @@ const MinimalLearning: React.FC = () => {
                   setState(prev => ({ ...prev, phase: 'assessment' }));
                   // 等待消息队列全部展示完毕后再开始评估
                   waitForQueueDrain().then(() => {
-                    setTimeout(() => startAssessment(), 500);
+                    setTimeout(() => startAssessment(streamSessionId), 500);
                   });
                 } else if (json.next_action === 'question') {
                   setState(prev => ({ ...prev, phase: 'question' }));
@@ -1004,7 +1276,7 @@ const MinimalLearning: React.FC = () => {
       
       if (!state.sessionId) {
         // 创建会话（如果有 URL 传入的 kp_id 则指定知识点）
-        const body: Record<string, string> = { course_id: 'MATH_JUNIOR_01' };
+        const body: Record<string, string> = { course_id: COURSE_ID };
         if (urlKpId) {
           body.kp_id = urlKpId;
         }
@@ -1022,15 +1294,18 @@ const MinimalLearning: React.FC = () => {
         if (sessionId) {
           const kpId = startData.data?.kp_id || urlKpId || null;
           const kpName = startData.data?.kp_name || null;
+          restoringWhiteboardSessionRef.current = null;
           setState(prev => ({
             ...prev,
             sessionId,
             currentKpId: kpId,
+            sessionStatus: startData.data?.status || prev.sessionStatus,
+            currentRoundStatus: startData.data?.current_round_status || prev.currentRoundStatus,
             currentTopic: kpName || prev.currentTopic,
-            currentPhase: 1,
-            totalPhases: 4,
+            currentPhase: Math.max(1, Number(startData.data?.current_phase) || 1),
+            totalPhases: Math.max(1, Number(startData.data?.total_phases) || 4),
           }));
-          saveSessionId(sessionId);
+          saveSessionId(sessionId, kpId);
           clearWhiteboard();
           // 清除 URL 中的 kp_id 参数，避免刷新重复创建
           setSearchParams({}, { replace: true });
@@ -1052,7 +1327,7 @@ const MinimalLearning: React.FC = () => {
           
           if (!res.ok) throw new Error(`请求失败: ${res.status}`);
           
-          await processStreamResponse(res);
+          await processStreamResponse(res, sessionId);
         }
       } else {
         // 根据useTools选择不同的API端点
@@ -1071,7 +1346,7 @@ const MinimalLearning: React.FC = () => {
         
         if (!res.ok) throw new Error(`请求失败: ${res.status}`);
         
-        await processStreamResponse(res);
+        await processStreamResponse(res, state.sessionId);
       }
     } catch (error: any) {
       console.error('发送失败:', error);
@@ -1227,6 +1502,28 @@ const MinimalLearning: React.FC = () => {
       : state.phase === 'interactive'
         ? '可以打开互动白板，把想法画出来。'
         : '跟着左侧当前内容，抓住一个核心点。';
+  const sessionStatusLabelMap: Record<string, string> = {
+    active: '学习中',
+    completed: '已完成',
+    abandoned: '已放弃',
+  };
+  const roundStatusLabelMap: Record<string, string> = {
+    in_progress: '本轮进行中',
+    completed: '本轮已通过',
+    failed: '本轮未通过',
+    abandoned: '本轮已中止',
+  };
+  const realSessionStatusLabel = state.sessionId
+    ? sessionStatusLabelMap[state.sessionStatus || 'active'] || state.sessionStatus || '学习中'
+    : '未开始';
+  const realRoundStatusLabel = state.currentRoundStatus
+    ? roundStatusLabelMap[state.currentRoundStatus] || state.currentRoundStatus
+    : null;
+  const learningStatusText = state.isStreaming
+    ? '老师讲解中'
+    : realRoundStatusLabel
+      ? `${realSessionStatusLabel} · ${realRoundStatusLabel}`
+      : realSessionStatusLabel;
 
   const renderRecordMedia = (msg: Message) => {
     if (msg.image) {
@@ -1248,6 +1545,10 @@ const MinimalLearning: React.FC = () => {
           <video
             src={msg.video.url}
             controls
+            autoPlay
+            muted
+            playsInline
+            preload="auto"
             poster={msg.video.thumbnail_url}
             title={msg.video.description || msg.video.title || '教学视频'}
           />
@@ -1330,21 +1631,18 @@ const MinimalLearning: React.FC = () => {
               size="small"
               icon={<PlusOutlined />}
               onClick={() => {
-                localStorage.removeItem('learning_session_id');
+                localStorage.removeItem(getSessionStorageKey());
+                shouldStickToRecordBottomRef.current = true;
                 setSearchParams({}, { replace: true });
                 setState(prev => ({
                   ...prev,
                   sessionId: null,
                   currentKpId: null,
+                  sessionStatus: null,
+                  currentRoundStatus: null,
                   currentPhase: 1,
                   totalPhases: 4,
-                  messages: [{
-                    id: 'welcome-msg',
-                    role: 'ai' as const,
-                    content: '你好！我是你的AI老师。今天我们来学习"一次函数"。准备好了吗？输入任何内容开始学习。',
-                    timestamp: new Date(),
-                    phase: 'explain' as LearningPhase,
-                  }],
+                  messages: [createWelcomeMessage('一次函数')],
                   isFirstInput: true,
                   phase: 'explain' as LearningPhase,
                   assessmentQuestions: [],
@@ -1431,8 +1729,8 @@ const MinimalLearning: React.FC = () => {
           <div className={`side-content-base ${isInteractivePanelOpen ? 'is-covered' : ''}`} aria-hidden={isInteractivePanelOpen}>
               <section className="side-card side-overview-card">
                 <div className="side-card-title">学习状态</div>
-                <div className="goal-topic">{phaseLabelMap[state.phase]}</div>
-                <p>{sideHint}</p>
+                <div className="goal-topic">{learningStatusText}</div>
+                <p>{state.sessionId ? `当前阶段：${phaseLabelMap[state.phase]}` : sideHint}</p>
                 <div className="compact-step-row">
                   {Array.from({ length: safeTotalPhases }, (_, index) => (
                     <span
@@ -1526,7 +1824,11 @@ const MinimalLearning: React.FC = () => {
                     <MarkdownContent content={latestStudentMessage.content} />
                   </div>
                 )}
-                <div className="side-full-record-list fixed">
+                <div
+                  ref={recordListRef}
+                  className="side-full-record-list fixed"
+                  onScroll={handleRecordScroll}
+                >
                   {state.messages.map((msg) => (
                     <div key={msg.id} className={`side-full-record ${msg.role}`}>
                       <div className="side-full-record-avatar">{msg.role === 'ai' ? '师' : '我'}</div>

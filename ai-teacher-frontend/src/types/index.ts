@@ -40,6 +40,7 @@ export interface AuthResponse {
 export interface KnowledgePoint {
   id: string;
   course_id: string;
+  chapter_id?: string | null;
   name: string;
   type: string;
   description: string | null;
@@ -74,9 +75,23 @@ export interface Course {
   total_knowledge_points: number;
   estimated_hours: number | null;
   status: string;
+  chapters?: CourseChapter[];
   knowledge_points: KnowledgePoint[];
   level_descriptions?: Record<number, string>; // 层级描述，key 为层级编号
   created_at: string;
+}
+
+export interface CourseChapter {
+  id: string;
+  name: string;
+  grade: string;
+  subject: string;
+  edition: string;
+  description?: string | null;
+  sort_order: number;
+  total_knowledge_points: number;
+  estimated_hours?: number | null;
+  level_descriptions?: Record<number, string>;
 }
 
 // 学习会话
@@ -90,6 +105,9 @@ export interface SessionResponse {
   course_id: string;
   kp_id: string | null;
   status: string;
+  current_round_status?: string;
+  current_phase?: number;
+  total_phases?: number;
 }
 
 // 会话历史相关类型
@@ -99,9 +117,12 @@ export interface SessionListItem {
   kp_id: string | null;
   kp_name: string | null;
   status: string;
+  current_round_status?: string;
   current_round: number;
   rounds_count: number;
   total_messages: number;
+  current_phase?: number;
+  total_phases?: number;
   created_at: string | null;
 }
 
@@ -124,6 +145,7 @@ export interface SessionHistoryRound {
   current_phase?: number;
   total_phases?: number;
   messages: RoundMessage[];
+  whiteboard_pages?: WhiteboardContent[];
   teaching_mode: string | null;
   assessment_result: Record<string, unknown> | null;
   summary: Record<string, unknown> | null;
@@ -135,8 +157,17 @@ export interface SessionHistoryResponse {
   kp_id: string | null;
   kp_name: string | null;
   status: string;
+  current_round_status?: string;
   created_at: string | null;
   current_round_index: number;
+  current_phase?: number;
+  total_phases?: number;
+  whiteboard_snapshot?: {
+    version: 1;
+    whiteboardBlocks: WhiteboardContent[];
+    currentWhiteboard: WhiteboardContent;
+    whiteboardMode: 'hidden' | 'mini' | 'expanded';
+  } | null;
   rounds: SessionHistoryRound[];
 }
 
@@ -160,6 +191,9 @@ export interface WhiteboardImage {
   title?: string;
   description?: string;
   type?: string;
+  thumbnail_url?: string;
+  source?: string;
+  duration?: number;
 }
 
 export interface WhiteboardContent {
@@ -224,6 +258,7 @@ export interface ProgressResponse {
 // 知识点进度详情
 export interface KnowledgePointProgress {
   id: string;
+  chapter_id?: string | null;
   name: string;
   type: string;
   level: number;

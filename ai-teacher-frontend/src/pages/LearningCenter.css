@@ -4,30 +4,116 @@
   min-height: 100vh;
   padding: 20px;
   box-sizing: border-box;
+  background:
+    radial-gradient(circle at 80% 0%, rgba(52, 199, 89, 0.08), transparent 28%),
+    linear-gradient(180deg, #f7f8fa 0%, #eef1f4 100%);
 }
 
 .center-container {
-  max-width: 900px;
+  max-width: 1040px;
   margin: 0 auto;
 }
 
 /* 头部 */
 .center-header {
-  text-align: center;
   margin-bottom: 24px;
 }
 
-.center-header h1 {
-  font-size: 28px;
-  font-weight: 600;
+.course-console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 0 10px;
+}
+
+.space-back-btn {
+  padding: 7px 11px;
+  margin: 0 0 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  color: #6e6e73;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.space-back-btn:hover {
   color: #1d1d1f;
-  margin: 0 0 8px 0;
+  background: #fff;
+}
+
+.center-header h1 {
+  font-size: 48px;
+  font-weight: 720;
+  letter-spacing: 0;
+  line-height: 1.08;
+  color: #1d1d1f;
+  margin: 0 0 12px 0;
 }
 
 .center-header p {
   font-size: 14px;
   color: #86868b;
   margin: 0;
+}
+
+.learning-path {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  margin: 0 0 8px 0;
+  padding: 6px 10px;
+  background: #f5f5f7;
+  border: 1px solid #e8e8ed;
+  border-radius: 10px;
+  color: #64646a;
+  font-size: 13px;
+  line-height: 1.4;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+}
+
+.path-segment {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.path-segment.current {
+  color: #1d1d1f;
+  font-weight: 600;
+}
+
+.path-divider {
+  color: #b0b0b6;
+}
+
+.course-orbit {
+  display: grid;
+  flex: 0 0 180px;
+  place-items: center;
+}
+
+.orbit-ring {
+  display: grid;
+  place-items: center;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, #fff 56%, transparent 57%),
+    conic-gradient(#34c759 var(--course-progress, 0%), #e8e8ed 0);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.1);
+}
+
+.orbit-ring span {
+  color: #1d1d1f;
+  font-size: 30px;
+  font-weight: 720;
 }
 
 /* 整体进度卡片 */
@@ -76,6 +162,106 @@
   transition: width 0.5s ease;
 }
 
+/* 章节概览 */
+.chapter-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.chapter-card {
+  appearance: none;
+  font: inherit;
+  text-align: left;
+  background: #fff;
+  border: 1.5px solid #e8e8ed;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.chapter-card:hover {
+  border-color: #8ab4f8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.chapter-card.active {
+  border-color: #007aff;
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.14);
+}
+
+.chapter-card.current:not(.active) {
+  border-color: #9bd7a7;
+}
+
+.chapter-card:focus-visible {
+  border-color: #007aff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.18);
+}
+
+.chapter-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.chapter-title {
+  font-size: 15px;
+  font-weight: 650;
+  color: #1d1d1f;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.chapter-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #86868b;
+}
+
+.chapter-current-tag {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.chapter-action {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 650;
+  color: #007aff;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.chapter-progress-bar {
+  height: 5px;
+  background: #f1f2f4;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.chapter-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2fb36d, #69c779);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
 /* 知识地图部分 */
 .knowledge-map-section {
   background: white;
@@ -97,6 +283,12 @@
   font-size: 20px;
   font-weight: 600;
   color: #1d1d1f;
+}
+
+.map-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #86868b;
 }
 
 .map-controls {
@@ -141,6 +333,59 @@
 
 .map-tip-icon {
   font-size: 16px;
+}
+
+.chapter-map-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chapter-map-panel {
+  border: 1px solid #ececf0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.chapter-map-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fbfbfc;
+}
+
+.chapter-map-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  color: #1d1d1f;
+  line-height: 1.4;
+}
+
+.chapter-map-desc {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: #86868b;
+  line-height: 1.5;
+}
+
+.chapter-map-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #64646a;
+  font-weight: 600;
+}
+
+.chapter-map-panel .knowledge-graph-wrapper {
+  padding: 12px;
+  box-sizing: border-box;
 }
 
 /* 知识图谱容器 */
@@ -444,6 +689,45 @@
 @media (max-width: 600px) {
   .layers-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .learning-center {
+    padding: 14px;
+  }
+
+  .course-console-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .center-header h1 {
+    font-size: 38px;
+  }
+
+  .course-orbit {
+    align-self: stretch;
+    place-items: start;
+  }
+
+  .orbit-ring {
+    width: 96px;
+    height: 96px;
+  }
+
+  .orbit-ring span {
+    font-size: 22px;
+  }
+
+  .map-header,
+  .chapter-map-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .chapter-map-stats {
+    justify-content: space-between;
   }
 }
 

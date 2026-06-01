@@ -1,4 +1,30 @@
 # 本地启动方式
+
+## 一键启动（前端 + 沙箱 + 后端）
+
+```bash
+bash scripts/dev.sh
+```
+
+默认地址：
+
+- 前端: http://localhost:3000
+- 后端: http://localhost:8008
+- 后端文档: http://localhost:8008/docs
+- OpenSandbox: http://localhost:8080
+
+脚本会自动创建后端虚拟环境、安装缺失依赖、启动 OpenSandbox、后端和前端。日志输出在 `logs/dev/`。
+
+也可以通过环境变量覆盖前后端端口：
+
+```bash
+FRONTEND_PORT=3001 BACKEND_PORT=8009 bash scripts/dev.sh
+```
+
+---
+
+## 分别启动
+
   后端
 
    ## 1. 进入后端目录

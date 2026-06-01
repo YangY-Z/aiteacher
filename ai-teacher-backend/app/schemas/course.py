@@ -28,6 +28,7 @@ class KnowledgePointResponse(BaseModel):
 
     id: str
     course_id: str
+    chapter_id: Optional[str] = None
     name: str
     type: str
     description: Optional[str] = None
@@ -73,6 +74,7 @@ class KnowledgePointResponse(BaseModel):
         return cls(
             id=kp.id,
             course_id=kp.course_id,
+            chapter_id=getattr(kp, "chapter_id", None),
             name=kp.name,
             type=kp.type.value if hasattr(kp.type, "value") else str(kp.type),
             description=kp.description,
@@ -94,6 +96,37 @@ class DependencyResponse(BaseModel):
     dependency_type: str
 
 
+class CourseChapterResponse(BaseModel):
+    """Schema for chapter summary embedded in a course response."""
+
+    id: str
+    name: str
+    grade: str
+    subject: str
+    edition: str
+    description: Optional[str] = None
+    sort_order: int = 0
+    total_knowledge_points: int = 0
+    estimated_hours: Optional[float] = None
+    level_descriptions: dict[int, str] = Field(default_factory=dict)
+
+    @classmethod
+    def from_domain(cls, chapter: Any, total_knowledge_points: int = 0) -> "CourseChapterResponse":
+        """Create from domain chapter model."""
+        return cls(
+            id=chapter.id,
+            name=chapter.name,
+            grade=chapter.grade,
+            subject=chapter.subject.value if hasattr(chapter.subject, "value") else str(chapter.subject),
+            edition=chapter.edition.value if hasattr(chapter.edition, "value") else str(chapter.edition),
+            description=chapter.description,
+            sort_order=chapter.sort_order,
+            total_knowledge_points=total_knowledge_points or chapter.total_knowledge_points,
+            estimated_hours=chapter.estimated_hours,
+            level_descriptions=chapter.level_descriptions or {},
+        )
+
+
 class CourseResponse(BaseModel):
     """Schema for course response."""
 
@@ -105,6 +138,7 @@ class CourseResponse(BaseModel):
     total_knowledge_points: int
     estimated_hours: Optional[float] = None
     status: str
+    chapters: list[CourseChapterResponse] = Field(default_factory=list)
     knowledge_points: list[KnowledgePointResponse] = Field(default_factory=list)
     level_descriptions: dict[int, str] = Field(default_factory=dict)
     created_at: datetime
@@ -113,7 +147,13 @@ class CourseResponse(BaseModel):
         from_attributes = True
 
     @classmethod
-    def from_domain(cls, course: Any, knowledge_points: list[Any] = None, dependencies_map: dict[str, list[str]] = None) -> "CourseResponse":
+    def from_domain(
+        cls,
+        course: Any,
+        knowledge_points: list[Any] = None,
+        dependencies_map: dict[str, list[str]] = None,
+        chapters: list[Any] = None,
+    ) -> "CourseResponse":
         """Create from domain model.
 
         Args:
@@ -130,6 +170,16 @@ class CourseResponse(BaseModel):
                 deps = dependencies_map.get(kp.id, []) if dependencies_map else []
                 kp_responses.append(KnowledgePointResponse.from_domain(kp, deps))
 
+        chapter_counts: dict[str, int] = {}
+        for kp in knowledge_points or []:
+            if getattr(kp, "chapter_id", None):
+                chapter_counts[kp.chapter_id] = chapter_counts.get(kp.chapter_id, 0) + 1
+
+        chapter_responses = [
+            CourseChapterResponse.from_domain(chapter, chapter_counts.get(chapter.id, 0))
+            for chapter in sorted(chapters or [], key=lambda ch: (ch.sort_order, ch.created_at))
+        ]
+
         return cls(
             id=course.id,
             name=course.name,
@@ -139,6 +189,7 @@ class CourseResponse(BaseModel):
             total_knowledge_points=course.total_knowledge_points,
             estimated_hours=course.estimated_hours,
             status=course.status.value if hasattr(course.status, "value") else str(course.status),
+            chapters=chapter_responses,
             knowledge_points=kp_responses,
             level_descriptions=course.level_descriptions or {},
             created_at=course.created_at,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store';
 import { learningApi, courseApi } from '../api';
@@ -14,13 +14,17 @@ interface Badge {
 }
 
 const LearningCenter: React.FC<{
+  courseId?: string;
   recommendedKpId?: string | null;
   autoStart?: boolean;
   onLearningStarted?: () => void;
+  onBackToSpace?: () => void;
 }> = ({ 
+  courseId,
   recommendedKpId, 
   autoStart, 
-  onLearningStarted 
+  onLearningStarted,
+  onBackToSpace,
 }) => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -29,9 +33,13 @@ const LearningCenter: React.FC<{
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAllLayers, setShowAllLayers] = useState(false);
+  const [selectedChapterId, setSelectedChapterId] = useState<string>('all');
 
   // 默认课程ID（一次函数）
   const DEFAULT_COURSE_ID = 'MATH_JUNIOR_01';
+  const activeCourseId = courseId || DEFAULT_COURSE_ID;
+  const ALL_CHAPTER_ID = 'all';
+  const UNASSIGNED_CHAPTER_ID = 'unassigned';
 
   // 当 autoStart 为 true 时，自动跳转到学习页面
   useEffect(() => {
@@ -56,8 +64,8 @@ const LearningCenter: React.FC<{
         }
         
         // 获取课程信息
-        console.log('正在获取课程信息...', DEFAULT_COURSE_ID);
-        const courseRes = await courseApi.getById(DEFAULT_COURSE_ID);
+        console.log('正在获取课程信息...', activeCourseId);
+        const courseRes = await courseApi.getById(activeCourseId);
         console.log('课程响应:', courseRes);
 
         if (courseRes.data.success) {
@@ -69,8 +77,8 @@ const LearningCenter: React.FC<{
         }
 
         // 获取学习进度
-        console.log('正在获取学习进度...', DEFAULT_COURSE_ID);
-        const progressRes = await learningApi.getProgress(DEFAULT_COURSE_ID);
+        console.log('正在获取学习进度...', activeCourseId);
+        const progressRes = await learningApi.getProgress(activeCourseId);
         console.log('进度响应:', progressRes);
 
         if (progressRes.data.success) {
@@ -90,7 +98,11 @@ const LearningCenter: React.FC<{
     };
 
     loadData();
-  }, []);
+  }, [activeCourseId]);
+
+  useEffect(() => {
+    setSelectedChapterId(ALL_CHAPTER_ID);
+  }, [activeCourseId]);
 
   // 徽章数据（暂时硬编码，后续可以从API获取）
   const badges: Badge[] = [
@@ -104,17 +116,129 @@ const LearningCenter: React.FC<{
 
   const earnedBadgeCount = badges.filter(b => b.earned).length;
 
+  const chapterViews = useMemo(() => {
+    if (!progress || !course) return [];
+
+    const orderMap = new Map(
+      (course.knowledge_points || []).map((kp) => [kp.id, kp.sort_order ?? 0])
+    );
+    const chapterMap = new Map((course.chapters || []).map((chapter) => [chapter.id, chapter]));
+    const grouped = new Map<string, KnowledgePointProgress[]>();
+
+    progress.knowledge_points.forEach((kp) => {
+      const chapterId = kp.chapter_id || UNASSIGNED_CHAPTER_ID;
+      const group = grouped.get(chapterId) || [];
+      group.push(kp);
+      grouped.set(chapterId, group);
+    });
+
+    const sortedKps = (kps: KnowledgePointProgress[]) =>
+      [...kps].sort((a, b) => {
+        const orderA = orderMap.get(a.id) ?? 0;
+        const orderB = orderMap.get(b.id) ?? 0;
+        if (orderA !== orderB) return orderA - orderB;
+        if (a.level !== b.level) return a.level - b.level;
+        return a.name.localeCompare(b.name, 'zh-CN');
+      });
+
+    const knownChapterViews = (course.chapters || [])
+      .slice()
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      .map((chapter) => {
+        const knowledgePoints = sortedKps(grouped.get(chapter.id) || []);
+        const mastered = knowledgePoints.filter((kp) => kp.status === 'completed').length;
+        const hasCurrent = knowledgePoints.some(
+          (kp) => kp.id === progress.current_kp_id || kp.status === 'current' || kp.status === 'in_progress'
+        );
+
+        return {
+          id: chapter.id,
+          name: chapter.name,
+          description: chapter.description,
+          sortOrder: chapter.sort_order ?? 0,
+          total: knowledgePoints.length,
+          mastered,
+          skipped: knowledgePoints.filter((kp) => kp.status === 'skipped').length,
+          locked: knowledgePoints.filter((kp) => kp.status === 'locked').length,
+          percent: knowledgePoints.length ? Math.round((mastered / knowledgePoints.length) * 100) : 0,
+          hasCurrent,
+          knowledgePoints,
+          levelDescriptions: chapter.level_descriptions || course.level_descriptions || {},
+        };
+      });
+
+    const extraChapterViews = Array.from(grouped.entries())
+      .filter(([chapterId]) => !chapterMap.has(chapterId))
+      .map(([chapterId, kps]) => {
+        const knowledgePoints = sortedKps(kps);
+        const mastered = knowledgePoints.filter((kp) => kp.status === 'completed').length;
+        const hasCurrent = knowledgePoints.some(
+          (kp) => kp.id === progress.current_kp_id || kp.status === 'current' || kp.status === 'in_progress'
+        );
+
+        return {
+          id: chapterId,
+          name: chapterId === UNASSIGNED_CHAPTER_ID ? '未分章' : '未知章节',
+          description: chapterId === UNASSIGNED_CHAPTER_ID ? '历史知识点暂未绑定章节' : undefined,
+          sortOrder: Number.MAX_SAFE_INTEGER,
+          total: knowledgePoints.length,
+          mastered,
+          skipped: knowledgePoints.filter((kp) => kp.status === 'skipped').length,
+          locked: knowledgePoints.filter((kp) => kp.status === 'locked').length,
+          percent: knowledgePoints.length ? Math.round((mastered / knowledgePoints.length) * 100) : 0,
+          hasCurrent,
+          knowledgePoints,
+          levelDescriptions: course.level_descriptions || {},
+        };
+      });
+
+    return [...knownChapterViews, ...extraChapterViews].filter((chapter) => chapter.total > 0);
+  }, [course, progress]);
+
+  const selectedChapter = useMemo(
+    () => chapterViews.find((chapter) => chapter.id === selectedChapterId) || null,
+    [chapterViews, selectedChapterId]
+  );
+
+  const displayedChapterViews = selectedChapter ? [selectedChapter] : chapterViews;
+
+  const currentPathChapterName = selectedChapter?.name || '全部章节';
+
+  useEffect(() => {
+    if (selectedChapterId !== ALL_CHAPTER_ID && !chapterViews.some((chapter) => chapter.id === selectedChapterId)) {
+      setSelectedChapterId(ALL_CHAPTER_ID);
+    }
+  }, [chapterViews, selectedChapterId]);
+
   const handleSelectModule = (kp: KnowledgePointProgress) => {
     navigate(`/learn?kp_id=${kp.id}&kp_name=${encodeURIComponent(kp.name)}`);
   };
 
+  const findContinueTarget = (knowledgePoints: KnowledgePointProgress[]) => {
+    const current = knowledgePoints.find(
+      (kp) => kp.id === progress?.current_kp_id || kp.status === 'current' || kp.status === 'in_progress'
+    );
+    if (current) return current;
+
+    const next = knowledgePoints.find(
+      (kp) => kp.status !== 'completed' && kp.status !== 'skipped' && kp.status !== 'locked'
+    );
+    if (next) return next;
+
+    return knowledgePoints.find((kp) => kp.status !== 'locked') || null;
+  };
+
   const handleContinueLearning = () => {
-    if (progress?.current_kp_id) {
-      const kpName = progress.current_kp_name || '';
-      navigate(`/learn?kp_id=${progress.current_kp_id}&kp_name=${encodeURIComponent(kpName)}`);
-    } else {
+    const scopedTarget = selectedChapter ? findContinueTarget(selectedChapter.knowledgePoints) : null;
+    const globalTarget = findContinueTarget(progress?.knowledge_points || []);
+    const target = scopedTarget || globalTarget;
+
+    if (!target) {
       navigate('/learn');
+      return;
     }
+
+    navigate(`/learn?kp_id=${target.id}&kp_name=${encodeURIComponent(target.name)}`);
   };
 
   // 格式化时间（分钟）
@@ -181,13 +305,30 @@ const LearningCenter: React.FC<{
     <div className="learning-center">
       <div className="center-container">
         {/* 头部 */}
-        <div className="center-header">
-          <h1>陪伴学习</h1>
-          <p>
-            {course?.name || '加载中'} · 
-            已学习 {formatTime(progress?.total_time || 0)} · 
-            预计剩余 {formatTime(((progress?.total_count || 0) - (progress?.mastered_count || 0)) * 10)}
-          </p>
+        <div className="center-header course-console-header">
+          <div>
+            <button type="button" className="space-back-btn" onClick={onBackToSpace}>
+              学习空间
+            </button>
+            <h1>{course.name}</h1>
+            <div className="learning-path" aria-label="当前学习路径">
+              <span className="path-segment">{course.subject}</span>
+              <span className="path-segment">{course.grade}</span>
+              <span className="path-segment current">{currentPathChapterName}</span>
+            </div>
+            <p>
+              已学习 {formatTime(progress?.total_time || 0)} · 
+              预计剩余 {formatTime(((progress?.total_count || 0) - (progress?.mastered_count || 0)) * 10)}
+            </p>
+          </div>
+          <div className="course-orbit" aria-hidden="true">
+            <div
+              className="orbit-ring"
+              style={{ '--course-progress': `${Math.round((progress?.mastery_rate || 0) * 100)}%` } as React.CSSProperties}
+            >
+              <span>{Math.round((progress?.mastery_rate || 0) * 100)}%</span>
+            </div>
+          </div>
         </div>
 
         {/* 整体进度卡片 */}
@@ -214,10 +355,61 @@ const LearningCenter: React.FC<{
           </div>
         </div>
 
+        {/* 章节概览 */}
+        <div className="chapter-overview">
+          <button
+            type="button"
+            className={`chapter-card ${selectedChapterId === ALL_CHAPTER_ID ? 'active' : ''}`}
+            onClick={() => setSelectedChapterId(ALL_CHAPTER_ID)}
+          >
+            <div className="chapter-card-header">
+              <div>
+                <div className="chapter-title">全部章节</div>
+                <div className="chapter-meta">{progress.mastered_count}/{progress.total_count} 已掌握</div>
+              </div>
+              <span className="chapter-action">查看全部</span>
+            </div>
+            <div className="chapter-progress-bar" aria-hidden="true">
+              <div
+                className="chapter-progress-fill"
+                style={{ width: `${Math.round((progress.mastery_rate || 0) * 100)}%` }}
+              />
+            </div>
+          </button>
+
+          {chapterViews.map((chapter) => (
+            <button
+              key={chapter.id}
+              type="button"
+              className={`chapter-card ${selectedChapterId === chapter.id ? 'active' : ''} ${chapter.hasCurrent ? 'current' : ''}`}
+              onClick={() => setSelectedChapterId(chapter.id)}
+            >
+              <div className="chapter-card-header">
+                <div>
+                  <div className="chapter-title">{chapter.name}</div>
+                  <div className="chapter-meta">
+                    {chapter.mastered}/{chapter.total} 已掌握
+                    {chapter.hasCurrent ? <span className="chapter-current-tag">进行中</span> : null}
+                  </div>
+                </div>
+                <span className="chapter-action">{chapter.percent}%</span>
+              </div>
+              <div className="chapter-progress-bar" aria-hidden="true">
+                <div className="chapter-progress-fill" style={{ width: `${chapter.percent}%` }} />
+              </div>
+            </button>
+          ))}
+        </div>
+
         {/* 智能知识地图 */}
         <div className="knowledge-map-section">
           <div className="map-header">
-            <h2>🗺️ 知识地图</h2>
+            <div>
+              <h2>🗺️ 知识地图</h2>
+              <div className="map-subtitle">
+                {selectedChapter ? `当前仅显示 ${selectedChapter.name}` : '按章节查看知识点依赖'}
+              </div>
+            </div>
             <div className="map-controls">
               <button 
                 className={`control-btn ${!showAllLayers ? 'active' : ''}`}
@@ -236,15 +428,31 @@ const LearningCenter: React.FC<{
 
           <div className="map-tip">
             <span className="map-tip-icon">💡</span>
-            <span>知识点按层级分层排列，点击节点查看依赖关系，可缩放查看</span>
+            <span>知识点按章节和层级排列，点击节点进入对应知识点学习</span>
           </div>
 
-          <KnowledgeGraph 
-            knowledgePoints={progress?.knowledge_points || []}
-            onNodeClick={handleSelectModule}
-            showAllLayers={showAllLayers}
-            levelDescriptions={course?.level_descriptions || {}}
-          />
+          <div className="chapter-map-list">
+            {displayedChapterViews.map((chapter) => (
+              <section key={chapter.id} className="chapter-map-panel">
+                <div className="chapter-map-header">
+                  <div>
+                    <h3 className="chapter-map-title">{chapter.name}</h3>
+                    {chapter.description ? <p className="chapter-map-desc">{chapter.description}</p> : null}
+                  </div>
+                  <div className="chapter-map-stats">
+                    <span>{chapter.mastered}/{chapter.total} 已掌握</span>
+                    <span>{chapter.percent}%</span>
+                  </div>
+                </div>
+                <KnowledgeGraph
+                  knowledgePoints={chapter.knowledgePoints}
+                  onNodeClick={handleSelectModule}
+                  showAllLayers={showAllLayers}
+                  levelDescriptions={chapter.levelDescriptions}
+                />
+              </section>
+            ))}
+          </div>
 
           {/* 图例 */}
           <div className="legend">
@@ -290,7 +498,7 @@ const LearningCenter: React.FC<{
         {/* 操作按钮 */}
         <div className="action-buttons">
           <button className="btn btn-primary" onClick={handleContinueLearning}>
-            {progress.current_kp_id ? '继续学习' : '开始学习'}
+            {progress.current_kp_id || selectedChapter ? '继续学习' : '开始学习'}
           </button>
         </div>
       </div>

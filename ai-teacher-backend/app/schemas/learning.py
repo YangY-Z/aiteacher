@@ -23,6 +23,9 @@ class SessionResponse(BaseModel):
     kp_id: Optional[str] = Field(None, description="当前知识点ID")
     kp_name: Optional[str] = Field(None, description="当前知识点名称")
     status: str = Field(..., description="会话状态")
+    current_round_status: str = Field("in_progress", description="当前轮次状态")
+    current_phase: int = Field(1, description="当前教学阶段")
+    total_phases: int = Field(4, description="总教学阶段数")
 
 
 class ChatRequest(BaseModel):
@@ -71,6 +74,7 @@ class KnowledgePointProgress(BaseModel):
     """Response model for knowledge point progress."""
 
     id: str = Field(..., description="知识点ID")
+    chapter_id: Optional[str] = Field(None, description="所属章节ID")
     name: str = Field(..., description="知识点名称")
     type: str = Field(..., description="知识点类型")
     level: int = Field(..., description="知识点层级")
@@ -120,9 +124,12 @@ class SessionListItem(BaseModel):
     kp_id: Optional[str] = Field(None, description="当前知识点ID")
     kp_name: Optional[str] = Field(None, description="当前知识点名称")
     status: str = Field(..., description="会话状态")
+    current_round_status: str = Field("in_progress", description="当前轮次状态")
     current_round: int = Field(1, description="当前轮次")
     rounds_count: int = Field(0, description="总轮次数")
     total_messages: int = Field(0, description="总消息数")
+    current_phase: int = Field(1, description="当前教学阶段")
+    total_phases: int = Field(4, description="总教学阶段数")
     created_at: Optional[str] = Field(None, description="创建时间")
 
 
@@ -133,7 +140,10 @@ class SessionHistoryRound(BaseModel):
     status: str = Field(..., description="状态")
     start_time: Optional[str] = Field(None, description="开始时间")
     end_time: Optional[str] = Field(None, description="结束时间")
+    current_phase: int = Field(1, description="当前教学阶段")
+    total_phases: int = Field(4, description="总教学阶段数")
     messages: list[RoundMessage] = Field(default_factory=list, description="对话消息列表")
+    whiteboard_pages: list[dict[str, Any]] = Field(default_factory=list, description="该轮生成的白板页")
     teaching_mode: Optional[str] = Field(None, description="教学模式")
     assessment_result: Optional[dict[str, Any]] = Field(None, description="评估结果")
     summary: Optional[dict[str, Any]] = Field(None, description="轮次总结")
@@ -147,6 +157,10 @@ class SessionHistoryResponse(BaseModel):
     kp_id: Optional[str] = Field(None, description="当前知识点ID")
     kp_name: Optional[str] = Field(None, description="当前知识点名称")
     status: str = Field(..., description="会话状态")
+    current_round_status: str = Field("in_progress", description="当前轮次状态")
     created_at: Optional[str] = Field(None, description="创建时间")
     current_round_index: int = Field(0, description="当前轮次索引")
+    current_phase: int = Field(1, description="当前教学阶段")
+    total_phases: int = Field(4, description="总教学阶段数")
+    whiteboard_snapshot: Optional[dict[str, Any]] = Field(None, description="会话级白板快照")
     rounds: list[SessionHistoryRound] = Field(default_factory=list, description="所有轮次详情")

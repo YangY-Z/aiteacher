@@ -1,15 +1,20 @@
 import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import LearningCenter from './LearningCenter';
+import LearningSpace from './LearningSpace';
 import Improvement from './Improvement';
 import XiaoAiTeacher from './XiaoAiTeacher';
 import './LearningMain.css';
 
-type TabType = 'xiaoai' | 'learning' | 'improvement';
+type TabType = 'space' | 'xiaoai' | 'learning' | 'improvement';
+
+const DEFAULT_COURSE_ID = 'MATH_JUNIOR_01';
+const LAST_COURSE_KEY = 'learning:last_course_id';
 
 const LearningMain: React.FC = () => {
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabType>('xiaoai');
+  const [activeTab, setActiveTab] = useState<TabType>('space');
+  const [selectedCourseId, setSelectedCourseId] = useState(
+    () => localStorage.getItem(LAST_COURSE_KEY) || DEFAULT_COURSE_ID
+  );
   const [recommendedKpId, setRecommendedKpId] = useState<string | null>(null);
   const [shouldStartLearning, setShouldStartLearning] = useState(false);
 
@@ -17,6 +22,14 @@ const LearningMain: React.FC = () => {
   const handleStartLearning = useCallback((topic: string, kpId?: string) => {
     setRecommendedKpId(kpId || null);
     setShouldStartLearning(true);
+    setActiveTab('learning');
+  }, []);
+
+  const handleOpenCourse = useCallback((courseId: string) => {
+    localStorage.setItem(LAST_COURSE_KEY, courseId);
+    setSelectedCourseId(courseId);
+    setShouldStartLearning(false);
+    setRecommendedKpId(null);
     setActiveTab('learning');
   }, []);
 
@@ -41,36 +54,52 @@ const LearningMain: React.FC = () => {
       {/* 顶部Tab切换 */}
       <div className="main-tabs">
         <button
+          className={`main-tab-btn ${activeTab === 'space' ? 'active' : ''}`}
+          onClick={() => handleTabChange('space')}
+        >
+          <span className="tab-symbol space"></span>
+          <span className="tab-label">学习空间</span>
+        </button>
+        <button
           className={`main-tab-btn ${activeTab === 'xiaoai' ? 'active' : ''}`}
           onClick={() => handleTabChange('xiaoai')}
         >
-          <span className="tab-icon">🤖</span>
+          <span className="tab-symbol teacher"></span>
           <span className="tab-label">小艾老师</span>
         </button>
         <button
           className={`main-tab-btn ${activeTab === 'learning' ? 'active' : ''}`}
           onClick={() => handleTabChange('learning')}
         >
-          <span className="tab-icon">📚</span>
-          <span className="tab-label">陪伴学习</span>
+          <span className="tab-symbol course"></span>
+          <span className="tab-label">课程控制台</span>
         </button>
         <button
           className={`main-tab-btn ${activeTab === 'improvement' ? 'active' : ''}`}
           onClick={() => handleTabChange('improvement')}
         >
-          <span className="tab-icon">🎯</span>
+          <span className="tab-symbol focus"></span>
           <span className="tab-label">专项突破</span>
         </button>
       </div>
 
       {/* 内容区域 */}
       <div className="main-content">
+        {activeTab === 'space' && (
+          <LearningSpace
+            onOpenCourse={handleOpenCourse}
+            onAskTeacher={() => handleTabChange('xiaoai')}
+            onOpenImprovement={() => handleTabChange('improvement')}
+          />
+        )}
         {activeTab === 'xiaoai' && <XiaoAiTeacher onStartLearning={handleStartLearning} />}
         {activeTab === 'learning' && (
           <LearningCenter 
+            courseId={selectedCourseId}
             recommendedKpId={recommendedKpId}
             autoStart={shouldStartLearning}
             onLearningStarted={handleLearningStarted}
+            onBackToSpace={() => handleTabChange('space')}
           />
         )}
         {activeTab === 'improvement' && <Improvement />}

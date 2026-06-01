@@ -13,7 +13,7 @@ import './LearningMap.css';
 interface KnowledgePointStatus {
   id: string;
   name: string;
-  status: 'mastered' | 'current' | 'locked';
+  status: 'mastered' | 'completed' | 'current' | 'in_progress' | 'learning' | 'locked' | 'skipped';
   masteryLevel?: number;
 }
 
@@ -34,15 +34,30 @@ const LearningMap: React.FC<LearningMapProps> = ({
   progress,
   onSelectKp,
 }) => {
+  type DisplayStatus = 'mastered' | 'current' | 'locked' | 'skipped';
+
+  const normalizeStatus = (status?: string, masteryLevel?: number): DisplayStatus => {
+    if (status === 'completed' || status === 'mastered') return 'mastered';
+    if (status === 'current' || status === 'in_progress' || status === 'learning') return 'current';
+    if (status === 'skipped') return 'skipped';
+    if (status === 'locked') return 'locked';
+    return masteryLevel !== undefined && masteryLevel >= 0.8 ? 'mastered' : 'current';
+  };
+
   // 从progress生成知识点列表
-  const kpList: KnowledgePointStatus[] = React.useMemo(() => {
-    if (knowledgePoints) return knowledgePoints;
+  const kpList: Array<Omit<KnowledgePointStatus, 'status'> & { status: DisplayStatus }> = React.useMemo(() => {
+    if (knowledgePoints) {
+      return knowledgePoints.map((kp) => ({
+        ...kp,
+        status: normalizeStatus(kp.status, kp.masteryLevel),
+      }));
+    }
     
     if (progress?.knowledge_points) {
       return progress.knowledge_points.map((kp: any) => ({
         id: kp.id,
         name: kp.name,
-        status: kp.status || (kp.mastery_level >= 0.8 ? 'mastered' : 'current'),
+        status: normalizeStatus(kp.status, kp.mastery_level),
         masteryLevel: kp.mastery_level ? Math.round(kp.mastery_level * 100) : undefined,
       }));
     }
@@ -58,6 +73,8 @@ const LearningMap: React.FC<LearningMapProps> = ({
         return <PlayCircleOutlined className="status-icon current" />;
       case 'locked':
         return <LockOutlined className="status-icon locked" />;
+      case 'skipped':
+        return <PlayCircleOutlined className="status-icon current" />;
       default:
         return null;
     }
@@ -71,6 +88,8 @@ const LearningMap: React.FC<LearningMapProps> = ({
         return '学习中';
       case 'locked':
         return '待解锁';
+      case 'skipped':
+        return '已跳过';
       default:
         return '';
     }

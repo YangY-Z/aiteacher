@@ -26,7 +26,7 @@
 /* 工具栏 */
 .whiteboard-toolbar {
   position: absolute;
-  top: 58px;
+  top: 34px;
   right: 30px;
   z-index: 100;
   display: flex;
@@ -638,12 +638,18 @@
   fill: #1f2937 !important;
 }
 
-.whiteboard-image {
+.whiteboard-image,
+.whiteboard-video {
   width: 100%;
   height: 100%;
   max-height: calc(min(30vh, 300px) - 28px);
   object-fit: contain;
   display: block;
+}
+
+.whiteboard-video {
+  background: #020617;
+  border-radius: 6px;
 }
 
 .image-caption {

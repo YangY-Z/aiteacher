@@ -22,9 +22,9 @@
       "avatar_url": null,
       "status": "active",
       "role": "student",
-      "last_login_at": "2026-05-20T22:07:56.977018",
+      "last_login_at": "2026-06-01T15:47:13.060362",
       "created_at": "2026-05-03T16:29:13.514933",
-      "updated_at": "2026-05-20T22:07:56.977038"
+      "updated_at": "2026-06-01T15:47:13.060384"
     },
     {
       "id": 2,
@@ -85,16 +85,21 @@
       "id": 1,
       "student_id": 1,
       "course_id": "MATH_JUNIOR_01",
-      "current_kp_id": null,
-      "completed_kp_ids": [],
-      "mastered_kp_ids": [],
+      "current_kp_id": "K4",
+      "completed_kp_ids": [
+        "K4"
+      ],
+      "mastered_kp_ids": [
+        "K1",
+        "K3"
+      ],
       "skipped_kp_ids": [],
-      "mastery_rate": 0.0,
+      "mastery_rate": 0.0625,
       "total_time": 0,
       "session_count": 0,
       "last_session_at": null,
       "created_at": "2026-05-03T16:30:26.670300",
-      "updated_at": "2026-05-03T16:30:26.670332"
+      "updated_at": "2026-06-01T21:39:00.118786"
     },
     {
       "id": 2,
@@ -158,5 +163,5 @@
     }
   ],
   "next_profile_id": 5,
-  "updated_at": "2026-05-22T17:26:37.600591"
+  "updated_at": "2026-06-01T21:39:00.119599"
 }

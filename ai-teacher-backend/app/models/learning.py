@@ -129,6 +129,9 @@ class LearningRound:
     # 该轮对话内容（完整保留）
     messages: list[dict[str, str]] = field(default_factory=list)
 
+    # 该轮生成的白板页（随会话持久化，避免只保存在前端缓存）
+    whiteboard_pages: list[dict[str, Any]] = field(default_factory=list)
+
     # 教学进度
     teaching_mode: Optional[str] = None
     current_phase: int = 1
@@ -176,6 +179,7 @@ class LearningRound:
             "end_time": self.end_time.isoformat() if self.end_time else None,
             "status": self.status.value if isinstance(self.status, RoundStatus) else self.status,
             "messages": self.messages,
+            "whiteboard_pages": self.whiteboard_pages,
             "teaching_mode": self.teaching_mode,
             "current_phase": self.current_phase,
             "total_phases": self.total_phases,
@@ -192,6 +196,7 @@ class LearningRound:
             end_time=datetime.fromisoformat(data["end_time"]) if data.get("end_time") else None,
             status=RoundStatus(data.get("status", "in_progress")),
             messages=data.get("messages", []),
+            whiteboard_pages=data.get("whiteboard_pages", []),
             teaching_mode=data.get("teaching_mode"),
             current_phase=data.get("current_phase", 1),
             total_phases=data.get("total_phases", 4),
@@ -696,6 +701,7 @@ class LearningSession:
                 start_time=datetime.fromisoformat(data["start_time"]) if data.get("start_time") else datetime.now(),
                 end_time=datetime.fromisoformat(data["end_time"]) if data.get("end_time") else None,
                 messages=data.get("messages", []),
+                whiteboard_pages=data.get("whiteboard_pages", []),
                 teaching_mode=data.get("teaching_mode"),
                 current_phase=data.get("current_phase", 1),
             )

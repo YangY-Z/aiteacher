@@ -402,6 +402,18 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ loading = false, onQuizAnswer }
               className="whiteboard-generated-svg"
               dangerouslySetInnerHTML={{ __html: image.svg_code }}
             />
+          ) : image.url && image.type === 'video' ? (
+            <video
+              src={image.url}
+              className="whiteboard-video"
+              controls
+              autoPlay
+              muted
+              playsInline
+              preload="auto"
+              poster={image.thumbnail_url}
+              title={image.description || image.title || '教学视频'}
+            />
           ) : image.url ? (
             <img
               src={image.url}

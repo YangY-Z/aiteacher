@@ -36,6 +36,14 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+def _status_value(value: Any) -> str:
+    return value.value if hasattr(value, "value") else str(value)
+
+
+def _current_round_status(session: Any) -> str:
+    return _status_value(session.current_round.status)
+
+
 @router.post("/start", response_model=APIResponse[SessionResponse])
 async def start_session(
     request: StartSessionRequest,
@@ -70,6 +78,9 @@ async def start_session(
             kp_id=session.kp_id,
             kp_name=kp_name,
             status=session.status.value,
+            current_round_status=_current_round_status(session),
+            current_phase=session.current_phase,
+            total_phases=session.total_phases,
         ),
         message="学习会话已创建",
     )
@@ -104,6 +115,9 @@ async def get_session(
             course_id=session.course_id,
             kp_id=session.kp_id,
             status=session.status.value,
+            current_round_status=_current_round_status(session),
+            current_phase=session.current_phase,
+            total_phases=session.total_phases,
         ),
     )
 
@@ -660,9 +674,12 @@ async def list_sessions(
             kp_id=session.kp_id,
             kp_name=kp_names.get(session.kp_id) if session.kp_id else None,
             status=session.status.value,
+            current_round_status=_current_round_status(session),
             current_round=session.learning_round,
             rounds_count=len(session.rounds),
             total_messages=total_messages,
+            current_phase=session.current_phase,
+            total_phases=session.total_phases,
             created_at=session.created_at.isoformat() if session.created_at else None,
         ))
 
@@ -708,10 +725,13 @@ async def get_session_history(
         ]
         rounds_detail.append(SessionHistoryRound(
             round_number=round_data.round_number,
-            status=round_data.status.value if isinstance(round_data.status, type(round_data.status)) else str(round_data.status),
+            status=_status_value(round_data.status),
             start_time=round_data.start_time.isoformat() if round_data.start_time else None,
             end_time=round_data.end_time.isoformat() if round_data.end_time else None,
+            current_phase=round_data.current_phase,
+            total_phases=round_data.total_phases,
             messages=messages,
+            whiteboard_pages=round_data.whiteboard_pages,
             teaching_mode=round_data.teaching_mode,
             assessment_result=round_data.assessment_result.to_dict() if round_data.assessment_result else None,
             summary=round_data.summary.to_dict() if round_data.summary else None,
@@ -725,8 +745,12 @@ async def get_session_history(
             kp_id=session.kp_id,
             kp_name=kp_names.get(session.kp_id) if session.kp_id else None,
             status=session.status.value,
+            current_round_status=_current_round_status(session),
             created_at=session.created_at.isoformat() if session.created_at else None,
             current_round_index=session.current_round_index,
+            current_phase=session.current_phase,
+            total_phases=session.total_phases,
+            whiteboard_snapshot=learning_service.build_whiteboard_snapshot(session),
             rounds=rounds_detail,
         ),
     )

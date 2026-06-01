@@ -2165,6 +2165,52 @@
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
+.comparison .compare-a,
+.comparison .compare-b,
+.diagonal-compare .dc-side:first-child,
+.diagonal-compare .dc-side:last-child,
+.split-knowledge .sk-side:first-child,
+.split-knowledge .sk-side:last-child {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.comparison .compare-a,
+.diagonal-compare .dc-side:first-child,
+.split-knowledge .sk-side:first-child {
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+}
+
+.comparison .compare-b,
+.diagonal-compare .dc-side:last-child,
+.split-knowledge .sk-side:last-child {
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
+}
+
+.comparison .compare-title,
+.diagonal-compare .dc-title {
+  border-bottom-color: rgba(15, 23, 42, 0.1);
+}
+
+.comparison .compare-a .compare-title,
+.diagonal-compare .dc-side:first-child .dc-title,
+.split-knowledge .sk-side:first-child .sk-label,
+.split-knowledge .sk-side:first-child .sk-concept {
+  color: #1d4ed8;
+}
+
+.comparison .compare-b .compare-title,
+.diagonal-compare .dc-side:last-child .dc-title,
+.split-knowledge .sk-side:last-child .sk-label,
+.split-knowledge .sk-side:last-child .sk-concept {
+  color: #92400e;
+}
+
+.comparison .compare-item,
+.diagonal-compare .dc-item {
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+
 .knowledge-card,
 .definition,
 .interactive-reveal,

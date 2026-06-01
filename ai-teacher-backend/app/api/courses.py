@@ -5,6 +5,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends
 
 from app.core.security import get_current_student_id
+from app.repositories.memory_db import db
 from app.schemas.course import (
     CourseResponse,
     KnowledgePointResponse,
@@ -14,6 +15,13 @@ from app.schemas.common import APIResponse
 from app.services.course_service import course_service
 
 router = APIRouter()
+
+
+def _get_course_chapters(kps: list[Any]) -> list[Any]:
+    """Return chapters referenced by a course's knowledge points."""
+    chapter_ids = {getattr(kp, "chapter_id", None) for kp in kps}
+    chapter_ids.discard(None)
+    return [chapter for chapter in db._chapters.values() if chapter.id in chapter_ids]
 
 
 @router.get("", response_model=APIResponse[list[CourseResponse]])
@@ -35,7 +43,7 @@ async def get_courses(
         deps_map = {}
         for kp in kps:
             deps_map[kp.id] = course_service.get_knowledge_point_dependencies(kp.id)
-        course_responses.append(CourseResponse.from_domain(course, kps, deps_map))
+        course_responses.append(CourseResponse.from_domain(course, kps, deps_map, _get_course_chapters(kps)))
     return APIResponse(
         success=True,
         data=course_responses,
@@ -63,7 +71,7 @@ async def get_course(
         deps_map[kp.id] = course_service.get_knowledge_point_dependencies(kp.id)
     return APIResponse(
         success=True,
-        data=CourseResponse.from_domain(course, kps, deps_map),
+        data=CourseResponse.from_domain(course, kps, deps_map, _get_course_chapters(kps)),
     )
 
 
