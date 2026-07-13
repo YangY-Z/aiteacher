@@ -95,7 +95,7 @@ interface LearningState {
 // 渲染带有公式 + Markdown 格式的内容 — 改用 MarkdownContent 组件
 
 /** 转义 HTML 特殊字符，防止 XSS 和格式错乱 */
-const COURSE_ID = 'MATH_JUNIOR_01';
+const COURSE_ID = 'COURSE_RENJIAO_7_MATH';
 
 function escapeHtml(text: string): string {
   return text
@@ -258,6 +258,23 @@ const MinimalLearning: React.FC = () => {
   const recordListRef = useRef<HTMLDivElement>(null);
   const shouldStickToRecordBottomRef = useRef(true);
   const voice = useBrowserVoice();
+  const returnTo = searchParams.get('return_to');
+  const returnCourseId = searchParams.get('course_id');
+  const returnChapterId = searchParams.get('chapter_id');
+
+  const handleBackToCenter = useCallback(() => {
+    const params = new URLSearchParams();
+    params.set('tab', 'learning');
+    if (returnCourseId) params.set('course_id', returnCourseId);
+    if (returnChapterId) params.set('chapter_id', returnChapterId);
+
+    if (returnTo === 'course' || returnCourseId || returnChapterId) {
+      navigate(`/center?${params.toString()}`, { replace: true });
+      return;
+    }
+
+    navigate('/center?tab=learning', { replace: true });
+  }, [navigate, returnChapterId, returnCourseId, returnTo]);
   const voiceAutoReadRef = useRef(voice.autoRead);
   const voiceSpeakRef = useRef(voice.speak);
 
@@ -1613,7 +1630,7 @@ const MinimalLearning: React.FC = () => {
       {/* Overlay header */}
       <header className="minimal-header">
         <div className="header-content">
-          <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} className="back-btn" aria-label="返回上一页">
+          <Button type="text" icon={<ArrowLeftOutlined />} onClick={handleBackToCenter} className="back-btn" aria-label="返回课程控制台">
             返回
           </Button>
           <div className="header-right">

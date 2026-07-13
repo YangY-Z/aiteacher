@@ -11,6 +11,7 @@ export interface Student {
   id: number;
   name: string;
   grade: string;
+  edition: string;
   phone: string;
   avatar_url: string | null;
   status: string;
@@ -25,6 +26,7 @@ export interface LoginRequest {
 export interface RegisterRequest {
   name: string;
   grade: string;
+  edition: string;
   phone: string;
   password: string;
 }
@@ -70,6 +72,7 @@ export interface Course {
   id: string;
   name: string;
   grade: string;
+  edition: string;
   subject: string;
   description: string | null;
   total_knowledge_points: number;
@@ -77,7 +80,7 @@ export interface Course {
   status: string;
   chapters?: CourseChapter[];
   knowledge_points: KnowledgePoint[];
-  level_descriptions?: Record<number, string>; // 层级描述，key 为层级编号
+  level_descriptions?: Record<number, string>;
   created_at: string;
 }
 
@@ -87,6 +90,8 @@ export interface CourseChapter {
   grade: string;
   subject: string;
   edition: string;
+  course_id?: string | null;
+  prerequisite_chapter_ids: string[];
   description?: string | null;
   sort_order: number;
   total_knowledge_points: number;
@@ -252,7 +257,22 @@ export interface ProgressResponse {
   total_time: number;
   session_count: number;
   last_session_at: string | null;
+  chapters?: ChapterProgress[];
   knowledge_points: KnowledgePointProgress[];  // 新增：详细知识点进度
+}
+
+// 章节进度详情：章节结构来自管理员配置，状态来自当前学生学习记录
+export interface ChapterProgress {
+  id: string;
+  name: string;
+  status: 'not_configured' | 'locked' | 'not_started' | 'in_progress' | 'completed';
+  current_kp_id?: string | null;
+  current_kp_name?: string | null;
+  completed_count: number;
+  mastered_count: number;
+  skipped_count: number;
+  total_count: number;
+  mastery_rate: number;
 }
 
 // 知识点进度详情
@@ -262,7 +282,7 @@ export interface KnowledgePointProgress {
   name: string;
   type: string;
   level: number;
-  status: 'locked' | 'in_progress' | 'current' | 'completed' | 'skipped';
+  status: 'locked' | 'not_started' | 'in_progress' | 'current' | 'assessing' | 'completed' | 'mastered' | 'weak' | 'skipped';
   progress: number;  // 0-100
   dependencies: string[];
 }

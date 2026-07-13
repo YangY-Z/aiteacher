@@ -27,6 +27,7 @@ async def register(student_data: StudentCreate) -> APIResponse[StudentResponse]:
     student = student_service.register(
         name=student_data.name,
         grade=student_data.grade,
+        edition=student_data.edition,
         phone=student_data.phone,
         password=student_data.password,
     )

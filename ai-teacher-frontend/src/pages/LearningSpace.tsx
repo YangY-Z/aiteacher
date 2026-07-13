@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { courseApi, learningApi } from '../api';
-import type { Course, KnowledgePointProgress, ProgressResponse } from '../types';
+import { useAuthStore } from '../store';
+import type { Course, ProgressResponse } from '../types';
 import './LearningSpace.css';
 
 interface LearningSpaceProps {
-  onOpenCourse: (courseId: string) => void;
-  onAskTeacher: () => void;
-  onOpenImprovement: () => void;
+  onOpenCourse: (courseId: string, options?: { chapterId?: string; kpId?: string; startLearning?: boolean }) => void;
 }
 
 interface CourseProgressView {
@@ -14,36 +13,32 @@ interface CourseProgressView {
   progress: ProgressResponse | null;
 }
 
+const EDITIONS = ['人教版', '北师大版', '苏教版', '鲁教版', '华师大版', '人教版新教材'];
+const GRADES = ['初一', '初二', '初三', '高一', '高二', '高三'];
+const ALL_SUBJECTS = ['数学', '语文', '英语', '物理', '化学', '生物', '历史', '地理'];
+const SUBJECT_ICONS: Record<string, string> = {
+  '数学': '📐', '语文': '📖', '英语': '🌐', '物理': '⚛️',
+  '化学': '🧪', '生物': '🧬', '历史': '📜', '地理': '🗺️',
+};
+
 const LAST_COURSE_KEY = 'learning:last_course_id';
-
-const subjectClassName = (subject: string) => {
-  if (subject.includes('数学')) return 'math';
-  if (subject.includes('英语')) return 'english';
-  if (subject.includes('物理')) return 'physics';
-  if (subject.includes('化学')) return 'chemistry';
-  return 'default';
-};
-
-const findNextKnowledgePoint = (progress: ProgressResponse | null): KnowledgePointProgress | null => {
-  const kps = progress?.knowledge_points || [];
-  return (
-    kps.find((kp) => kp.id === progress?.current_kp_id || kp.status === 'current' || kp.status === 'in_progress') ||
-    kps.find((kp) => kp.status !== 'completed' && kp.status !== 'skipped' && kp.status !== 'locked') ||
-    kps.find((kp) => kp.status !== 'locked') ||
-    null
-  );
-};
 
 const LearningSpace: React.FC<LearningSpaceProps> = ({
   onOpenCourse,
-  onAskTeacher,
-  onOpenImprovement,
 }) => {
+  const user = useAuthStore((s) => s.user);
   const [courses, setCourses] = useState<CourseProgressView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedSubject, setSelectedSubject] = useState('all');
-  const [selectedGrade, setSelectedGrade] = useState('all');
+  const [edition, setEdition] = useState(user?.edition || '人教版');
+  const [grade, setGrade] = useState(user?.grade || '初二');
+
+  useEffect(() => {
+    if (user) {
+      if (user.edition) setEdition(user.edition);
+      if (user.grade) setGrade(user.grade);
+    }
+  }, [user]);
 
   useEffect(() => {
     const loadCourses = async () => {
@@ -56,17 +51,18 @@ const LearningSpace: React.FC<LearningSpaceProps> = ({
           return;
         }
 
-        const courseList = courseRes.data.data || [];
+        const courseList = (courseRes.data.data || []).filter((c) => {
+          const matchEdition = !edition || c.edition === edition;
+          const matchGrade = !grade || c.grade === grade;
+          return matchEdition && matchGrade;
+        });
+
         const progressList = await Promise.all(
           courseList.map(async (course) => {
             try {
               const progressRes = await learningApi.getProgress(course.id);
-              return {
-                course,
-                progress: progressRes.data.success ? progressRes.data.data : null,
-              };
-            } catch (progressError) {
-              console.warn('课程进度加载失败:', course.id, progressError);
+              return { course, progress: progressRes.data.success ? progressRes.data.data : null };
+            } catch {
               return { course, progress: null };
             }
           })
@@ -75,35 +71,14 @@ const LearningSpace: React.FC<LearningSpaceProps> = ({
         setCourses(progressList);
       } catch (loadError) {
         console.error('学习空间加载失败:', loadError);
-        const message = loadError instanceof Error ? loadError.message : String(loadError);
-        setError(`学习空间加载失败: ${message}`);
+        setError(loadError instanceof Error ? loadError.message : String(loadError));
       } finally {
         setLoading(false);
       }
     };
 
     loadCourses();
-  }, []);
-
-  const subjects = useMemo(
-    () => ['all', ...Array.from(new Set(courses.map(({ course }) => course.subject)))],
-    [courses]
-  );
-
-  const grades = useMemo(
-    () => ['all', ...Array.from(new Set(courses.map(({ course }) => course.grade)))],
-    [courses]
-  );
-
-  const filteredCourses = useMemo(
-    () =>
-      courses.filter(({ course }) => {
-        const subjectMatched = selectedSubject === 'all' || course.subject === selectedSubject;
-        const gradeMatched = selectedGrade === 'all' || course.grade === selectedGrade;
-        return subjectMatched && gradeMatched;
-      }),
-    [courses, selectedGrade, selectedSubject]
-  );
+  }, [edition, grade]);
 
   const featuredCourse = useMemo(() => {
     const lastCourseId = localStorage.getItem(LAST_COURSE_KEY);
@@ -115,17 +90,75 @@ const LearningSpace: React.FC<LearningSpaceProps> = ({
     );
   }, [courses]);
 
-  const handleOpenCourse = (courseId: string) => {
-    localStorage.setItem(LAST_COURSE_KEY, courseId);
-    onOpenCourse(courseId);
+  const subjectProgressMap = useMemo(() => {
+    const map: Record<string, {
+      totalKps: number;
+      masteredKps: number;
+      courseCount: number;
+      primary: CourseProgressView | null;
+      currentKpName: string;
+    }> = {};
+
+    for (const { course, progress } of courses) {
+      if (!map[course.subject]) {
+        map[course.subject] = {
+          totalKps: 0,
+          masteredKps: 0,
+          courseCount: 0,
+          primary: null,
+          currentKpName: '',
+        };
+      }
+      const stats = map[course.subject];
+      stats.courseCount += 1;
+      stats.totalKps += progress?.total_count || course.total_knowledge_points;
+      stats.masteredKps += progress?.mastered_count || 0;
+
+      if (!stats.primary || progress?.current_kp_id) {
+        stats.primary = { course, progress };
+      }
+      if (progress?.current_kp_name) {
+        stats.currentKpName = progress.current_kp_name;
+      }
+    }
+    return map;
+  }, [courses]);
+
+  const spaceStats = useMemo(() => {
+    const totalCourses = courses.length;
+    const totalKps = courses.reduce(
+      (sum, { course, progress }) => sum + (progress?.total_count || course.total_knowledge_points || 0),
+      0
+    );
+    const masteredKps = courses.reduce(
+      (sum, { progress }) => sum + (progress?.mastered_count || 0),
+      0
+    );
+    const activeSubjects = Object.values(subjectProgressMap).filter((stats) => stats.courseCount > 0).length;
+    const masteryRate = totalKps > 0 ? Math.round((masteredKps / totalKps) * 100) : 0;
+
+    return { totalCourses, totalKps, masteredKps, activeSubjects, masteryRate };
+  }, [courses, subjectProgressMap]);
+
+  const handleContinueLearning = () => {
+    if (!featuredCourse) return;
+    const progress = featuredCourse.progress;
+    const kpId = progress?.current_kp_id || undefined;
+    localStorage.setItem(LAST_COURSE_KEY, featuredCourse.course.id);
+    onOpenCourse(featuredCourse.course.id, { kpId, startLearning: true });
+  };
+
+  const handleOpenSubject = (subject: string) => {
+    const targetCourse = subjectProgressMap[subject]?.primary?.course;
+    if (!targetCourse) return;
+    localStorage.setItem(LAST_COURSE_KEY, targetCourse.id);
+    onOpenCourse(targetCourse.id);
   };
 
   if (loading) {
     return (
       <div className="learning-space">
-        <div className="space-shell">
-          <div className="space-loading">正在整理你的学习空间...</div>
-        </div>
+        <div className="space-shell"><div className="space-loading">正在整理你的学习空间...</div></div>
       </div>
     );
   }
@@ -133,121 +166,125 @@ const LearningSpace: React.FC<LearningSpaceProps> = ({
   if (error) {
     return (
       <div className="learning-space">
-        <div className="space-shell">
-          <div className="space-error">{error}</div>
-        </div>
+        <div className="space-shell"><div className="space-error">{error}</div></div>
       </div>
     );
   }
 
-  const featuredNext = findNextKnowledgePoint(featuredCourse?.progress || null);
-  const featuredPercent = Math.round((featuredCourse?.progress?.mastery_rate || 0) * 100);
-
   return (
     <div className="learning-space">
       <div className="space-shell">
-        <section className="space-hero">
-          <div className="space-hero-copy">
-            <div className="space-eyebrow">学习空间</div>
-            <h1>今天继续哪一门？</h1>
-            <p>{featuredNext ? `下一步：${featuredNext.name}` : '选择一门课程，开始今天的学习节奏。'}</p>
+        <header className="space-header">
+          <div>
+            <div className="space-context" aria-label="当前教材和年级">
+              <select value={edition} onChange={(e) => setEdition(e.target.value)}>
+                {EDITIONS.map((e) => <option key={e} value={e}>{e}</option>)}
+              </select>
+              <span className="context-sep">·</span>
+              <select value={grade} onChange={(e) => setGrade(e.target.value)}>
+                {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
+            <h1>学习空间</h1>
+            <p>从科目总览进入课程控制台，继续当前知识点。</p>
           </div>
-
-          {featuredCourse ? (
-            <button
-              type="button"
-              className={`space-feature-card ${subjectClassName(featuredCourse.course.subject)}`}
-              onClick={() => handleOpenCourse(featuredCourse.course.id)}
+          <div className="space-orbit" aria-hidden="true">
+            <div
+              className="space-orbit-ring"
+              style={{ '--space-progress': `${spaceStats.masteryRate}%` } as React.CSSProperties}
             >
-              <div className="feature-visual" aria-hidden="true">
-                <div className="visual-grid" />
-                <div className="visual-curve" />
+              <span>{spaceStats.masteryRate}%</span>
+            </div>
+          </div>
+        </header>
+
+        <section className="space-overview-card">
+          <div className="space-stat">
+            <strong>{spaceStats.totalCourses}</strong>
+            <span>可学课程</span>
+          </div>
+          <div className="space-stat">
+            <strong>{spaceStats.activeSubjects}</strong>
+            <span>已开科目</span>
+          </div>
+          <div className="space-stat">
+            <strong>{spaceStats.masteredKps}/{spaceStats.totalKps}</strong>
+            <span>知识点掌握</span>
+          </div>
+          <div className="space-overview-progress" aria-hidden="true">
+            <div style={{ width: `${spaceStats.masteryRate}%` }} />
+          </div>
+        </section>
+
+        {featuredCourse && (
+          <section className="space-continue-card">
+            <div className="hero-left">
+              <div className="hero-eyebrow">
+                {SUBJECT_ICONS[featuredCourse.course.subject]} 继续学习
               </div>
-              <div className="feature-content">
-                <span>{featuredCourse.course.subject}</span>
-                <strong>{featuredCourse.course.name}</strong>
-                <small>{featuredCourse.course.grade}</small>
+              <h2>
+                {featuredCourse.course.name}
+                {featuredCourse.progress?.current_kp_name
+                  ? ` · ${featuredCourse.progress.current_kp_name}`
+                  : ''}
+              </h2>
+              <div className="hero-progress">
+                <div className="hero-progress-bar">
+                  <div style={{ width: `${Math.round((featuredCourse.progress?.mastery_rate || 0) * 100)}%` }} />
+                </div>
+                <span>{Math.round((featuredCourse.progress?.mastery_rate || 0) * 100)}%</span>
               </div>
-              <div className="feature-progress" style={{ '--progress': `${featuredPercent}%` } as React.CSSProperties}>
-                <span>{featuredPercent}%</span>
-              </div>
+              <span className="hero-meta">
+                已掌握 {featuredCourse.progress?.mastered_count || 0}/{featuredCourse.progress?.total_count || featuredCourse.course.total_knowledge_points}
+              </span>
+            </div>
+            <button className="hero-cta" onClick={handleContinueLearning}>
+              继续学习 →
             </button>
-          ) : null}
-        </section>
+          </section>
+        )}
 
-        <div className="space-filter-row" aria-label="学习范围筛选">
-          <div className="space-filter-group">
-            {subjects.map((subject) => (
-              <button
-                key={subject}
-                type="button"
-                className={`space-chip ${selectedSubject === subject ? 'active' : ''}`}
-                onClick={() => setSelectedSubject(subject)}
-              >
-                {subject === 'all' ? '全部科目' : subject}
-              </button>
-            ))}
+        <section className="subject-section">
+          <div className="subject-section-header">
+            <div>
+              <h2>选择科目</h2>
+              <p>点击科目直接进入对应课程控制台</p>
+            </div>
           </div>
-          <div className="space-filter-group">
-            {grades.map((grade) => (
-              <button
-                key={grade}
-                type="button"
-                className={`space-chip ${selectedGrade === grade ? 'active' : ''}`}
-                onClick={() => setSelectedGrade(grade)}
-              >
-                {grade === 'all' ? '全部年级' : grade}
-              </button>
-            ))}
+          <div className="subject-grid">
+            {ALL_SUBJECTS.map((subject) => {
+              const stats = subjectProgressMap[subject];
+              const hasCourses = stats && stats.courseCount > 0;
+              const percent = stats && stats.totalKps > 0
+                ? Math.round((stats.masteredKps / stats.totalKps) * 100)
+                : 0;
+              const course = stats?.primary?.course;
+              return (
+                <button
+                  key={subject}
+                  type="button"
+                  className={`subject-card ${hasCourses ? 'active' : 'empty'}`}
+                  onClick={() => hasCourses && handleOpenSubject(subject)}
+                  disabled={!hasCourses}
+                >
+                  <span className="subject-icon">{SUBJECT_ICONS[subject]}</span>
+                  <span className="subject-name">{subject}</span>
+                  <span className="subject-meta">
+                    {hasCourses && course ? `${course.grade} · ${course.edition}` : '暂无课程'}
+                  </span>
+                  <span className="subject-current">
+                    {hasCourses ? (stats.currentKpName ? `当前：${stats.currentKpName}` : course?.name || '进入课程控制台') : '等待开课'}
+                  </span>
+                  <span className="subject-progress">
+                    {hasCourses ? `${percent}%` : '--'}
+                  </span>
+                  <span className="subject-count">
+                    {hasCourses ? `${stats.masteredKps}/${stats.totalKps} 已掌握` : '暂无课程'}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        </div>
-
-        <section className="course-gallery">
-          {filteredCourses.map(({ course, progress }) => {
-            const percent = Math.round((progress?.mastery_rate || 0) * 100);
-            const nextKp = findNextKnowledgePoint(progress);
-            const subjectClass = subjectClassName(course.subject);
-
-            return (
-              <button
-                key={course.id}
-                type="button"
-                className={`course-tile ${subjectClass}`}
-                onClick={() => handleOpenCourse(course.id)}
-              >
-                <div className="course-art" aria-hidden="true">
-                  <div className="course-art-grid" />
-                  <div className="course-art-mark" />
-                </div>
-                <div className="course-tile-body">
-                  <div className="course-tile-top">
-                    <span>{course.subject}</span>
-                    <span>{course.grade}</span>
-                  </div>
-                  <h2>{course.name}</h2>
-                  <p>{nextKp ? nextKp.name : '准备开始'}</p>
-                  <div className="course-progress-line" aria-hidden="true">
-                    <div style={{ width: `${percent}%` }} />
-                  </div>
-                  <div className="course-tile-bottom">
-                    <strong>{percent}%</strong>
-                    <span>{progress?.mastered_count || 0}/{progress?.total_count || course.total_knowledge_points}</span>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </section>
-
-        <section className="space-dock" aria-label="快捷入口">
-          <button type="button" onClick={onAskTeacher}>
-            <span className="dock-mark teacher" />
-            小艾老师
-          </button>
-          <button type="button" onClick={onOpenImprovement}>
-            <span className="dock-mark focus" />
-            专项突破
-          </button>
         </section>
       </div>
     </div>

@@ -19,6 +19,7 @@ class StudentService:
         self,
         name: str,
         grade: str,
+        edition: str,
         phone: str,
         password: str,
     ) -> Student:
@@ -27,6 +28,7 @@ class StudentService:
         Args:
             name: Student name.
             grade: Student grade.
+            edition: Textbook edition.
             phone: Phone number.
             password: Plain text password.
 
@@ -36,6 +38,8 @@ class StudentService:
         Raises:
             DuplicateEntityError: If phone number already exists.
         """
+        from app.models.course import Edition
+
         # Check if phone already exists
         existing = student_repository.get_by_phone(phone)
         if existing:
@@ -46,6 +50,7 @@ class StudentService:
             id=0,
             name=name,
             grade=Grade(grade),
+            edition=Edition(edition),
             phone=phone,
             password_hash=hash_password(password),
             status=StudentStatus.ACTIVE,

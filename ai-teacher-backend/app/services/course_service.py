@@ -10,6 +10,15 @@ from app.repositories.course_repository import (
     knowledge_point_dependency_repository,
 )
 
+LEGACY_COURSE_ID_ALIASES = {
+    "MATH_JUNIOR_01": "COURSE_RENJIAO_7_MATH",
+}
+
+
+def normalize_course_id(course_id: str) -> str:
+    """Map legacy standalone course IDs to the textbook course hierarchy."""
+    return LEGACY_COURSE_ID_ALIASES.get(course_id, course_id)
+
 
 class CourseService:
     """Service for course-related business logic."""
@@ -26,18 +35,44 @@ class CourseService:
         Raises:
             EntityNotFoundError: If course not found.
         """
+        course_id = normalize_course_id(course_id)
         course = course_repository.get_by_id(course_id)
         if not course:
             raise EntityNotFoundError("课程", course_id)
         return course
 
-    def get_all_courses(self) -> list[Course]:
-        """Get all courses.
+    def get_all_courses(
+        self,
+        edition: Optional[str] = None,
+        grade: Optional[str] = None,
+        subject: Optional[str] = None,
+    ) -> list[Course]:
+        """Get all courses, optionally filtered.
+
+        Args:
+            edition: Optional textbook edition filter.
+            grade: Optional grade filter.
+            subject: Optional subject filter.
 
         Returns:
-            List of all courses.
+            List of courses matching the filters.
         """
-        return course_repository.get_all()
+        courses = course_repository.get_all()
+        if edition:
+            courses = [
+                c for c in courses
+                if hasattr(c, 'edition') and (
+                    (c.edition.value if hasattr(c.edition, 'value') else str(c.edition)) == edition
+                )
+            ]
+        if grade:
+            courses = [c for c in courses if c.grade == grade]
+        if subject:
+            courses = [
+                c for c in courses
+                if (c.subject.value if hasattr(c.subject, 'value') else str(c.subject)) == subject
+            ]
+        return courses
 
     def get_knowledge_point(self, kp_id: str) -> KnowledgePoint:
         """Get a knowledge point by ID.
@@ -65,6 +100,7 @@ class CourseService:
         Returns:
             List of knowledge points ordered by level and sort order.
         """
+        course_id = normalize_course_id(course_id)
         kps = knowledge_point_repository.get_by_course(course_id)
         return sorted(kps, key=lambda x: (x.level, x.sort_order))
 
@@ -95,6 +131,7 @@ class CourseService:
         Returns:
             Next knowledge point to study, or None if all completed.
         """
+        course_id = normalize_course_id(course_id)
         all_kps = self.get_course_knowledge_points(course_id)
 
         # Find the first KP that is not completed

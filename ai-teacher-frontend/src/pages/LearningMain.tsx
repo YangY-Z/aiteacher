@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import LearningCenter from './LearningCenter';
 import LearningSpace from './LearningSpace';
 import Improvement from './Improvement';
@@ -7,16 +8,58 @@ import './LearningMain.css';
 
 type TabType = 'space' | 'xiaoai' | 'learning' | 'improvement';
 
-const DEFAULT_COURSE_ID = 'MATH_JUNIOR_01';
+const DEFAULT_COURSE_ID = 'COURSE_RENJIAO_7_MATH';
+const LEGACY_COURSE_ID = 'MATH_JUNIOR_01';
 const LAST_COURSE_KEY = 'learning:last_course_id';
+const isTabType = (tab: string | null): tab is TabType => (
+  tab === 'space' || tab === 'xiaoai' || tab === 'learning' || tab === 'improvement'
+);
+
+interface OpenCourseOptions {
+  chapterId?: string;
+  kpId?: string;
+  startLearning?: boolean;
+}
 
 const LearningMain: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('space');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const tab = searchParams.get('tab');
+    return isTabType(tab) ? tab : 'space';
+  });
   const [selectedCourseId, setSelectedCourseId] = useState(
-    () => localStorage.getItem(LAST_COURSE_KEY) || DEFAULT_COURSE_ID
+    () => {
+      const queryCourseId = searchParams.get('course_id');
+      if (queryCourseId && queryCourseId !== LEGACY_COURSE_ID) {
+        localStorage.setItem(LAST_COURSE_KEY, queryCourseId);
+        return queryCourseId;
+      }
+      const savedCourseId = localStorage.getItem(LAST_COURSE_KEY);
+      if (!savedCourseId || savedCourseId === LEGACY_COURSE_ID) {
+        localStorage.setItem(LAST_COURSE_KEY, DEFAULT_COURSE_ID);
+        return DEFAULT_COURSE_ID;
+      }
+      return savedCourseId;
+    }
   );
+  const [selectedChapterId, setSelectedChapterId] = useState<string | null>(() => searchParams.get('chapter_id'));
   const [recommendedKpId, setRecommendedKpId] = useState<string | null>(null);
   const [shouldStartLearning, setShouldStartLearning] = useState(false);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const courseId = searchParams.get('course_id');
+    const chapterId = searchParams.get('chapter_id');
+
+    if (isTabType(tab)) {
+      setActiveTab(tab);
+    }
+    if (courseId && courseId !== LEGACY_COURSE_ID) {
+      localStorage.setItem(LAST_COURSE_KEY, courseId);
+      setSelectedCourseId(courseId);
+    }
+    setSelectedChapterId(chapterId);
+  }, [searchParams]);
 
   // 从小艾老师跳转到陪伴学习
   const handleStartLearning = useCallback((topic: string, kpId?: string) => {
@@ -25,11 +68,12 @@ const LearningMain: React.FC = () => {
     setActiveTab('learning');
   }, []);
 
-  const handleOpenCourse = useCallback((courseId: string) => {
+  const handleOpenCourse = useCallback((courseId: string, options?: OpenCourseOptions) => {
     localStorage.setItem(LAST_COURSE_KEY, courseId);
     setSelectedCourseId(courseId);
-    setShouldStartLearning(false);
-    setRecommendedKpId(null);
+    setSelectedChapterId(options?.chapterId || null);
+    setRecommendedKpId(options?.kpId || null);
+    setShouldStartLearning(Boolean(options?.startLearning && options?.kpId));
     setActiveTab('learning');
   }, []);
 
@@ -88,14 +132,13 @@ const LearningMain: React.FC = () => {
         {activeTab === 'space' && (
           <LearningSpace
             onOpenCourse={handleOpenCourse}
-            onAskTeacher={() => handleTabChange('xiaoai')}
-            onOpenImprovement={() => handleTabChange('improvement')}
           />
         )}
         {activeTab === 'xiaoai' && <XiaoAiTeacher onStartLearning={handleStartLearning} />}
         {activeTab === 'learning' && (
           <LearningCenter 
             courseId={selectedCourseId}
+            initialChapterId={selectedChapterId}
             recommendedKpId={recommendedKpId}
             autoStart={shouldStartLearning}
             onLearningStarted={handleLearningStarted}

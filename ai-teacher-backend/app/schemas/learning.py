@@ -83,6 +83,21 @@ class KnowledgePointProgress(BaseModel):
     dependencies: list[str] = Field(default_factory=list, description="依赖的知识点ID列表")
 
 
+class ChapterProgress(BaseModel):
+    """Response model for per-student chapter progress."""
+
+    id: str = Field(..., description="章节ID")
+    name: str = Field(..., description="章节名称")
+    status: str = Field(..., description="状态: not_configured/locked/not_started/in_progress/completed")
+    current_kp_id: Optional[str] = Field(None, description="当前知识点ID")
+    current_kp_name: Optional[str] = Field(None, description="当前知识点名称")
+    completed_count: int = Field(0, description="已完成知识点数")
+    mastered_count: int = Field(0, description="已掌握知识点数")
+    skipped_count: int = Field(0, description="已跳过知识点数")
+    total_count: int = Field(0, description="章节知识点总数")
+    mastery_rate: float = Field(0, description="章节掌握率")
+
+
 class ProgressResponse(BaseModel):
     """Response model for learning progress."""
 
@@ -98,6 +113,9 @@ class ProgressResponse(BaseModel):
     total_time: int = Field(0, description="总学习时长(秒)")
     session_count: int = Field(0, description="会话次数")
     last_session_at: Optional[datetime] = Field(None, description="最后学习时间")
+    chapters: list[ChapterProgress] = Field(
+        default_factory=list, description="章节级学生进度详情列表"
+    )
     knowledge_points: list[KnowledgePointProgress] = Field(
         default_factory=list, description="知识点进度详情列表"
     )

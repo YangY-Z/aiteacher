@@ -35,6 +35,7 @@ from app.repositories.assessment_repository import (
 from app.repositories.course_repository import knowledge_point_repository
 from app.services.llm_service import llm_service
 from app.services.course_service import course_service
+from app.services.course_service import normalize_course_id
 from app.prompts.system_prompt import SYSTEM_PROMPT
 from app.prompts.teaching_prompt import (
     TEACHING_PROMPT,
@@ -184,6 +185,7 @@ class LearningService:
         Returns:
             Created learning session.
         """
+        course_id = normalize_course_id(course_id)
         # Check for existing active session (scoped by kp_id when provided)
         existing = learning_session_repository.get_active_by_student(
             student_id, course_id, kp_id
@@ -759,10 +761,20 @@ class LearningService:
             Progress information.
         """
         from app.repositories.course_repository import knowledge_point_dependency_repository
+        from app.repositories.memory_db import db
         
+        requested_course_id = course_id
+        course_id = normalize_course_id(course_id)
+        legacy_course_ids = {requested_course_id, "MATH_JUNIOR_01"} if course_id == "COURSE_RENJIAO_7_MATH" else {requested_course_id}
+
         profile = student_profile_repository.get_by_student_and_course(
             student_id, course_id
         )
+        if not profile and course_id == "COURSE_RENJIAO_7_MATH":
+            profile = student_profile_repository.get_by_student_and_course(
+                student_id, "MATH_JUNIOR_01"
+            )
+        course = course_service.get_course(course_id)
         all_kps = course_service.get_course_knowledge_points(course_id)
 
         current_kp = None
@@ -771,7 +783,9 @@ class LearningService:
 
         session_status_by_kp: dict[str, tuple[str, datetime]] = {}
         for session in learning_session_repository.get_by_student(student_id):
-            if session.course_id != course_id or not session.kp_id:
+            if session.course_id not in legacy_course_ids and session.course_id != course_id:
+                continue
+            if not session.kp_id:
                 continue
             round_status = (
                 session.current_round.status.value
@@ -858,6 +872,62 @@ class LearningService:
                 "dependencies": dependencies,
             })
 
+        course_subject = course.subject.value if hasattr(course.subject, "value") else str(course.subject)
+        chapter_ids = {kp.chapter_id for kp in all_kps if kp.chapter_id}
+        course_chapters = []
+        for chapter in db._chapters.values():
+            chapter_subject = chapter.subject.value if hasattr(chapter.subject, "value") else str(chapter.subject)
+            if chapter.id in chapter_ids or (chapter.grade == course.grade and chapter_subject == course_subject):
+                course_chapters.append(chapter)
+        course_chapters.sort(key=lambda chapter: (chapter.sort_order, chapter.created_at))
+
+        kps_by_chapter: dict[str, list[dict[str, Any]]] = {}
+        for kp_progress in knowledge_points_progress:
+            chapter_id = kp_progress.get("chapter_id")
+            if not chapter_id:
+                continue
+            kps_by_chapter.setdefault(chapter_id, []).append(kp_progress)
+
+        chapters_progress = []
+        for chapter in course_chapters:
+            chapter_kps = kps_by_chapter.get(chapter.id, [])
+            total_count = len(chapter_kps)
+            mastered_count = sum(1 for kp in chapter_kps if kp["status"] in {"completed", "mastered"})
+            skipped_count = sum(1 for kp in chapter_kps if kp["status"] == "skipped")
+            completed_count = mastered_count + skipped_count
+            current_kp_progress = next(
+                (
+                    kp for kp in chapter_kps
+                    if kp["id"] == (profile.current_kp_id if profile else None)
+                    or kp["status"] in {"current", "in_progress"}
+                ),
+                None,
+            )
+
+            if total_count == 0:
+                chapter_status = "not_configured"
+            elif current_kp_progress:
+                chapter_status = "in_progress"
+            elif completed_count >= total_count:
+                chapter_status = "completed"
+            elif any(kp["status"] != "locked" for kp in chapter_kps):
+                chapter_status = "not_started"
+            else:
+                chapter_status = "locked"
+
+            chapters_progress.append({
+                "id": chapter.id,
+                "name": chapter.name,
+                "status": chapter_status,
+                "current_kp_id": current_kp_progress["id"] if current_kp_progress else None,
+                "current_kp_name": current_kp_progress["name"] if current_kp_progress else None,
+                "completed_count": completed_count,
+                "mastered_count": mastered_count,
+                "skipped_count": skipped_count,
+                "total_count": total_count,
+                "mastery_rate": mastered_count / total_count if total_count else 0,
+            })
+
         return {
             "student_id": student_id,
             "course_id": course_id,
@@ -871,6 +941,7 @@ class LearningService:
             "total_time": profile.total_time if profile else 0,
             "session_count": profile.session_count if profile else 0,
             "last_session_at": profile.last_session_at if profile else None,
+            "chapters": chapters_progress,
             "knowledge_points": knowledge_points_progress,  # 新增：详细知识点进度
         }
 

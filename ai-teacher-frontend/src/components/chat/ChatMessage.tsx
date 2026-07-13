@@ -156,13 +156,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
             <div className="question-options">
               {options.map((option, index) => {
                 const optionKey = option.charAt(0);
-                const isSelected = selectedAnswer === optionKey;
-                
+                const isSelected = selectedAnswer === option || selectedAnswer === optionKey;
+
                 return (
                   <div
                     key={index}
                     className={`question-option ${isSelected ? 'selected' : ''}`}
-                    onClick={() => onSelectAnswer?.(message.question!.id, optionKey)}
+                    onClick={() => onSelectAnswer?.(message.question!.id, option)}
                   >
                     {option}
                     {isSelected && <CheckOutlined className="option-check" />}

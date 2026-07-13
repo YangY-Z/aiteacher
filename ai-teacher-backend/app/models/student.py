@@ -5,6 +5,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
+from app.models.course import Edition
+
 
 class StudentStatus(str, Enum):
     """Student account status."""
@@ -42,6 +44,7 @@ class Student:
     id: int
     name: str
     grade: Grade
+    edition: Edition
     password_hash: str
     phone: Optional[str] = None
     avatar_url: Optional[str] = None

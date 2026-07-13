@@ -24,7 +24,95 @@
       "status": "active",
       "created_at": "2026-04-08T21:48:21.305795",
       "updated_at": "2026-04-08T21:48:21.305796"
+    },
+    {
+      "id": "CH_MATH_8_REN_02",
+      "name": "二次根式",
+      "grade": "初二",
+      "edition": "人教版",
+      "subject": "数学",
+      "grade_id": "G_C2",
+      "subject_id": "S_MATH",
+      "description": "初二数学二次根式单元，覆盖二次根式概念、性质、化简与运算",
+      "sort_order": 1,
+      "total_knowledge_points": 0,
+      "estimated_hours": 8.0,
+      "level_descriptions": {
+        "0": "概念识别层",
+        "1": "性质理解层",
+        "2": "化简运算层",
+        "3": "综合应用层"
+      },
+      "status": "active",
+      "created_at": "2026-06-14T00:00:00",
+      "updated_at": "2026-06-14T00:00:00"
+    },
+    {
+      "id": "CH_MATH_8_REN_03",
+      "name": "勾股定理",
+      "grade": "初二",
+      "edition": "人教版",
+      "subject": "数学",
+      "grade_id": "G_C2",
+      "subject_id": "S_MATH",
+      "description": "初二数学勾股定理单元，覆盖定理理解、逆定理、直角三角形判定与实际应用",
+      "sort_order": 2,
+      "total_knowledge_points": 0,
+      "estimated_hours": 8.0,
+      "level_descriptions": {
+        "0": "直角三角形基础层",
+        "1": "定理理解层",
+        "2": "计算证明层",
+        "3": "实际应用层"
+      },
+      "status": "active",
+      "created_at": "2026-06-14T00:00:00",
+      "updated_at": "2026-06-14T00:00:00"
+    },
+    {
+      "id": "CH_MATH_8_REN_04",
+      "name": "平行四边形",
+      "grade": "初二",
+      "edition": "人教版",
+      "subject": "数学",
+      "grade_id": "G_C2",
+      "subject_id": "S_MATH",
+      "description": "初二数学平行四边形单元，覆盖性质、判定、特殊平行四边形与证明应用",
+      "sort_order": 3,
+      "total_knowledge_points": 0,
+      "estimated_hours": 10.0,
+      "level_descriptions": {
+        "0": "图形认识层",
+        "1": "性质掌握层",
+        "2": "判定方法层",
+        "3": "证明应用层"
+      },
+      "status": "active",
+      "created_at": "2026-06-14T00:00:00",
+      "updated_at": "2026-06-14T00:00:00"
+    },
+    {
+      "id": "CH_MATH_8_REN_05",
+      "name": "数据的分析",
+      "grade": "初二",
+      "edition": "人教版",
+      "subject": "数学",
+      "grade_id": "G_C2",
+      "subject_id": "S_MATH",
+      "description": "初二数学数据分析单元，覆盖平均数、中位数、众数、方差与数据决策",
+      "sort_order": 4,
+      "total_knowledge_points": 0,
+      "estimated_hours": 6.0,
+      "level_descriptions": {
+        "0": "数据认识层",
+        "1": "统计量计算层",
+        "2": "波动分析层",
+        "3": "综合决策层"
+      },
+      "status": "active",
+      "created_at": "2026-06-14T00:00:00",
+      "updated_at": "2026-06-14T00:00:00"
     }
   ],
-  "updated_at": "2026-04-08T21:48:21.555834"
+  "updated_at": "2026-06-14T00:00:00"
 }

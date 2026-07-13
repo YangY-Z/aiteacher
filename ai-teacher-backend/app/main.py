@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api import api_router
 from app.core.config import settings
 from app.core.exceptions import AppException
-from app.utils.data_loader import load_assessment_data
+from app.utils.data_loader import load_assessment_data, load_course_data
 
 
 # 配置日志
@@ -88,6 +88,10 @@ async def lifespan(app: FastAPI):
     logger.info(f"LLM Provider: {settings.llm_provider}")
     logger.info(f"Debug模式: {settings.debug}")
     logger.info("=" * 50)
+
+    # Load course data (MATH_JUNIOR_01 etc.)
+    load_course_data()
+    logger.info("课程数据加载成功")
 
     # Load assessment questions
     assessment_path = get_assessment_path()

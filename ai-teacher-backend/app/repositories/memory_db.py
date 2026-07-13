@@ -147,6 +147,7 @@ class InMemoryDatabase:
                     id=student_dict["id"],
                     name=student_dict["name"],
                     grade=Grade(student_dict["grade"]),
+                    edition=Edition(student_dict.get("edition", "人教版")),
                     password_hash=student_dict["password_hash"],
                     phone=student_dict.get("phone"),
                     avatar_url=student_dict.get("avatar_url"),
@@ -219,6 +220,7 @@ class InMemoryDatabase:
                     "id": student.id,
                     "name": student.name,
                     "grade": student.grade.value,
+                    "edition": student.edition.value if hasattr(student.edition, 'value') else str(student.edition),
                     "password_hash": student.password_hash,
                     "phone": student.phone,
                     "avatar_url": student.avatar_url,
@@ -291,7 +293,8 @@ class InMemoryDatabase:
                 id=999,
                 name="系统管理员",
                 phone="admin",
-                grade=Grade.GRADE_7,  # Admin doesn't need grade
+                grade=Grade.GRADE_7,
+                edition=Edition.RENJIAO,
                 password_hash=hash_password("admin@2026"),
                 role=UserRole.ADMIN,
                 status=StudentStatus.ACTIVE,
@@ -300,192 +303,197 @@ class InMemoryDatabase:
             logger.info("Created default admin account (phone: admin, password: admin@2026)")
 
     def _init_linear_function_course(self) -> None:
-        """Initialize the linear function course with knowledge points."""
-        # Create course
+        """Initialize seed data with correct Course → Chapter hierarchy."""
+        self._init_course_renjiao_8_math()
+        self._init_course_renjiao_8_chinese()
+        self._init_course_renjiao_7_math()
+
+    def _init_course_renjiao_8_math(self) -> None:
+        """初二数学（人教版）—— 包含一次函数、二次根式、勾股定理、平行四边形、数据的分析"""
         course = Course(
-            id="MATH_JUNIOR_01",
-            name="一次函数",
-            grade="初二",
-            subject=Subject.MATH,
-            description="初二数学一次函数单元，包含32个知识点",
-            total_knowledge_points=32,
-            estimated_hours=12.0,
-            status=CourseStatus.ACTIVE,
-            level_descriptions={
-                0: "基础概念层",
-                1: "核心概念层",
-                2: "函数基础层",
-                3: "正比例与一次函数层",
-                4: "图象与性质层",
-                5: "变换层",
-                6: "综合应用层",
-            }
-        )
-        self._courses[course.id] = course
-        
-        # Create chapter for this course
-        chapter = Chapter(
-            id="CH_MATH_8_REN_01",
-            name="一次函数",
+            id="COURSE_RENJIAO_8_MATH",
+            name="初二数学（人教版）",
             grade="初二",
             edition=Edition.RENJIAO,
             subject=Subject.MATH,
-            description="初二数学一次函数单元，包含32个知识点",
-            total_knowledge_points=32,
-            estimated_hours=12.0,
+            description="人教版初二数学全册",
+            total_knowledge_points=50,
+            estimated_hours=40.0,
             status=CourseStatus.ACTIVE,
-            level_descriptions={
-                0: "基础概念层",
-                1: "核心概念层",
-                2: "函数基础层",
-                3: "正比例与一次函数层",
-                4: "图象与性质层",
-                5: "变换层",
-                6: "综合应用层",
-            }
         )
-        self._chapters[chapter.id] = chapter
+        self._courses[course.id] = course
 
-        # Define all knowledge points
-        kp_data = [
-            # Level 0: 基础概念层
+        ch1 = Chapter(
+            id="CH_8MATH_01", name="一次函数", grade="初二", edition=Edition.RENJIAO,
+            subject=Subject.MATH, course_id=course.id,
+            prerequisite_chapter_ids=[],
+            description="变量、函数定义、正比例函数、一次函数图象与性质、待定系数法、综合应用",
+            sort_order=0, total_knowledge_points=32, estimated_hours=12.0,
+            status=CourseStatus.ACTIVE,
+            level_descriptions={0: "基础概念层", 1: "核心概念层", 2: "函数基础层",
+                3: "正比例与一次函数层", 4: "图象与性质层", 5: "变换层", 6: "综合应用层"},
+        )
+        ch2 = Chapter(
+            id="CH_8MATH_02", name="二次根式", grade="初二", edition=Edition.RENJIAO,
+            subject=Subject.MATH, course_id=course.id,
+            prerequisite_chapter_ids=["CH_8MATH_01"],
+            description="二次根式概念、性质、化简与运算",
+            sort_order=1, total_knowledge_points=8, estimated_hours=8.0,
+            status=CourseStatus.ACTIVE,
+        )
+        ch3 = Chapter(
+            id="CH_8MATH_03", name="勾股定理", grade="初二", edition=Edition.RENJIAO,
+            subject=Subject.MATH, course_id=course.id,
+            prerequisite_chapter_ids=["CH_8MATH_02"],
+            description="定理理解、逆定理、直角三角形判定与实际应用",
+            sort_order=2, total_knowledge_points=6, estimated_hours=8.0,
+            status=CourseStatus.ACTIVE,
+        )
+        ch4 = Chapter(
+            id="CH_8MATH_04", name="平行四边形", grade="初二", edition=Edition.RENJIAO,
+            subject=Subject.MATH, course_id=course.id,
+            prerequisite_chapter_ids=["CH_8MATH_01"],
+            description="性质、判定、特殊平行四边形与证明应用",
+            sort_order=3, total_knowledge_points=8, estimated_hours=10.0,
+            status=CourseStatus.ACTIVE,
+        )
+        ch5 = Chapter(
+            id="CH_8MATH_05", name="数据的分析", grade="初二", edition=Edition.RENJIAO,
+            subject=Subject.MATH, course_id=course.id,
+            prerequisite_chapter_ids=["CH_8MATH_01"],
+            description="平均数、中位数、众数、方差与数据决策",
+            sort_order=4, total_knowledge_points=4, estimated_hours=6.0,
+            status=CourseStatus.ACTIVE,
+        )
+        for ch in [ch1, ch2, ch3, ch4, ch5]:
+            self._chapters[ch.id] = ch
+
+        # KP data for 一次函数 (32 KPs)
+        kp_data_ch1 = [
             ("K1", "坐标系", KnowledgePointType.CONCEPT, "平面直角坐标系的建立，x轴、y轴、原点", 0),
-            ("K2", "点的坐标", KnowledgePointType.SKILL, "用有序数对(x,y)表示平面上点的位置", 1),
+            ("K2", "点的坐标", KnowledgePointType.SKILL, "用有序数对(x,y)表示平面上点的位置", 0),
             ("K3", "象限", KnowledgePointType.CONCEPT, "坐标平面被两轴分成四个象限及其特征", 0),
             ("K4", "变量", KnowledgePointType.CONCEPT, "可以取不同数值的量", 0),
             ("K5", "常量", KnowledgePointType.CONCEPT, "数值固定不变的量", 0),
-            # Level 1: 函数基础层
             ("K6", "函数定义", KnowledgePointType.CONCEPT, "设x和y是两个变量，若x每取一个值，y都有唯一确定的值与之对应", 1),
-            ("K7", "自变量与因变量", KnowledgePointType.CONCEPT, "主动变化的量为自变量，随之变化的量为因变量", 2),
-            ("K8", "函数的定义域", KnowledgePointType.CONCEPT, "自变量x允许取值的范围", 2),
-            ("K9", "函数值", KnowledgePointType.SKILL, "当x取某值时，y对应的值", 2),
-            ("K10", "函数解析式", KnowledgePointType.CONCEPT, "用数学式子表示函数关系", 2),
-            ("K11", "函数的三种表示法", KnowledgePointType.SKILL, "解析式法、列表法、图象法", 2),
-            # Level 2: 正比例函数层
-            ("K12", "正比例函数定义", KnowledgePointType.CONCEPT, "y=kx(k≠0)形式的函数", 3),
-            ("K13", "正比例函数图象", KnowledgePointType.SKILL, "正比例函数图象是过原点的直线", 3),
-            ("K14", "正比例函数性质", KnowledgePointType.FORMULA, "k>0过一三象限且递增；k<0过二四象限且递减", 3),
-            ("K15", "一次函数定义", KnowledgePointType.CONCEPT, "y=kx+b(k≠0)形式的函数", 3),
-            ("K16", "一次函数与正比例函数关系", KnowledgePointType.CONCEPT, "当b=0时，一次函数退化为正比例函数", 3),
-            # Level 3: 图象与性质层
-            ("K17", "描点法画函数图象", KnowledgePointType.SKILL, "列表、描点、连线的作图方法", 4),
-            ("K18", "一次函数图象特征", KnowledgePointType.SKILL, "一次函数图象是一条直线", 4),
-            ("K19", "两点确定直线", KnowledgePointType.SKILL, "画一次函数图象只需描出两点连线", 4),
-            ("K20", "截距概念", KnowledgePointType.CONCEPT, "直线与y轴交点的纵坐标，即b的值", 4),
-            ("K21", "斜率概念", KnowledgePointType.CONCEPT, "直线倾斜程度的度量，即k的值", 4),
-            ("K22", "k对图象方向的影响", KnowledgePointType.FORMULA, "k>0从左向右上升；k<0从左向右下降", 4),
-            ("K23", "b对图象位置的影响", KnowledgePointType.FORMULA, "b>0与y轴交于正半轴；b<0交于负半轴", 4),
-            ("K24", "一次函数增减性", KnowledgePointType.FORMULA, "k>0时y随x增大而增大；k<0时y随x增大而减小", 4),
-            # Level 4: 综合判断层
-            ("K25", "平移变换", KnowledgePointType.SKILL, "上下平移改变b值，左右平移改变x", 5),
-            ("K26", "k与b的综合判断", KnowledgePointType.SKILL, "根据k、b符号判断图象经过的象限", 5),
-            # Level 5: 应用层
-            ("K27", "待定系数法", KnowledgePointType.SKILL, "设出函数解析式，代入条件求k、b", 6),
-            ("K28", "由图象求解析式", KnowledgePointType.SKILL, "从图象上读取点坐标，用待定系数法求解析式", 6),
-            ("K29", "求交点坐标", KnowledgePointType.SKILL, "联立两一次函数解析式求解方程组", 6),
-            ("K30", "实际问题建模", KnowledgePointType.SKILL, "将实际问题转化为一次函数求解", 6),
-            ("K31", "一次函数与方程的关系", KnowledgePointType.CONCEPT, "求ax+b=0的解等价于求y=ax+b与x轴交点横坐标", 6),
-            ("K32", "一次函数与不等式的关系", KnowledgePointType.CONCEPT, "图象在x轴上方/下方对应的x范围即为不等式解集", 6),
+            ("K7", "自变量与因变量", KnowledgePointType.CONCEPT, "主动变化的量为自变量，随之变化的量为因变量", 1),
+            ("K8", "函数的定义域", KnowledgePointType.CONCEPT, "自变量x允许取值的范围", 1),
+            ("K9", "函数值", KnowledgePointType.SKILL, "当x取某值时，y对应的值", 1),
+            ("K10", "函数解析式", KnowledgePointType.CONCEPT, "用数学式子表示函数关系", 1),
+            ("K11", "函数的三种表示法", KnowledgePointType.SKILL, "解析式法、列表法、图象法", 1),
+            ("K12", "正比例函数定义", KnowledgePointType.CONCEPT, "y=kx(k≠0)形式的函数", 2),
+            ("K13", "正比例函数图象", KnowledgePointType.SKILL, "正比例函数图象是过原点的直线", 2),
+            ("K14", "正比例函数性质", KnowledgePointType.FORMULA, "k>0过一三象限且递增；k<0过二四象限且递减", 2),
+            ("K15", "一次函数定义", KnowledgePointType.CONCEPT, "y=kx+b(k≠0)形式的函数", 2),
+            ("K16", "一次函数与正比例函数关系", KnowledgePointType.CONCEPT, "当b=0时，一次函数退化为正比例函数", 2),
+            ("K17", "描点法画函数图象", KnowledgePointType.SKILL, "列表、描点、连线的作图方法", 3),
+            ("K18", "一次函数图象特征", KnowledgePointType.SKILL, "一次函数图象是一条直线", 3),
+            ("K19", "两点确定直线", KnowledgePointType.SKILL, "画一次函数图象只需描出两点连线", 3),
+            ("K20", "截距概念", KnowledgePointType.CONCEPT, "直线与y轴交点的纵坐标，即b的值", 3),
+            ("K21", "斜率概念", KnowledgePointType.CONCEPT, "直线倾斜程度的度量，即k的值", 3),
+            ("K22", "k对图象方向的影响", KnowledgePointType.FORMULA, "k>0从左向右上升；k<0从左向右下降", 3),
+            ("K23", "b对图象位置的影响", KnowledgePointType.FORMULA, "b>0与y轴交于正半轴；b<0交于负半轴", 3),
+            ("K24", "一次函数增减性", KnowledgePointType.FORMULA, "k>0时y随x增大而增大；k<0时y随x增大而减小", 3),
+            ("K25", "平移变换", KnowledgePointType.SKILL, "上下平移改变b值，左右平移改变x", 4),
+            ("K26", "k与b的综合判断", KnowledgePointType.SKILL, "根据k、b符号判断图象经过的象限", 4),
+            ("K27", "待定系数法", KnowledgePointType.SKILL, "设出函数解析式，代入条件求k、b", 5),
+            ("K28", "由图象求解析式", KnowledgePointType.SKILL, "从图象上读取点坐标，用待定系数法求解析式", 5),
+            ("K29", "求交点坐标", KnowledgePointType.SKILL, "联立两一次函数解析式求解方程组", 5),
+            ("K30", "实际问题建模", KnowledgePointType.SKILL, "将实际问题转化为一次函数求解", 5),
+            ("K31", "一次函数与方程的关系", KnowledgePointType.CONCEPT, "求ax+b=0的解等价于求y=ax+b与x轴交点横坐标", 5),
+            ("K32", "一次函数与不等式的关系", KnowledgePointType.CONCEPT, "图象在x轴上方/下方对应的x范围即为不等式解集", 5),
         ]
-
-        # Create knowledge points
-        for kp_id, name, kp_type, description, level in kp_data:
-            mastery_criteria = self._get_mastery_criteria(kp_type)
-            teaching_config = self._get_teaching_config(kp_type)
-
-            kp = KnowledgePoint(
-                id=kp_id,
-                course_id=course.id,
-                chapter_id=chapter.id,  # Link to chapter
-                name=name,
-                type=kp_type,
-                description=description,
-                level=level,
+        for kp_id, name, kp_type, desc, level in kp_data_ch1:
+            self._knowledge_points[kp_id] = KnowledgePoint(
+                id=kp_id, course_id=course.id, chapter_id=ch1.id,
+                name=name, type=kp_type, description=desc, level=level,
                 sort_order=level * 10 + int(kp_id[1:]),
-                mastery_criteria=mastery_criteria,
-                teaching_config=teaching_config,
+                mastery_criteria=self._get_mastery_criteria(kp_type),
+                teaching_config=self._get_teaching_config(kp_type),
             )
-            self._knowledge_points[kp_id] = kp
 
-        # Define dependencies (from the spec)
-        dependencies = [
-            # K1 -> K2, K3
-            ("K2", "K1"),
-            ("K3", "K1"),
-            # K4, K5 -> K6
-            ("K6", "K4"),
-            ("K6", "K5"),
-            # K6 -> K7, K8, K9, K10
-            ("K7", "K6"),
-            ("K8", "K6"),
-            ("K9", "K6"),
-            ("K10", "K6"),
-            # K10 -> K11
-            ("K11", "K10"),
-            # K6, K10 -> K12
-            ("K12", "K6"),
-            ("K12", "K10"),
-            # K11, K12 -> K13
-            ("K13", "K11"),
-            ("K13", "K12"),
-            # K12, K3 -> K14
-            ("K14", "K12"),
-            ("K14", "K3"),
-            # K12, K10 -> K15
-            ("K15", "K12"),
-            ("K15", "K10"),
-            # K15 -> K16
-            ("K16", "K15"),
-            # K11, K2 -> K17
-            ("K17", "K11"),
-            ("K17", "K2"),
-            # K15 -> K18
-            ("K18", "K15"),
-            # K17 -> K19
-            ("K19", "K17"),
-            # K15 -> K20, K21
-            ("K20", "K15"),
-            ("K21", "K15"),
-            # K18, K21 -> K22
-            ("K22", "K18"),
-            ("K22", "K21"),
-            # K20 -> K23
-            ("K23", "K20"),
-            # K21, K18 -> K24
-            ("K24", "K21"),
-            ("K24", "K18"),
-            # K22, K23, K3 -> K26
-            ("K26", "K22"),
-            ("K26", "K23"),
-            ("K26", "K3"),
-            # K18, K20 -> K25
-            ("K25", "K18"),
-            ("K25", "K20"),
-            # K15, K9 -> K27
-            ("K27", "K15"),
-            ("K27", "K9"),
-            # K27, K19 -> K28
-            ("K28", "K27"),
-            ("K28", "K19"),
-            # K27 -> K29
-            ("K29", "K27"),
-            # K15, K28 -> K30
-            ("K30", "K15"),
-            ("K30", "K28"),
-            # K18 -> K31, K32
-            ("K31", "K18"),
-            ("K32", "K18"),
+        # KP dependencies for 一次函数 (same as before)
+        deps_ch1 = [
+            ("K2","K1"),("K3","K1"),("K6","K4"),("K6","K5"),("K7","K6"),("K8","K6"),
+            ("K9","K6"),("K10","K6"),("K11","K10"),("K12","K6"),("K12","K10"),
+            ("K13","K11"),("K13","K12"),("K14","K12"),("K14","K3"),("K15","K12"),
+            ("K15","K10"),("K16","K15"),("K17","K11"),("K17","K2"),("K18","K15"),
+            ("K19","K17"),("K20","K15"),("K21","K15"),("K22","K18"),("K22","K21"),
+            ("K23","K20"),("K24","K21"),("K24","K18"),("K26","K22"),("K26","K23"),
+            ("K26","K3"),("K25","K18"),("K25","K20"),("K27","K15"),("K27","K9"),
+            ("K28","K27"),("K28","K19"),("K29","K27"),("K30","K15"),("K30","K28"),
+            ("K31","K18"),("K32","K18"),
         ]
-
-        for kp_id, depends_on_kp_id in dependencies:
-            dep = KnowledgePointDependency(
-                id=self._kp_dependency_id_counter,
-                kp_id=kp_id,
-                depends_on_kp_id=depends_on_kp_id,
-                dependency_type=DependencyType.PREREQUISITE,
-            )
-            self._kp_dependencies.append(dep)
+        for kp_id, dep_id in deps_ch1:
+            self._kp_dependencies.append(KnowledgePointDependency(
+                id=self._kp_dependency_id_counter, kp_id=kp_id,
+                depends_on_kp_id=dep_id, dependency_type=DependencyType.PREREQUISITE,
+            ))
             self._kp_dependency_id_counter += 1
+
+    def _init_course_renjiao_8_chinese(self) -> None:
+        """初二语文（人教版）"""
+        course = Course(
+            id="COURSE_RENJIAO_8_CHINESE",
+            name="初二语文（人教版）",
+            grade="初二",
+            edition=Edition.RENJIAO,
+            subject=Subject.CHINESE,
+            description="人教版初二语文全册",
+            total_knowledge_points=12,
+            estimated_hours=30.0,
+            status=CourseStatus.ACTIVE,
+        )
+        self._courses[course.id] = course
+
+        chapters = [
+            Chapter(id="CH_8CHI_01", name="现代文阅读", grade="初二", edition=Edition.RENJIAO,
+                subject=Subject.CHINESE, course_id=course.id,
+                prerequisite_chapter_ids=[], sort_order=0,
+                description="记叙文、说明文阅读方法", status=CourseStatus.ACTIVE),
+            Chapter(id="CH_8CHI_02", name="文言文阅读", grade="初二", edition=Edition.RENJIAO,
+                subject=Subject.CHINESE, course_id=course.id,
+                prerequisite_chapter_ids=[], sort_order=1,
+                description="常见文言实词、虚词、句式", status=CourseStatus.ACTIVE),
+            Chapter(id="CH_8CHI_03", name="作文写作", grade="初二", edition=Edition.RENJIAO,
+                subject=Subject.CHINESE, course_id=course.id,
+                prerequisite_chapter_ids=["CH_8CHI_01", "CH_8CHI_02"], sort_order=2,
+                description="记叙文写作方法与技巧", status=CourseStatus.ACTIVE),
+        ]
+        for ch in chapters:
+            self._chapters[ch.id] = ch
+
+    def _init_course_renjiao_7_math(self) -> None:
+        """初一数学（人教版）"""
+        course = Course(
+            id="COURSE_RENJIAO_7_MATH",
+            name="初一数学（人教版）",
+            grade="初一",
+            edition=Edition.RENJIAO,
+            subject=Subject.MATH,
+            description="人教版初一数学全册",
+            total_knowledge_points=20,
+            estimated_hours=35.0,
+            status=CourseStatus.ACTIVE,
+        )
+        self._courses[course.id] = course
+
+        chapters = [
+            Chapter(id="CH_7MATH_01", name="有理数", grade="初一", edition=Edition.RENJIAO,
+                subject=Subject.MATH, course_id=course.id,
+                prerequisite_chapter_ids=[], sort_order=0,
+                description="正负数、数轴、相反数、绝对值、有理数运算", status=CourseStatus.ACTIVE),
+            Chapter(id="CH_7MATH_02", name="整式的加减", grade="初一", edition=Edition.RENJIAO,
+                subject=Subject.MATH, course_id=course.id,
+                prerequisite_chapter_ids=["CH_7MATH_01"], sort_order=1,
+                description="单项式、多项式、合并同类项", status=CourseStatus.ACTIVE),
+            Chapter(id="CH_7MATH_03", name="一元一次方程", grade="初一", edition=Edition.RENJIAO,
+                subject=Subject.MATH, course_id=course.id,
+                prerequisite_chapter_ids=["CH_7MATH_02"], sort_order=2,
+                description="方程概念、解法、实际应用", status=CourseStatus.ACTIVE),
+        ]
+        for ch in chapters:
+            self._chapters[ch.id] = ch
 
     def _get_mastery_criteria(self, kp_type: KnowledgePointType) -> MasteryCriteria:
         """Get mastery criteria based on knowledge point type."""

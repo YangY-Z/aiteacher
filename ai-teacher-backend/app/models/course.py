@@ -124,6 +124,7 @@ class Course:
     id: str
     name: str
     grade: str
+    edition: Edition
     subject: Subject
     description: Optional[str] = None
     total_knowledge_points: int = 0
@@ -149,6 +150,8 @@ class Chapter:
     subject: Subject  # Deprecated: 科目枚举，保留用于兼容
     grade_id: Optional[str] = None  # 新增：年级ID外键
     subject_id: Optional[str] = None  # 新增：科目ID外键
+    course_id: Optional[str] = None  # 新增：所属课程ID
+    prerequisite_chapter_ids: list[str] = field(default_factory=list)  # 新增：前置章节ID列表
     description: Optional[str] = None
     sort_order: int = 0
     total_knowledge_points: int = 0

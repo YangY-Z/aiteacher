@@ -4,32 +4,35 @@
       "id": 999,
       "name": "系统管理员",
       "grade": "初一",
+      "edition": "人教版",
       "password_hash": "173c9f504d6ffdbe7bddacd7c40c32ef$a655e7bbf4a0e8db426824b95ccda785f2dda35b5008c7a1d8fe873c5a8c2d74",
       "phone": "admin",
       "avatar_url": null,
       "status": "active",
       "role": "admin",
-      "last_login_at": null,
+      "last_login_at": "2026-06-14T18:33:56.086055",
       "created_at": "2026-05-03T16:27:07.998637",
-      "updated_at": "2026-05-03T16:27:07.998639"
+      "updated_at": "2026-06-14T18:33:56.086376"
     },
     {
       "id": 1,
       "name": "赵阳阳",
       "grade": "初一",
+      "edition": "人教版",
       "password_hash": "681c1de01a1ec404fac7b9e0a446e3d4$acd8ae33ce71c34fe784a71cb294d62ad00985ee007dad8cc3df80356af372e9",
       "phone": "17866811111",
       "avatar_url": null,
       "status": "active",
       "role": "student",
-      "last_login_at": "2026-06-01T15:47:13.060362",
+      "last_login_at": "2026-07-12T22:23:10.889853",
       "created_at": "2026-05-03T16:29:13.514933",
-      "updated_at": "2026-06-01T15:47:13.060384"
+      "updated_at": "2026-07-12T22:23:10.890399"
     },
     {
       "id": 2,
       "name": "测试学生",
       "grade": "初一",
+      "edition": "人教版",
       "password_hash": "55d20d30902f6eda34dfcafb0654d887$8ae21808967377f12f680acc6b9dea0b46187b7a86f9d83cc1f74909fc3ceca4",
       "phone": "13800138000",
       "avatar_url": null,
@@ -43,6 +46,7 @@
       "id": 3,
       "name": "验收学生",
       "grade": "初一",
+      "edition": "人教版",
       "password_hash": "6d7bf0b12998f7ee6f68d453409dc7c7$c1c690e852b70dec30550cc2db7e99ceb5cf3d4dd0a3a44ef296e334eab99b07",
       "phone": "13979437045",
       "avatar_url": null,
@@ -56,6 +60,7 @@
       "id": 4,
       "name": "验收学生2",
       "grade": "初一",
+      "edition": "人教版",
       "password_hash": "c2bfa23a3685bba4388f3274683c831a$10ad0cc47ef91d6a8ce883faeed1a4fb7a1e536308f07f1f74231bb54bc790f2",
       "phone": "13900000022",
       "avatar_url": null,
@@ -69,6 +74,7 @@
       "id": 5,
       "name": "验收学生",
       "grade": "初一",
+      "edition": "人教版",
       "password_hash": "d8d054dba85c7e2229ae8e6da45ebb87$1a46b197404af2b4fb10631bd596b55abb2f88f600f40fb37d7a1aa2404b1d37",
       "phone": "13979438331",
       "avatar_url": null,
@@ -77,29 +83,44 @@
       "last_login_at": "2026-05-22T17:26:37.596137",
       "created_at": "2026-05-22T16:25:31.687438",
       "updated_at": "2026-05-22T17:26:37.596170"
+    },
+    {
+      "id": 6,
+      "name": "测试学生",
+      "grade": "初二",
+      "edition": "人教版",
+      "password_hash": "3917395a124e6a36dafce9002b3a5bd5$7d3376f464aea51084e966a2d701ce0dcd8fd7716dcd80ec31c74f89c0e0b946",
+      "phone": "13800001111",
+      "avatar_url": null,
+      "status": "active",
+      "role": "student",
+      "last_login_at": "2026-06-15T21:18:36.613183",
+      "created_at": "2026-06-15T21:18:23.066278",
+      "updated_at": "2026-06-15T21:18:36.613233"
     }
   ],
-  "next_id": 5,
+  "next_id": 6,
   "profiles": [
     {
       "id": 1,
       "student_id": 1,
       "course_id": "MATH_JUNIOR_01",
-      "current_kp_id": "K4",
+      "current_kp_id": "K5",
       "completed_kp_ids": [
-        "K4"
+        "K5"
       ],
       "mastered_kp_ids": [
         "K1",
-        "K3"
+        "K3",
+        "K4"
       ],
       "skipped_kp_ids": [],
-      "mastery_rate": 0.0625,
+      "mastery_rate": 0.09375,
       "total_time": 0,
       "session_count": 0,
       "last_session_at": null,
       "created_at": "2026-05-03T16:30:26.670300",
-      "updated_at": "2026-06-01T21:39:00.118786"
+      "updated_at": "2026-07-12T15:11:09.566685"
     },
     {
       "id": 2,
@@ -160,8 +181,27 @@
       "last_session_at": null,
       "created_at": "2026-05-22T16:27:03.920455",
       "updated_at": "2026-05-22T16:27:03.920483"
+    },
+    {
+      "id": 6,
+      "student_id": 1,
+      "course_id": "COURSE_RENJIAO_7_MATH",
+      "current_kp_id": "KP_7MATH_04_03",
+      "completed_kp_ids": [
+        "K5",
+        "KP_7MATH_04_01",
+        "KP_7MATH_04_03"
+      ],
+      "mastered_kp_ids": [],
+      "skipped_kp_ids": [],
+      "mastery_rate": 0.0,
+      "total_time": 0,
+      "session_count": 0,
+      "last_session_at": null,
+      "created_at": "2026-07-13T17:14:02.059568",
+      "updated_at": "2026-07-13T22:05:19.172749"
     }
   ],
-  "next_profile_id": 5,
-  "updated_at": "2026-06-01T21:39:00.119599"
+  "next_profile_id": 6,
+  "updated_at": "2026-07-13T22:05:19.175657"
 }

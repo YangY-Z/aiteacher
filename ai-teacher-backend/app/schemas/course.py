@@ -104,6 +104,8 @@ class CourseChapterResponse(BaseModel):
     grade: str
     subject: str
     edition: str
+    course_id: Optional[str] = None
+    prerequisite_chapter_ids: list[str] = Field(default_factory=list)
     description: Optional[str] = None
     sort_order: int = 0
     total_knowledge_points: int = 0
@@ -119,6 +121,8 @@ class CourseChapterResponse(BaseModel):
             grade=chapter.grade,
             subject=chapter.subject.value if hasattr(chapter.subject, "value") else str(chapter.subject),
             edition=chapter.edition.value if hasattr(chapter.edition, "value") else str(chapter.edition),
+            course_id=getattr(chapter, "course_id", None),
+            prerequisite_chapter_ids=getattr(chapter, "prerequisite_chapter_ids", []),
             description=chapter.description,
             sort_order=chapter.sort_order,
             total_knowledge_points=total_knowledge_points or chapter.total_knowledge_points,
@@ -133,6 +137,7 @@ class CourseResponse(BaseModel):
     id: str
     name: str
     grade: str
+    edition: str
     subject: str
     description: Optional[str] = None
     total_knowledge_points: int
@@ -184,6 +189,7 @@ class CourseResponse(BaseModel):
             id=course.id,
             name=course.name,
             grade=course.grade,
+            edition=course.edition.value if hasattr(course.edition, "value") else str(course.edition),
             subject=course.subject.value if hasattr(course.subject, "value") else str(course.subject),
             description=course.description,
             total_knowledge_points=course.total_knowledge_points,

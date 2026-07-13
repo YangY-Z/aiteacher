@@ -24,29 +24,36 @@ const LoginPage: React.FC = () => {
     try {
       const response = await authApi.login(values);
       console.log('登录响应:', response);
-      
+
       const { access_token, student_id, student_name } = response.data.data;
-      
+
       // 保存 token
       localStorage.setItem('token', access_token);
-      
-      // 构建用户信息对象
-      const user = {
-        id: student_id,
-        name: student_name,
-        phone: values.phone,
-        grade: '', // 登录时不返回年级，可以后续获取
-        avatar_url: null,
-        status: 'active',
-        created_at: new Date().toISOString(),
-      };
-      
+
+      // 获取完整用户信息
+      let user: import('../types').Student;
+      try {
+        const profileRes = await authApi.getProfile();
+        user = profileRes.data.data;
+      } catch {
+        user = {
+          id: student_id,
+          name: student_name,
+          phone: values.phone,
+          grade: '',
+          edition: '',
+          avatar_url: null,
+          status: 'active',
+          created_at: new Date().toISOString(),
+        };
+      }
+
       // 保存用户信息
       localStorage.setItem('user', JSON.stringify(user));
-      
+
       // 更新状态
       setAuth(access_token, user);
-      
+
       message.success(`欢迎回来，${student_name}！`);
       navigate('/center');
     } catch (error: unknown) {
@@ -144,6 +151,20 @@ const LoginPage: React.FC = () => {
           </Form.Item>
 
           <Form.Item
+            name="edition"
+            rules={[{ required: true, message: '请选择教材版本' }]}
+          >
+            <Select placeholder="选择教材版本" size="large">
+              <Select.Option value="人教版">人教版</Select.Option>
+              <Select.Option value="北师大版">北师大版</Select.Option>
+              <Select.Option value="苏教版">苏教版</Select.Option>
+              <Select.Option value="鲁教版">鲁教版</Select.Option>
+              <Select.Option value="华师大版">华师大版</Select.Option>
+              <Select.Option value="人教版新教材">人教版新教材</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
             name="grade"
             rules={[{ required: true, message: '请选择年级' }]}
           >
@@ -151,6 +172,9 @@ const LoginPage: React.FC = () => {
               <Select.Option value="初一">初一</Select.Option>
               <Select.Option value="初二">初二</Select.Option>
               <Select.Option value="初三">初三</Select.Option>
+              <Select.Option value="高一">高一</Select.Option>
+              <Select.Option value="高二">高二</Select.Option>
+              <Select.Option value="高三">高三</Select.Option>
             </Select>
           </Form.Item>
 

@@ -11,6 +11,7 @@ class StudentCreate(BaseModel):
 
     name: str = Field(..., min_length=2, max_length=50, description="学生姓名")
     grade: str = Field(..., description="年级")
+    edition: str = Field(..., description="教材版本")
     phone: str = Field(..., min_length=11, max_length=11, description="手机号")
     password: str = Field(..., min_length=6, max_length=50, description="密码")
 
@@ -20,6 +21,14 @@ class StudentCreate(BaseModel):
         valid_grades = ["初一", "初二", "初三", "高一", "高二", "高三"]
         if v not in valid_grades:
             raise ValueError(f"年级必须是: {', '.join(valid_grades)}")
+        return v
+
+    @field_validator("edition")
+    @classmethod
+    def validate_edition(cls, v: str) -> str:
+        valid_editions = ["人教版", "北师大版", "苏教版", "鲁教版", "华师大版", "人教版新教材"]
+        if v not in valid_editions:
+            raise ValueError(f"教材版本必须是: {', '.join(valid_editions)}")
         return v
 
 
@@ -36,6 +45,7 @@ class StudentResponse(BaseModel):
     id: int
     name: str
     grade: str
+    edition: str
     phone: Optional[str] = None
     avatar_url: Optional[str] = None
     status: str
@@ -51,6 +61,7 @@ class StudentResponse(BaseModel):
             id=student.id,
             name=student.name,
             grade=student.grade.value if hasattr(student.grade, 'value') else str(student.grade),
+            edition=student.edition.value if hasattr(student.edition, 'value') else str(student.edition),
             phone=student.phone,
             avatar_url=student.avatar_url,
             status=student.status.value if hasattr(student.status, 'value') else str(student.status),

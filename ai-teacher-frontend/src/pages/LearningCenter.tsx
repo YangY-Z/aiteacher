@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import * as d3 from 'd3';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store';
 import { learningApi, courseApi } from '../api';
@@ -15,12 +16,14 @@ interface Badge {
 
 const LearningCenter: React.FC<{
   courseId?: string;
+  initialChapterId?: string | null;
   recommendedKpId?: string | null;
   autoStart?: boolean;
   onLearningStarted?: () => void;
   onBackToSpace?: () => void;
 }> = ({ 
   courseId,
+  initialChapterId,
   recommendedKpId, 
   autoStart, 
   onLearningStarted,
@@ -32,11 +35,18 @@ const LearningCenter: React.FC<{
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showAllLayers, setShowAllLayers] = useState(false);
+  const [showAllLayers, setShowAllLayers] = useState(true);
   const [selectedChapterId, setSelectedChapterId] = useState<string>('all');
+  const [knowledgeMapFlashKey, setKnowledgeMapFlashKey] = useState(0);
+  const [isKnowledgeMapHighlighted, setIsKnowledgeMapHighlighted] = useState(false);
+  const chapterMapSvgRef = useRef<SVGSVGElement>(null);
+  const chapterMapGroupRef = useRef<SVGGElement>(null);
+  const chapterMapZoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const knowledgeMapSectionRef = useRef<HTMLDivElement>(null);
+  const shouldFocusKnowledgeMapRef = useRef(false);
 
-  // 默认课程ID（一次函数）
-  const DEFAULT_COURSE_ID = 'MATH_JUNIOR_01';
+  // 默认课程ID（初一数学）
+  const DEFAULT_COURSE_ID = 'COURSE_RENJIAO_7_MATH';
   const activeCourseId = courseId || DEFAULT_COURSE_ID;
   const ALL_CHAPTER_ID = 'all';
   const UNASSIGNED_CHAPTER_ID = 'unassigned';
@@ -45,7 +55,7 @@ const LearningCenter: React.FC<{
   useEffect(() => {
     if (autoStart && recommendedKpId) {
       onLearningStarted?.();
-      navigate(`/learn?kp_id=${recommendedKpId}`);
+      navigate(buildLearnUrl(recommendedKpId));
     }
   }, [autoStart, recommendedKpId, onLearningStarted, navigate]);
 
@@ -101,8 +111,8 @@ const LearningCenter: React.FC<{
   }, [activeCourseId]);
 
   useEffect(() => {
-    setSelectedChapterId(ALL_CHAPTER_ID);
-  }, [activeCourseId]);
+    setSelectedChapterId(initialChapterId || ALL_CHAPTER_ID);
+  }, [activeCourseId, initialChapterId]);
 
   // 徽章数据（暂时硬编码，后续可以从API获取）
   const badges: Badge[] = [
@@ -162,6 +172,7 @@ const LearningCenter: React.FC<{
           locked: knowledgePoints.filter((kp) => kp.status === 'locked').length,
           percent: knowledgePoints.length ? Math.round((mastered / knowledgePoints.length) * 100) : 0,
           hasCurrent,
+          prerequisiteChapterIds: chapter.prerequisite_chapter_ids || [],
           knowledgePoints,
           levelDescriptions: chapter.level_descriptions || course.level_descriptions || {},
         };
@@ -187,12 +198,13 @@ const LearningCenter: React.FC<{
           locked: knowledgePoints.filter((kp) => kp.status === 'locked').length,
           percent: knowledgePoints.length ? Math.round((mastered / knowledgePoints.length) * 100) : 0,
           hasCurrent,
+          prerequisiteChapterIds: [],
           knowledgePoints,
           levelDescriptions: course.level_descriptions || {},
         };
       });
 
-    return [...knownChapterViews, ...extraChapterViews].filter((chapter) => chapter.total > 0);
+    return [...knownChapterViews, ...extraChapterViews];
   }, [course, progress]);
 
   const selectedChapter = useMemo(
@@ -200,9 +212,120 @@ const LearningCenter: React.FC<{
     [chapterViews, selectedChapterId]
   );
 
-  const displayedChapterViews = selectedChapter ? [selectedChapter] : chapterViews;
+  const chapterRouteColumns = useMemo(() => {
+    const chapterMap = new Map(chapterViews.map((chapter) => [chapter.id, chapter]));
+    const columnMap = new Map<string, number>();
+    const visiting = new Set<string>();
 
-  const currentPathChapterName = selectedChapter?.name || '全部章节';
+    const resolveColumn = (chapterId: string): number => {
+      if (columnMap.has(chapterId)) return columnMap.get(chapterId)!;
+      if (visiting.has(chapterId)) return 0;
+
+      visiting.add(chapterId);
+      const chapter = chapterMap.get(chapterId);
+      const prerequisiteIds = chapter?.prerequisiteChapterIds || [];
+      const knownPrerequisites = prerequisiteIds.filter((id) => chapterMap.has(id));
+
+      if (!chapter || knownPrerequisites.length === 0) {
+        columnMap.set(chapterId, 0);
+        visiting.delete(chapterId);
+        return 0;
+      }
+
+      const column = Math.max(...knownPrerequisites.map(resolveColumn)) + 1;
+      columnMap.set(chapterId, column);
+      visiting.delete(chapterId);
+      return column;
+    };
+
+    chapterViews.forEach((chapter) => resolveColumn(chapter.id));
+
+    const grouped = new Map<number, typeof chapterViews>();
+    chapterViews.forEach((chapter) => {
+      const column = columnMap.get(chapter.id) || 0;
+      grouped.set(column, [...(grouped.get(column) || []), chapter]);
+    });
+
+    return Array.from(grouped.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([column, chapters]) => ({
+        column,
+        chapters: chapters.slice().sort((a, b) => a.sortOrder - b.sortOrder),
+      }));
+  }, [chapterViews]);
+
+  const chapterMapLayout = useMemo(() => {
+    const nodeWidth = 230;
+    const nodeHeight = 108;
+    const columnGap = 118;
+    const rowGap = 34;
+    const paddingX = 48;
+    const paddingY = 44;
+    const maxRows = Math.max(1, ...chapterRouteColumns.map((column) => column.chapters.length));
+    const contentHeight = maxRows * nodeHeight + (maxRows - 1) * rowGap;
+    const nodeMap = new Map<string, {
+      chapter: typeof chapterViews[number];
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }>();
+
+    chapterRouteColumns.forEach((column, columnIndex) => {
+      const columnHeight = column.chapters.length * nodeHeight + Math.max(0, column.chapters.length - 1) * rowGap;
+      const yOffset = paddingY + Math.max(0, (contentHeight - columnHeight) / 2);
+      column.chapters.forEach((chapter, rowIndex) => {
+        nodeMap.set(chapter.id, {
+          chapter,
+          x: paddingX + columnIndex * (nodeWidth + columnGap),
+          y: yOffset + rowIndex * (nodeHeight + rowGap),
+          width: nodeWidth,
+          height: nodeHeight,
+        });
+      });
+    });
+
+    const links: Array<{
+      id: string;
+      from: { x: number; y: number };
+      to: { x: number; y: number };
+      completed: boolean;
+    }> = [];
+
+    chapterViews.forEach((chapter) => {
+      const target = nodeMap.get(chapter.id);
+      if (!target) return;
+
+      chapter.prerequisiteChapterIds
+        .map((id) => nodeMap.get(id))
+        .filter((node): node is NonNullable<typeof node> => Boolean(node))
+        .forEach((source) => {
+          links.push({
+            id: `${source.chapter.id}-${chapter.id}`,
+            from: {
+              x: source.x + source.width,
+              y: source.y + source.height / 2,
+            },
+            to: {
+              x: target.x,
+              y: target.y + target.height / 2,
+            },
+            completed: source.chapter.percent === 100,
+          });
+        });
+    });
+
+    return {
+      nodeWidth,
+      nodeHeight,
+      width: Math.max(920, paddingX * 2 + chapterRouteColumns.length * nodeWidth + Math.max(0, chapterRouteColumns.length - 1) * columnGap),
+      height: Math.max(260, paddingY * 2 + contentHeight),
+      nodes: Array.from(nodeMap.values()),
+      links,
+    };
+  }, [chapterRouteColumns, chapterViews]);
+
+  const currentPathChapterName = selectedChapter?.name || '章节地图';
 
   useEffect(() => {
     if (selectedChapterId !== ALL_CHAPTER_ID && !chapterViews.some((chapter) => chapter.id === selectedChapterId)) {
@@ -210,9 +333,80 @@ const LearningCenter: React.FC<{
     }
   }, [chapterViews, selectedChapterId]);
 
-  const handleSelectModule = (kp: KnowledgePointProgress) => {
-    navigate(`/learn?kp_id=${kp.id}&kp_name=${encodeURIComponent(kp.name)}`);
+  const buildLearnUrl = (kpId?: string | null, kpName?: string | null, chapterId?: string | null) => {
+    const params = new URLSearchParams();
+    params.set('return_to', 'course');
+    params.set('course_id', activeCourseId);
+
+    const resolvedChapterId = chapterId || selectedChapter?.id || null;
+    if (resolvedChapterId) params.set('chapter_id', resolvedChapterId);
+    if (kpId) params.set('kp_id', kpId);
+    if (kpName) params.set('kp_name', kpName);
+
+    return `/learn?${params.toString()}`;
   };
+
+  const handleSelectModule = (kp: KnowledgePointProgress) => {
+    navigate(buildLearnUrl(kp.id, kp.name, kp.chapter_id));
+  };
+
+  const handleSelectChapter = (chapterId: string) => {
+    shouldFocusKnowledgeMapRef.current = true;
+    setSelectedChapterId(chapterId);
+    setKnowledgeMapFlashKey((key) => key + 1);
+    setIsKnowledgeMapHighlighted(true);
+  };
+
+  useEffect(() => {
+    if (!chapterMapSvgRef.current || !chapterMapGroupRef.current) return;
+
+    const svg = d3.select(chapterMapSvgRef.current);
+    const group = d3.select(chapterMapGroupRef.current);
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.5, 2])
+      .on('zoom', (event) => {
+        group.attr('transform', event.transform);
+      });
+
+    chapterMapZoomRef.current = zoom;
+    svg.call(zoom);
+
+    return () => {
+      svg.on('.zoom', null);
+    };
+  }, [chapterMapLayout.width, chapterMapLayout.height]);
+
+  const resetChapterMapView = () => {
+    if (!chapterMapSvgRef.current || !chapterMapZoomRef.current) return;
+    d3.select(chapterMapSvgRef.current)
+      .transition()
+      .duration(180)
+      .call(chapterMapZoomRef.current.transform, d3.zoomIdentity);
+  };
+
+  useEffect(() => {
+    if (!selectedChapter || !shouldFocusKnowledgeMapRef.current) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      knowledgeMapSectionRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+      shouldFocusKnowledgeMapRef.current = false;
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [selectedChapter, knowledgeMapFlashKey]);
+
+  useEffect(() => {
+    if (!isKnowledgeMapHighlighted) return;
+
+    const timerId = window.setTimeout(() => {
+      setIsKnowledgeMapHighlighted(false);
+    }, 780);
+
+    return () => window.clearTimeout(timerId);
+  }, [isKnowledgeMapHighlighted, knowledgeMapFlashKey]);
 
   const findContinueTarget = (knowledgePoints: KnowledgePointProgress[]) => {
     const current = knowledgePoints.find(
@@ -234,11 +428,11 @@ const LearningCenter: React.FC<{
     const target = scopedTarget || globalTarget;
 
     if (!target) {
-      navigate('/learn');
+      navigate(buildLearnUrl(null, null, selectedChapter?.id));
       return;
     }
 
-    navigate(`/learn?kp_id=${target.id}&kp_name=${encodeURIComponent(target.name)}`);
+    navigate(buildLearnUrl(target.id, target.name, target.chapter_id));
   };
 
   // 格式化时间（分钟）
@@ -355,59 +549,107 @@ const LearningCenter: React.FC<{
           </div>
         </div>
 
-        {/* 章节概览 */}
+        {/* 章节地图 */}
         <div className="chapter-overview">
-          <button
-            type="button"
-            className={`chapter-card ${selectedChapterId === ALL_CHAPTER_ID ? 'active' : ''}`}
-            onClick={() => setSelectedChapterId(ALL_CHAPTER_ID)}
-          >
-            <div className="chapter-card-header">
-              <div>
-                <div className="chapter-title">全部章节</div>
-                <div className="chapter-meta">{progress.mastered_count}/{progress.total_count} 已掌握</div>
-              </div>
-              <span className="chapter-action">查看全部</span>
+          <div className="chapter-overview-header">
+            <div>
+              <h2>章节地图</h2>
+              <p>按章节前置关系安排学习顺序，点击章节查看对应知识地图</p>
             </div>
-            <div className="chapter-progress-bar" aria-hidden="true">
-              <div
-                className="chapter-progress-fill"
-                style={{ width: `${Math.round((progress.mastery_rate || 0) * 100)}%` }}
-              />
+            <div className="chapter-map-actions">
+              <button type="button" className="chapter-clear-btn" onClick={resetChapterMapView}>
+                重置视图
+              </button>
+              {selectedChapter ? (
+                <button type="button" className="chapter-clear-btn" onClick={() => setSelectedChapterId(ALL_CHAPTER_ID)}>
+                  收起知识地图
+                </button>
+              ) : null}
             </div>
-          </button>
+          </div>
 
-          {chapterViews.map((chapter) => (
-            <button
-              key={chapter.id}
-              type="button"
-              className={`chapter-card ${selectedChapterId === chapter.id ? 'active' : ''} ${chapter.hasCurrent ? 'current' : ''}`}
-              onClick={() => setSelectedChapterId(chapter.id)}
+          <div className="chapter-route" aria-label="章节地图">
+            <svg
+              ref={chapterMapSvgRef}
+              className="chapter-route-svg"
+              viewBox={`0 0 ${chapterMapLayout.width} ${chapterMapLayout.height}`}
+              role="img"
+              aria-label="章节学习顺序地图"
             >
-              <div className="chapter-card-header">
-                <div>
-                  <div className="chapter-title">{chapter.name}</div>
-                  <div className="chapter-meta">
-                    {chapter.mastered}/{chapter.total} 已掌握
-                    {chapter.hasCurrent ? <span className="chapter-current-tag">进行中</span> : null}
-                  </div>
-                </div>
-                <span className="chapter-action">{chapter.percent}%</span>
-              </div>
-              <div className="chapter-progress-bar" aria-hidden="true">
-                <div className="chapter-progress-fill" style={{ width: `${chapter.percent}%` }} />
-              </div>
-            </button>
-          ))}
+              <defs>
+                <marker id="chapter-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+                  <path d="M 0 0 L 8 4 L 0 8 z" fill="#c7c7cc" />
+                </marker>
+                <marker id="chapter-arrow-completed" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+                  <path d="M 0 0 L 8 4 L 0 8 z" fill="#69c779" />
+                </marker>
+              </defs>
+              <g ref={chapterMapGroupRef}>
+                {chapterMapLayout.links.map((link) => {
+                  const midX = (link.from.x + link.to.x) / 2;
+                  return (
+                    <path
+                      key={link.id}
+                      className={`chapter-svg-link ${link.completed ? 'completed' : ''}`}
+                      d={`M ${link.from.x} ${link.from.y} C ${midX} ${link.from.y}, ${midX} ${link.to.y}, ${link.to.x} ${link.to.y}`}
+                      markerEnd={`url(#${link.completed ? 'chapter-arrow-completed' : 'chapter-arrow'})`}
+                    />
+                  );
+                })}
+
+                {chapterMapLayout.nodes.map(({ chapter, x, y, width, height }) => {
+                  const isActive = selectedChapterId === chapter.id;
+                  const isCompleted = chapter.percent === 100;
+                  const title = chapter.name.length > 10 ? `${chapter.name.slice(0, 10)}...` : chapter.name;
+                  return (
+                    <g
+                      key={chapter.id}
+                      className={`chapter-svg-node ${isActive ? 'active' : ''} ${chapter.hasCurrent ? 'current' : ''} ${isCompleted ? 'completed' : ''}`}
+                      role="button"
+                      tabIndex={0}
+                      transform={`translate(${x}, ${y})`}
+                      onClick={() => handleSelectChapter(chapter.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          handleSelectChapter(chapter.id);
+                        }
+                      }}
+                    >
+                      <rect width={width} height={height} rx="12" />
+                      <text className="chapter-svg-title" x="18" y="30">{title}</text>
+                      <text className="chapter-svg-percent" x={width - 18} y="30" textAnchor="end">{chapter.percent}%</text>
+                      <text className="chapter-svg-meta" x="18" y="55">
+                        {chapter.mastered}/{chapter.total} 已掌握
+                      </text>
+                      {chapter.hasCurrent ? (
+                        <g className="chapter-svg-current" transform="translate(18, 64)">
+                          <rect width="54" height="18" rx="8" />
+                          <text x="27" y="13" textAnchor="middle">进行中</text>
+                        </g>
+                      ) : null}
+                      <rect className="chapter-svg-progress-bg" x="18" y={height - 18} width={width - 36} height="5" rx="3" />
+                      <rect className="chapter-svg-progress-fill" x="18" y={height - 18} width={(width - 36) * (chapter.percent / 100)} height="5" rx="3" />
+                    </g>
+                  );
+                })}
+              </g>
+            </svg>
+          </div>
         </div>
 
         {/* 智能知识地图 */}
-        <div className="knowledge-map-section">
+        {selectedChapter ? (
+        <div
+          key={`${selectedChapter.id}-${knowledgeMapFlashKey}`}
+          ref={knowledgeMapSectionRef}
+          className={`knowledge-map-section ${isKnowledgeMapHighlighted ? 'knowledge-map-section-updated' : ''}`}
+        >
           <div className="map-header">
             <div>
               <h2>🗺️ 知识地图</h2>
               <div className="map-subtitle">
-                {selectedChapter ? `当前仅显示 ${selectedChapter.name}` : '按章节查看知识点依赖'}
+                当前章节：{selectedChapter.name}
               </div>
             </div>
             <div className="map-controls">
@@ -432,26 +674,28 @@ const LearningCenter: React.FC<{
           </div>
 
           <div className="chapter-map-list">
-            {displayedChapterViews.map((chapter) => (
-              <section key={chapter.id} className="chapter-map-panel">
+              <section key={selectedChapter.id} className="chapter-map-panel">
                 <div className="chapter-map-header">
                   <div>
-                    <h3 className="chapter-map-title">{chapter.name}</h3>
-                    {chapter.description ? <p className="chapter-map-desc">{chapter.description}</p> : null}
+                    <h3 className="chapter-map-title">{selectedChapter.name}</h3>
+                    {selectedChapter.description ? <p className="chapter-map-desc">{selectedChapter.description}</p> : null}
                   </div>
                   <div className="chapter-map-stats">
-                    <span>{chapter.mastered}/{chapter.total} 已掌握</span>
-                    <span>{chapter.percent}%</span>
+                    <span>{selectedChapter.mastered}/{selectedChapter.total} 已掌握</span>
+                    <span>{selectedChapter.percent}%</span>
                   </div>
                 </div>
-                <KnowledgeGraph
-                  knowledgePoints={chapter.knowledgePoints}
-                  onNodeClick={handleSelectModule}
-                  showAllLayers={showAllLayers}
-                  levelDescriptions={chapter.levelDescriptions}
-                />
+                {selectedChapter.knowledgePoints.length > 0 ? (
+                  <KnowledgeGraph
+                    knowledgePoints={selectedChapter.knowledgePoints}
+                    onNodeClick={handleSelectModule}
+                    showAllLayers={showAllLayers}
+                    levelDescriptions={selectedChapter.levelDescriptions}
+                  />
+                ) : (
+                  <div className="chapter-map-empty">管理员还没有为本章配置知识点</div>
+                )}
               </section>
-            ))}
           </div>
 
           {/* 图例 */}
@@ -478,6 +722,7 @@ const LearningCenter: React.FC<{
             </div>
           </div>
         </div>
+        ) : null}
 
         {/* 徽章墙 */}
         <div className="badges-section">
